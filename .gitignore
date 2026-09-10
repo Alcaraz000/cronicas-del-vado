@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+art/masters/
+*.log
+.DS_Store
+Thumbs.db
