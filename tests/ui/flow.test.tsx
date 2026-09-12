@@ -50,7 +50,7 @@ function reiniciarStore(): void {
     world: { flags: [], fallen: [] },
     seen: {},
     prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
-    ui: { screen: 'inicio', campaign: null, pending: null, error: null, endSummary: null },
+    ui: { screen: 'inicio', campaign: null, pending: null, error: null, endSummary: null, ganancia: null, subidaPendiente: null },
   });
 }
 

@@ -78,7 +78,7 @@ function montarFinCon(gs: GameState): void {
     world: gs.world,
     seen: {},
     prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
-    ui: { screen: 'fin', campaign, pending: null, error: null, endSummary: null },
+    ui: { screen: 'fin', campaign, pending: null, error: null, endSummary: null, ganancia: null, subidaPendiente: null },
   });
 }
 
@@ -111,7 +111,7 @@ describe('FinScreen', () => {
       world: final.world,
       seen: {},
       prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
-      ui: { screen: 'fin', campaign, pending: null, error: null, endSummary: null },
+      ui: { screen: 'fin', campaign, pending: null, error: null, endSummary: null, ganancia: null, subidaPendiente: null },
     });
 
     render(<FinScreen />);

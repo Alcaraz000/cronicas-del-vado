@@ -1,6 +1,19 @@
 import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
-import { LIMITS, type Attr, type ClassId, type TraitId } from '@/content/catalog';
+import {
+  ATTRS,
+  ATTR_NAMES,
+  CLASSES,
+  LIMITS,
+  SKILLS,
+  TRAITS,
+  isSkillAllowed,
+  isTraitAllowed,
+  type Attr,
+  type ClassId,
+  type SkillId,
+  type TraitId,
+} from '@/content/catalog';
 import type { Campaign, WorldContent } from '@/content/schema';
 import { CAMPAIGNS } from '@/content/campaigns/index';
 import { WORLD } from '@/content/world';
@@ -15,9 +28,10 @@ import type {
   WorldState,
 } from '@/engine/types';
 import * as engine from '@/engine/resolve';
-import { fortuneMax } from '@/engine/progression';
+import { fortuneMax, type GananciaXp, type PremioDeNivel } from '@/engine/progression';
 import { newSeed } from '@/engine/rng';
 import { PERSIST_VERSION, runMigrations } from '@/state/migrations';
+import { parseSave } from '@/state/saveSchema';
 import { selectGameState, writeGameState } from '@/state/selectors';
 
 export interface Prefs {
@@ -27,7 +41,7 @@ export interface Prefs {
   reducedMotion: 'auto' | 'on';
 }
 
-export type Screen = 'inicio' | 'cargando' | 'escena' | 'fin' | 'error';
+export type Screen = 'inicio' | 'creacion' | 'hub' | 'cargando' | 'escena' | 'fin' | 'error';
 
 export interface PersistedSlice {
   characters: Character[];
@@ -37,12 +51,34 @@ export interface PersistedSlice {
   prefs: Prefs;
 }
 
+/**
+ * Niveles ganados en la última partida y lo que dan. Los premios de elección
+ * (`atributo`, `habilidad`) esperan acá a que el jugador los gaste con
+ * `aplicarPremioDeNivel`; `fortuna` y `leyenda` ya los aplicó el motor y solo se informan.
+ */
+export interface SubidaPendiente {
+  desde: number;
+  hasta: number;
+  premios: PremioDeNivel[];
+}
+
 export interface UiSlice {
   screen: Screen;
   campaign: Campaign | null;
   pending: PendingRoll | null;
   error: string | null;
   endSummary: EndSummary | null;
+  /** Desglose en prosa de la XP de la última partida cerrada (lo arma el motor). */
+  ganancia: GananciaXp | null;
+  subidaPendiente: SubidaPendiente | null;
+}
+
+/** Lo que el jugador elige al subir de nivel. Los premios automáticos no se piden. */
+export type PremioElegido = { kind: 'atributo'; attr: Attr } | { kind: 'habilidad'; skill: SkillId };
+
+export interface ImportResult {
+  ok: boolean;
+  error?: string;
 }
 
 export interface CreateCharacterInput {
@@ -54,10 +90,27 @@ export interface CreateCharacterInput {
 }
 
 export interface Actions {
-  /** Crea un personaje de nivel 1 y lo activa. Devuelve su id. Lanza si ya hay LIMITS.maxCharacters. */
+  /**
+   * Crea un personaje de nivel 1 y lo activa. Devuelve su id. Lanza (con el motivo en
+   * castellano) si ya hay LIMITS.maxCharacters, si el reparto de atributos no es 2/1/1/0
+   * o si los rasgos rompen la regla de identidad. La UI no evalúa nada de esto: ofrece
+   * lo que el catálogo permite y el store es el que dice que no.
+   */
   createCharacter(input: CreateCharacterInput): string;
   /** Fase A: 'Prueba', mago de nivel 3 con Saber 2 / Astucia 1 / Presencia 1 / Vigor 0. Lo activa. */
   createTestCharacter(): string;
+  /** Navegación pura entre pantallas. Saliendo de 'error' se limpia el error. */
+  goTo(screen: Screen): void;
+  /** Activa otro personaje. Ignora un id desconocido. La partida del anterior queda en él. */
+  selectCharacter(id: string): void;
+  /** Borra un personaje (y su partida). Si era el activo, activa a otro o deja el perfil sin activo. */
+  deleteCharacter(id: string): void;
+  /** El guardado entero como JSON, listo para descargar o copiar: el wrapper { state, version }. */
+  exportSave(): string;
+  /** Importa un guardado exportado: valida con zod y migra. Si falla no toca nada y devuelve el motivo. */
+  importSave(json: string): ImportResult;
+  /** Gasta un premio de la subida pendiente. Lanza si la elección rompe una regla. */
+  aplicarPremioDeNivel(premio: PremioElegido): void;
   /** 'cargando' → carga la campaña → run nuevo → enter(start) → 'escena'. Si falla: ui.error y 'error'. */
   startRun(campaignId: string): Promise<void>;
   /** Carga la campaña del run del personaje activo y reconstruye ui.pending con restorePending. */
@@ -72,7 +125,12 @@ export interface Actions {
   usePower(): void;
   /** Fase 2 de la tirada: consolida, limpia pending y avanza; si el run termina, 'fin'. */
   commitRoll(): void;
-  /** Desde 'fin': endRun → escribe world y personaje (run = null), ui.endSummary → 'inicio'. */
+  /**
+   * Cierra la partida terminada: endRun → escribe world y personaje (run = null, XP y nivel
+   * nuevos) y deja en `ui` el resumen, el desglose de XP y la subida pendiente. NO navega:
+   * se queda en 'fin' para que la pantalla muestre todo eso y el jugador elija sus premios.
+   * Salir de ahí es cosa de `goTo` ('hub', o 'inicio' si el personaje murió).
+   */
   finishRun(): void;
   /** Marca el run como derrota y lo termina con finishRun. */
   abandonRun(): void;
@@ -89,7 +147,18 @@ export const STORAGE_KEY = 'juegorol';
 
 export const DEFAULT_PREFS: Prefs = { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' };
 
-const INITIAL_UI: UiSlice = { screen: 'inicio', campaign: null, pending: null, error: null, endSummary: null };
+const INITIAL_UI: UiSlice = {
+  screen: 'inicio',
+  campaign: null,
+  pending: null,
+  error: null,
+  endSummary: null,
+  ganancia: null,
+  subidaPendiente: null,
+};
+
+/** Lo que `ui` guarda de una partida: se limpia junto al empezar otra, al cambiar de personaje o al importar. */
+const SIN_PARTIDA = { campaign: null, pending: null, endSummary: null, ganancia: null, subidaPendiente: null } as const;
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -124,6 +193,49 @@ function newId(): string {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** Reparto inicial de atributos (spec §4): 2/1/1/0, en el orden que el jugador quiera. */
+const REPARTO_INICIAL = [2, 1, 1, 0] as const;
+
+/** Rasgos de origen por personaje (spec §4: "2 de 8"). */
+const RASGOS_POR_PERSONAJE = 2;
+
+/**
+ * Comprueba la entrada de creación contra las reglas del sistema y lanza con el motivo.
+ * La UI no evalúa reglas: ofrece lo que el catálogo permite y esto es la última palabra.
+ *
+ * No se exige QUÉ atributo lleva el 2 (la spec dice que lo fija la clase, pero eso es el
+ * camino de la pantalla, no una invariante del guardado); sí se exige el reparto 2/1/1/0,
+ * que es lo que impide un personaje imposible.
+ */
+function validarCreacion(input: CreateCharacterInput): void {
+  if (input.name.trim() === '') {
+    throw new Error('El personaje necesita un nombre');
+  }
+
+  const valores = ATTRS.map((a) => input.attrs[a]);
+  if (valores.some((v) => !Number.isInteger(v))) {
+    throw new Error('Los atributos tienen que ser números enteros');
+  }
+  if ([...valores].sort((a, b) => b - a).join('/') !== REPARTO_INICIAL.join('/')) {
+    throw new Error('El reparto inicial de atributos tiene que ser 2/1/1/0');
+  }
+
+  if (input.traits.length > RASGOS_POR_PERSONAJE) {
+    throw new Error(`No se pueden elegir más de ${RASGOS_POR_PERSONAJE} rasgos de origen`);
+  }
+  if (new Set(input.traits).size !== input.traits.length) {
+    throw new Error('No se puede elegir dos veces el mismo rasgo de origen');
+  }
+  const clase = CLASSES[input.classId];
+  for (const trait of input.traits) {
+    if (!isTraitAllowed(input.classId, trait)) {
+      throw new Error(
+        `${TRAITS[trait].name} no se puede elegir: su etiqueta (${TRAITS[trait].tag}) es la Debilidad de ${clase.name}`,
+      );
+    }
+  }
 }
 
 function buildCharacter(input: CreateCharacterInput, level: number): Character {
@@ -227,6 +339,12 @@ export function createAppStore(): AppStore {
         const addCharacter = (character: Character): void => {
           set((s) => ({ characters: [...s.characters, character], activeCharacterId: character.id }));
         };
+        /** Las dos vías de creación comparten el tope: sin esto, cada muerte dejaba un personaje de más. */
+        const exigirLugar = (): void => {
+          if (get().characters.length >= LIMITS.maxCharacters) {
+            throw new Error(`No se pueden tener más de ${LIMITS.maxCharacters} personajes`);
+          }
+        };
         const setUi = (patch: Partial<UiSlice>): void => {
           set((s) => ({ ui: { ...s.ui, ...patch } }));
         };
@@ -285,9 +403,8 @@ export function createAppStore(): AppStore {
           ui: { ...INITIAL_UI },
 
           createCharacter(input) {
-            if (get().characters.length >= LIMITS.maxCharacters) {
-              throw new Error(`No se pueden tener más de ${LIMITS.maxCharacters} personajes`);
-            }
+            exigirLugar();
+            validarCreacion(input);
             const character = buildCharacter(input, 1);
             addCharacter(character);
             requestPersistentStorage();
@@ -295,6 +412,7 @@ export function createAppStore(): AppStore {
           },
 
           createTestCharacter() {
+            exigirLugar();
             const character = buildCharacter(
               {
                 name: 'Prueba',
@@ -307,6 +425,84 @@ export function createAppStore(): AppStore {
             );
             addCharacter(character);
             return character.id;
+          },
+
+          goTo(screen) {
+            setUi(screen === 'error' ? { screen } : { screen, error: null });
+          },
+
+          selectCharacter(id) {
+            const st = get();
+            if (st.activeCharacterId === id || !st.characters.some((c) => c.id === id)) return;
+            // Lo que `ui` tenía era de la partida del personaje anterior; la suya sigue guardada en él.
+            set((s) => ({ activeCharacterId: id, ui: { ...s.ui, ...SIN_PARTIDA } }));
+          },
+
+          deleteCharacter(id) {
+            const st = get();
+            if (!st.characters.some((c) => c.id === id)) return;
+            const characters = st.characters.filter((c) => c.id !== id);
+            if (st.activeCharacterId !== id) {
+              set({ characters });
+              return;
+            }
+            // Se borró al activo: hereda el primero que quede y la ui suelta su partida. Si el
+            // jugador estaba en una pantalla de partida, esa partida ya no existe: hay que sacarlo.
+            const activeCharacterId = characters[0]?.id ?? null;
+            const enPartida = st.ui.screen === 'escena' || st.ui.screen === 'fin' || st.ui.screen === 'cargando';
+            const screen: Screen = enPartida ? (activeCharacterId === null ? 'inicio' : 'hub') : st.ui.screen;
+            set((s) => ({ characters, activeCharacterId, ui: { ...s.ui, ...SIN_PARTIDA, screen } }));
+          },
+
+          exportSave() {
+            return JSON.stringify({ state: partialize(get()), version: PERSIST_VERSION }, null, 2);
+          },
+
+          importSave(json) {
+            const leido = parseSave(json);
+            if (!leido.ok) return { ok: false, error: leido.error };
+            // El guardado que entra no tiene nada que ver con lo que estaba pasando en pantalla:
+            // la campaña y la tirada de `ui` son del estado que se acaba de descartar.
+            set({ ...leido.state, ui: { ...INITIAL_UI } });
+            requestPersistentStorage();
+            return { ok: true };
+          },
+
+          aplicarPremioDeNivel(premio) {
+            const st = get();
+            const subida = st.ui.subidaPendiente;
+            const character = activeCharacter(st);
+            if (!subida || !character) return;
+            const indice = subida.premios.findIndex((p) => p.kind === premio.kind);
+            // Sin premio de ese tipo no hay nada que gastar (un segundo clic, por ejemplo).
+            if (indice === -1) return;
+
+            let actualizado: Character;
+            if (premio.kind === 'atributo') {
+              if (character.attrs[premio.attr] >= LIMITS.maxAttr) {
+                throw new Error(`${ATTR_NAMES[premio.attr]} ya está en el techo de ${LIMITS.maxAttr}`);
+              }
+              actualizado = {
+                ...character,
+                attrs: { ...character.attrs, [premio.attr]: character.attrs[premio.attr] + 1 },
+              };
+            } else {
+              if (!isSkillAllowed(character.classId, premio.skill)) {
+                throw new Error(
+                  `${SKILLS[premio.skill].name} no se puede elegir: su etiqueta (${SKILLS[premio.skill].tag}) es la Debilidad de ${CLASSES[character.classId].name}`,
+                );
+              }
+              if (character.skills.includes(premio.skill)) {
+                throw new Error(`${SKILLS[premio.skill].name} ya la tenés`);
+              }
+              actualizado = { ...character, skills: [...character.skills, premio.skill] };
+            }
+
+            const premios = subida.premios.filter((_, i) => i !== indice);
+            set((s) => ({
+              characters: s.characters.map((c) => (c.id === actualizado.id ? actualizado : c)),
+              ui: { ...s.ui, subidaPendiente: premios.length > 0 ? { ...subida, premios } : null },
+            }));
           },
 
           async startRun(campaignId) {
@@ -332,11 +528,11 @@ export function createAppStore(): AppStore {
                 ...writeGameState(s, entered),
                 ui: {
                   ...s.ui,
+                  ...SIN_PARTIDA,
                   screen: entered.run.outcome ? 'fin' : 'escena',
                   campaign,
-                  pending: null,
-                  // El resumen de la partida que se acaba de cerrar no es de esta.
-                  endSummary: null,
+                  // El resumen, la XP y la subida pendiente de la partida que se acaba de cerrar
+                  // no son de esta: los limpia SIN_PARTIDA.
                 },
               }));
             } catch (e) {
@@ -409,14 +605,29 @@ export function createAppStore(): AppStore {
           finishRun() {
             const ctx = playing();
             if (!ctx) {
-              setUi({ screen: 'inicio', campaign: null, pending: null });
+              // Sin partida que cerrar. Si ya se cerró (un segundo clic en la pantalla de fin)
+              // no se toca nada: ahí está el resumen y la subida que el jugador todavía no gastó.
+              if (get().ui.endSummary === null) setUi({ screen: 'inicio', campaign: null, pending: null });
               return;
             }
             const { world, character, summary } = engine.endRun(ctx.campaign, ctx.gs);
+            const premios = summary.xp.premios;
             set((s) => ({
               world,
               characters: s.characters.map((c) => (c.id === character.id ? character : c)),
-              ui: { ...s.ui, screen: 'inicio', campaign: null, pending: null, endSummary: summary },
+              ui: {
+                ...s.ui,
+                // Se queda en 'fin': ahí se muestran la XP y la subida de nivel (spec §6).
+                screen: 'fin',
+                campaign: null,
+                pending: null,
+                endSummary: summary,
+                ganancia: summary.xp.ganancia,
+                subidaPendiente:
+                  premios.length > 0
+                    ? { desde: summary.xp.nivelAntes, hasta: summary.xp.nivelDespues, premios }
+                    : null,
+              },
             }));
           },
 
