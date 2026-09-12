@@ -36,16 +36,26 @@ function descargar(json: string, nombre: string): boolean {
 }
 
 /**
- * Opciones (spec §6): un modal con exportar e importar el guardado.
+ * Opciones (spec §6): preferencias de lectura, más exportar e importar el guardado.
  *
- * No evalúa nada: `exportSave` arma el JSON y `importSave` lo valida con zod y migra.
- * La pantalla solo muestra el motivo cuando el store dice que no.
+ * Los cuatro controles de preferencias son grupos de radios (no `select`): con dos o tres
+ * valores nada más, conviene verlos todos de una. Cada uno lee y escribe directo con
+ * `setPrefs`, sin estado propio.
+ *
+ * `exportSave` arma el JSON y `importSave` lo valida con zod y migra; la pantalla solo
+ * muestra el motivo cuando el store dice que no.
  */
 export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
   const exportSave = useStore((s) => s.exportSave);
   const importSave = useStore((s) => s.importSave);
+  const prefs = useStore((s) => s.prefs);
+  const setPrefs = useStore((s) => s.setPrefs);
 
   const tituloId = useId();
+  const grupoCps = useId();
+  const grupoFontScale = useId();
+  const grupoReducedMotion = useId();
+  const grupoShowOdds = useId();
   const cerrarRef = useRef<HTMLButtonElement>(null);
 
   const [guardado] = useState<string>(() => exportSave());
@@ -116,6 +126,107 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
             {aviso.texto}
           </p>
         )}
+
+        <section className={styles.seccion}>
+          <h3 className={styles.subtitulo}>{S.ajustes.preferencias.titulo}</h3>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.maquinaDeEscribir.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoCps}
+                checked={prefs.cps === 40}
+                onChange={() => setPrefs({ cps: 40 })}
+              />
+              {S.ajustes.preferencias.maquinaDeEscribir.normal}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoCps}
+                checked={prefs.cps === 0}
+                onChange={() => setPrefs({ cps: 0 })}
+              />
+              {S.ajustes.preferencias.maquinaDeEscribir.instantaneo}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.tamanoDeLetra.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1}
+                onChange={() => setPrefs({ fontScale: 1 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n100}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1.25}
+                onChange={() => setPrefs({ fontScale: 1.25 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n125}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1.5}
+                onChange={() => setPrefs({ fontScale: 1.5 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n150}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.movimiento.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoReducedMotion}
+                checked={prefs.reducedMotion === 'auto'}
+                onChange={() => setPrefs({ reducedMotion: 'auto' })}
+              />
+              {S.ajustes.preferencias.movimiento.segunElSistema}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoReducedMotion}
+                checked={prefs.reducedMotion === 'on'}
+                onChange={() => setPrefs({ reducedMotion: 'on' })}
+              />
+              {S.ajustes.preferencias.movimiento.reducidoSiempre}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.probabilidades.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoShowOdds}
+                checked={prefs.showOdds}
+                onChange={() => setPrefs({ showOdds: true })}
+              />
+              {S.ajustes.preferencias.probabilidades.si}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoShowOdds}
+                checked={!prefs.showOdds}
+                onChange={() => setPrefs({ showOdds: false })}
+              />
+              {S.ajustes.preferencias.probabilidades.no}
+            </label>
+          </fieldset>
+        </section>
 
         <section className={styles.seccion}>
           <h3 className={styles.subtitulo}>{S.ajustes.exportar.titulo}</h3>

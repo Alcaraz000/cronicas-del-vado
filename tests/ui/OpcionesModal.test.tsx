@@ -50,6 +50,14 @@ describe('OpcionesModal', () => {
     expect(onCerrar).toHaveBeenCalledTimes(2);
   });
 
+  it('cambiar el tamaño de letra en Preferencias actualiza el store', () => {
+    render(<OpcionesModal onCerrar={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText(S.ajustes.preferencias.tamanoDeLetra.n125));
+
+    expect(useStore.getState().prefs.fontScale).toBe(1.25);
+  });
+
   it('muestra el guardado entero para copiar y lo ofrece como archivo', () => {
     act(() => {
       useStore.setState({ characters: [makeCharacter({ name: 'Bruna' })], activeCharacterId: 'pj_prueba' });

@@ -210,13 +210,37 @@ export const S = {
       `${nombre}, ${clase} de nivel ${nivel}`,
   },
   /**
-   * El modal de Opciones (spec §6), que por ahora es exportar e importar el guardado.
-   * Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de opciones
-   * de una escena; el texto que ve el jugador sí dice "Opciones".
+   * El modal de Opciones (spec §6): preferencias de lectura, más exportar e importar el
+   * guardado. Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de
+   * opciones de una escena; el texto que ve el jugador sí dice "Opciones".
    */
   ajustes: {
     titulo: 'Opciones',
     cerrar: 'Cerrar',
+    preferencias: {
+      titulo: 'Preferencias',
+      maquinaDeEscribir: {
+        leyenda: 'Máquina de escribir',
+        normal: 'Normal (40 cps)',
+        instantaneo: 'Instantáneo',
+      },
+      tamanoDeLetra: {
+        leyenda: 'Tamaño de letra',
+        n100: '100 %',
+        n125: '125 %',
+        n150: '150 %',
+      },
+      movimiento: {
+        leyenda: 'Movimiento',
+        segunElSistema: 'Según el sistema',
+        reducidoSiempre: 'Reducido siempre',
+      },
+      probabilidades: {
+        leyenda: 'Mostrar probabilidades',
+        si: 'Sí',
+        no: 'No',
+      },
+    },
     exportar: {
       titulo: 'Exportar el guardado',
       ayuda: 'Bajate el archivo o copiá el texto: es todo tu perfil, con los personajes y el mundo.',
