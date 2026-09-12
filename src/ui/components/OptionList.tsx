@@ -46,6 +46,10 @@ export function OptionList({ choices, showOdds, wounds, onPick }: OptionListProp
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
+      // Ctrl/Meta/Alt+dígito son atajos del navegador (cambiar de pestaña, etc.):
+      // si los dejáramos pasar, un atajo del sistema elegiría una opción de forma
+      // irreversible. Shift NO se filtra: en AZERTY el dígito se escribe con Shift.
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (!/^[1-9]$/.test(event.key)) return;
       const choice = habilitadas[Number(event.key) - 1];
       if (choice !== undefined) elegir(choice);

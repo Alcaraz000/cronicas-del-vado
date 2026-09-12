@@ -141,4 +141,22 @@ describe('OptionList', () => {
     expect(confirmar).toHaveBeenCalledWith(S.opciones.confirmMortal[2]);
     expect(onPick).not.toHaveBeenCalled();
   });
+
+  it('Ctrl+1 y Meta+1 no eligen ninguna opción (son atajos del navegador); 1 pelado sigue eligiendo', () => {
+    render(<OptionList choices={opciones} showOdds={true} wounds={0} onPick={onPick} />);
+
+    fireEvent.keyDown(window, { key: '1', ctrlKey: true });
+    fireEvent.keyDown(window, { key: '1', metaKey: true });
+    fireEvent.keyDown(window, { key: '1', altKey: true });
+    expect(onPick).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: '1' });
+    expect(onPick).toHaveBeenCalledWith('leer');
+  });
+
+  it('Shift+1 sí elige (en AZERTY el dígito se escribe con Shift)', () => {
+    render(<OptionList choices={opciones} showOdds={true} wounds={0} onPick={onPick} />);
+    fireEvent.keyDown(window, { key: '1', shiftKey: true });
+    expect(onPick).toHaveBeenCalledWith('leer');
+  });
 });

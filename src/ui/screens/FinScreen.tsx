@@ -15,6 +15,24 @@ function ultimaEscena(log: LogEntry[]): SceneEntry | null {
   return null;
 }
 
+/**
+ * Párrafos del desenlace que mató o derrotó al personaje: las entradas 'outcome'
+ * finales del log (las que `choose`/`commitRoll` agregan al aplicar los efectos
+ * que terminaron la partida). NO es la última escena: en una muerte a mitad de
+ * partida la última entrada 'scene' es la escena en la que estabas, no el
+ * desenlace. Si el desenlace no tenía texto, no hay ninguna entrada 'outcome' al
+ * final y esto devuelve [] (no hay nada que mostrar, no es un error).
+ */
+function desenlaceFinal(log: LogEntry[]): ResolvedParagraph[] {
+  const paragraphs: ResolvedParagraph[] = [];
+  for (let i = log.length - 1; i >= 0; i -= 1) {
+    const entry = log[i];
+    if (entry === undefined || entry.kind !== 'outcome') break;
+    paragraphs.unshift(...entry.paragraphs);
+  }
+  return paragraphs;
+}
+
 export function FinScreen() {
   const gs = useStore(useShallow(selectGameState));
   const campaign = useStore((s) => s.ui.campaign);
@@ -31,8 +49,10 @@ export function FinScreen() {
   let parrafos: ResolvedParagraph[] = [];
   if (outcome === null || outcome.kind === 'defeat') {
     titulo = S.fin.derrota;
+    parrafos = gs === null ? [] : desenlaceFinal(gs.run.log);
   } else if (outcome.kind === 'death') {
     titulo = S.fin.muerte;
+    parrafos = gs === null ? [] : desenlaceFinal(gs.run.log);
   } else {
     titulo = campaign?.endings[outcome.endingId]?.title ?? outcome.endingId;
     const escena = gs === null ? null : ultimaEscena(gs.run.log);
