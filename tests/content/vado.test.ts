@@ -5,7 +5,7 @@ import { campaign } from '@/content/campaigns/vado/campaign';
 import { meta } from '@/content/campaigns/vado/meta';
 import { WORLD } from '@/content/world';
 import { conMundo } from '@/state/store';
-import { beginRoll, choose, commitRoll, enter, render } from '@/engine/resolve';
+import { beginRoll, choose, commitRoll, endRun, enter, render } from '@/engine/resolve';
 import { fortuneMax } from '@/engine/progression';
 import type { Band, GameState } from '@/engine/types';
 import { makeState } from '../fixtures/state';
@@ -689,5 +689,61 @@ describe('vado: se juega de punta a punta hasta los cuatro finales (§8.14)', ()
     const muerto = commitRoll(vado, malherido, { ...pending, band: 'failure' });
     expect(muerto.run.outcome).toEqual({ kind: 'death' });
     expect(muerto.run.sceneId).toBe('c2_vado_crecido');
+  });
+});
+
+/**
+ * La reliquia de punta a punta (biblia §13.1, outline §5). Los tests unitarios de `applyReward`
+ * (tests/engine/resolve.end.test.ts) arman un fixture que mete la reliquia en `campaign.items`, que
+ * es justo lo que r07 le PROHÍBE al contenido real: las reliquias solo se declaran en `world.items`.
+ * Por eso hacen falta estos, que juegan la campaña de verdad con el motor de verdad sobre la campaña
+ * fusionada con WORLD (`conMundo`, que es lo que hace el store al cargar) y miran el perfil después
+ * de cerrar la partida. Sin ellos, el motor podría no encontrar nunca la reliquia y nadie se entera.
+ */
+describe('vado: fin_heredero deja la reliquia en el personaje (§13.1)', () => {
+  const clases = Object.keys(CLASSES) as ClassId[];
+  const pasosDe = (final: string): readonly Paso[] => {
+    const partida = PARTIDAS.find((p) => p.final === final);
+    expect(partida, `no hay partida para ${final}`).toBeDefined();
+    return partida?.pasos ?? [];
+  };
+
+  it('la reliquia no está en campaign.items y sí en la campaña fusionada con WORLD', () => {
+    expect(campaign.items['sello_del_vado']).toBeUndefined();
+    expect(vado.items['sello_del_vado']?.relic).toBe(true);
+  });
+
+  it.each(clases)('un %s que cierra fin_heredero se queda con sello_del_vado', (classId) => {
+    const state = jugar(classId, pasosDe('fin_heredero'));
+    expect(state.character.relics).toEqual([]);
+
+    const { character, world, summary } = endRun(vado, state);
+
+    expect(character.relics).toEqual(['sello_del_vado']);
+    expect(character.run).toBeNull();
+    expect(character.flags).toContain('char:vado.heredero');
+    expect(world.flags).toContain('world:vado.sello_perdido');
+    expect(summary.canonFlags).toContain('char:vado.heredero');
+    expect(summary.canonFlags).toContain('world:vado.sello_perdido');
+    expect(character.campaignLog['vado']?.canonEnding).toBe('fin_heredero');
+  });
+
+  it.each(['fin_hundido', 'fin_dravos', 'fin_crecida'])('%s no entrega ninguna reliquia', (final) => {
+    const state = jugar('guerrero', pasosDe(final));
+    const { character } = endRun(vado, state);
+    expect(character.relics).toEqual([]);
+    expect(character.campaignLog['vado']?.canonEnding).toBe(final);
+  });
+
+  it('la reliquia entra una sola vez aunque se juegue fin_heredero dos veces', () => {
+    const primera = endRun(vado, jugar('mago', pasosDe('fin_heredero')));
+    expect(primera.character.relics).toEqual(['sello_del_vado']);
+
+    const segunda = jugar('mago', pasosDe('fin_heredero'));
+    const { character } = endRun(vado, {
+      ...segunda,
+      character: { ...segunda.character, relics: primera.character.relics },
+    });
+    expect(character.relics).toEqual(['sello_del_vado']);
   });
 });
