@@ -10,7 +10,7 @@ import {
   type TraitId,
 } from '@/content/catalog';
 import { useStore } from '@/state/store';
-import { Placeholder } from '@/ui/components/Placeholder';
+import { Imagen } from '@/ui/components/Imagen';
 import { S } from '@/ui/strings.es';
 import styles from './CreacionScreen.module.css';
 
@@ -241,7 +241,7 @@ function PasoClase({ elegida, onElegir }: { elegida: ClassId | null; onElegir: (
               aria-pressed={elegida === id}
               onClick={() => onElegir(id)}
             >
-              <Placeholder label={S.creacion.retratoEtiqueta(`${id}_01`)} aspect="3:4" />
+              <Imagen tipo="retrato" id={`${id}_01`} aspect="3:4" alt={S.creacion.retratoEtiqueta(`${id}_01`)} />
               <span className={styles.nombreClase}>{clase.name}</span>
               <span className={styles.linea}>{S.creacion.potencia(ATTR_NAMES[clase.attr])}</span>
               <span className={styles.linea}>
@@ -292,7 +292,7 @@ function PasoRetrato({
             aria-pressed={portrait === id}
             onClick={() => onPortrait(id)}
           >
-            <Placeholder label={S.creacion.retratoEtiqueta(id)} aspect="3:4" />
+            <Imagen tipo="retrato" id={id} aspect="3:4" alt={S.creacion.retratoEtiqueta(id)} />
             <span className={styles.linea}>{S.creacion.retratoEtiqueta(id)}</span>
             {portrait === id && <span className={styles.elegido}>{S.creacion.retratoElegido}</span>}
           </button>
@@ -407,7 +407,7 @@ function PasoResumen({ classId, portrait, nombre, traits, flojo, onFlojo }: Paso
     <div className={styles.columna}>
       <div className={styles.ficha}>
         <div className={styles.fichaRetrato}>
-          <Placeholder label={S.creacion.retratoEtiqueta(portrait)} aspect="3:4" />
+          <Imagen tipo="retrato" id={portrait} aspect="3:4" alt={S.creacion.retratoEtiqueta(portrait)} />
         </div>
         <dl className={styles.datos}>
           <dt>{S.creacion.resumenNombre}</dt>

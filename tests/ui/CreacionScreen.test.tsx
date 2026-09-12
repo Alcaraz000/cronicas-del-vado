@@ -236,4 +236,31 @@ describe('CreacionScreen', () => {
     expect(input.traits).toEqual(['contrabandista', 'hijo_de_la_frontera']);
     expect(Object.keys(TRAITS)).toContain(input.traits[0]);
   });
+
+  it('muestra los retratos reales de la clase y del resto, y el del resumen final', async () => {
+    render(<CreacionScreen />);
+    fireEvent.click(screen.getByTestId('clase-clerigo'));
+    avanzar();
+
+    // Los tres retratos de la clase elegida ya son arte real, no cajas grises.
+    const clerigo01 = await screen.findByAltText(S.creacion.retratoEtiqueta('clerigo_01'));
+    expect(clerigo01.tagName).toBe('IMG');
+    expect(clerigo01.getAttribute('src')).toMatch(/clerigo_01/);
+
+    fireEvent.click(screen.getByTestId('ver-todos'));
+    const mago01 = await screen.findByAltText(S.creacion.retratoEtiqueta('mago_01'));
+    expect(mago01.tagName).toBe('IMG');
+
+    fireEvent.click(screen.getByTestId('retrato-clerigo_02'));
+    avanzar();
+
+    // Clérigo tiene Debilidad `engano`; estos dos rasgos no chocan con ella.
+    fireEvent.click(screen.getByTestId('rasgo-hijo_de_la_frontera'));
+    fireEvent.click(screen.getByTestId('rasgo-criado_en_el_templo'));
+    avanzar();
+
+    // Paso 4: el resumen usa el retrato elegido, también como imagen real.
+    const resumen = await screen.findByAltText(S.creacion.retratoEtiqueta('clerigo_02'));
+    expect(resumen.tagName).toBe('IMG');
+  });
 });

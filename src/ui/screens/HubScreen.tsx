@@ -13,8 +13,8 @@ import {
 import type { Character } from '@/engine/types';
 import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
+import { Imagen } from '@/ui/components/Imagen';
 import { OpcionesModal } from '@/ui/components/OpcionesModal';
-import { Placeholder } from '@/ui/components/Placeholder';
 import { S } from '@/ui/strings.es';
 import styles from './HubScreen.module.css';
 
@@ -93,7 +93,8 @@ function TarjetaCampana({ meta, personaje, totalFinales, enCurso, onJugar }: Tar
 
   return (
     <li className={styles.tarjeta}>
-      <Placeholder label={S.hub.campana.portada(meta.cover)} aspect="3:4" />
+      {/* Se busca por el id de la campaña, no por `meta.cover`: ver el comentario de `archivoDe` en `ui/assets`. */}
+      <Imagen tipo="portada" id={meta.id} aspect="3:4" alt={S.hub.campana.portadaAlt(meta.title)} />
       <h3 className={styles.tituloCampana}>{meta.title}</h3>
 
       {etiqueta !== null && (

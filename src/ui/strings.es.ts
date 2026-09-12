@@ -60,7 +60,7 @@ export const S = {
         `Borrar a ${nombre} es para siempre: se pierde el personaje y la partida que tenga en curso. ¿Borrarlo?`,
     },
     campana: {
-      portada: (cover: string): string => `Portada: ${cover}`,
+      portadaAlt: (titulo: string): string => `Portada de ${titulo}`,
       nivelSugerido: (rango: readonly [number, number]): string =>
         rango[0] === rango[1] ? `Nivel sugerido ${rango[0]}` : `Nivel sugerido ${rango[0]} a ${rango[1]}`,
       duracion: (minutos: readonly [number, number]): string =>

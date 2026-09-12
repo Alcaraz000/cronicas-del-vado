@@ -283,4 +283,18 @@ describe('HubScreen', () => {
     fireEvent.click(screen.getByTestId('borrar-pj_muerto'));
     expect(deleteCharacter).toHaveBeenCalledWith('pj_muerto');
   });
+
+  it('muestra la portada real de una campaña por su id, y cae al placeholder si no hay arte', async () => {
+    // El archivo real es `portada_vado.webp`: se busca por el id de la campaña ('vado'),
+    // no por `meta.cover` (acá 'sin_arte_portada', que a propósito no coincide con nada).
+    registrar([meta('vado', [1, 3]), meta('sin_arte', [1, 3], { cover: 'sin_arte_portada' })]);
+    montarStore([], null);
+    await montar();
+
+    const portada = await screen.findByAltText(S.hub.campana.portadaAlt('Campaña vado'));
+    expect(portada.tagName).toBe('IMG');
+    expect(portada.getAttribute('src')).toMatch(/portada_vado/);
+
+    expect(screen.getByRole('img', { name: S.hub.campana.portadaAlt('Campaña sin_arte') })).toBeInTheDocument();
+  });
 });
