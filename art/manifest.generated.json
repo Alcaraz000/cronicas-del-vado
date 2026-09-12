@@ -1,0 +1,375 @@
+{
+  "campana": "vado",
+  "generado": "derivado del contenido, no editar a mano",
+  "entradas": [
+    {
+      "id": "berta",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Berta, woman of 58, mayor of a river village. Broad face, deep vertical frown lines, iron-grey hair pinned back tight under a dark wool coif. Heavy burgundy wool overdress, cream linen collar, a tarnished brass chain of office worn like a necklace, ink-stained right hand. Palette: wine red, iron grey, warm cream, dull brass.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 128261
+    },
+    {
+      "id": "dravos",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Dravos, man of 44, garrison captain. Lean face, cropped black hair greying at the temples, a thin nose broken once and set well, close-shaved. Deep indigo-black surcoat over a riveted brigandine, silver captain’s clasp at the shoulder, grey riding gloves tucked in the belt, no jewellery. Palette: indigo black, cold silver, dark steel, a single thread of dried-blood red at the cuff.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 907850
+    },
+    {
+      "id": "tome",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Tomé, man of 46, village miller, seen in memory and in portraits of the dead. Round kind face, thick dark eyebrows, three days of stubble, deep laugh lines, a chipped front tooth. Bleached flour-dusted linen shirt, sleeves pushed up over heavy forearms, a canvas apron white with flour, a leather cord at the neck with an empty setting where a stone is missing. Palette: flour white, warm oak brown, dusty grain gold.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 898634
+    },
+    {
+      "id": "mausi",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Mausi, woman of 39, riverside tavern keeper. Round flushed face, sharp quick eyes, dark hair escaping from a rust-orange headscarf, soot smudge on one cheek, forearms scalded pink from washing. Rust-orange scarf, undyed linen shirt with rolled sleeves, a leather apron shiny with grease, a brass tap key hanging from her belt. Palette: rust orange, greasy leather brown, soot black, copper.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 4790
+    },
+    {
+      "id": "pell",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Pell, boy of 17, village militia guard. Thin freckled face, straw-blond hair cut badly by himself, ears that stick out, the first uneven attempt at a beard. Undyed leather jerkin two sizes too big over a russet tunic, a spear he holds too tight, a helmet that slips down over the eyebrows. Palette: straw yellow, russet brown, undyed leather, pale grey steel.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 734222
+    },
+    {
+      "id": "orell",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Orell, man of 51, frontier sergeant. Weathered square face, grey beard cropped close, a white scar through the left eyebrow, deep-set tired eyes. Slate-grey gambeson under a short mail shirt, oiled steel that is clean but dented, a plain sergeant’s sash of undyed wool, crossbow strap across the chest. Palette: slate grey, oiled steel, undyed wool, cold blue shadow.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 148979
+    },
+    {
+      "id": "ilse",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Ilse, young woman of 19, miller’s helper and mayor’s daughter. Strong jaw, sunburnt nose, copper-red hair in one thick braid over the shoulder, flour dust on the forearms. Mustard-ochre linen dress, sleeves rolled and tied, a man’s leather apron too big for her, a plain cord at the throat. Palette: mustard ochre, copper red, flour white, worn leather brown.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 113564
+    },
+    {
+      "id": "halvar",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, Halvar, man of 50, foreign river merchant. Broad pale face, pale blond beard braided in two short plaits, shrewd pale-blue eyes, heavy silver rings on three fingers. Teal-green brocade coat with marten fur at the collar, thick travelling boots, a leather ledger case on a strap across the chest. Palette: teal green, dark fur brown, cold silver, ivory.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 123751
+    },
+    {
+      "id": "guerrero_01",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a broad-shouldered woman in her thirties, short cropped hair, a broken nose, scarred leather jerkin over mail, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 728954
+    },
+    {
+      "id": "guerrero_02",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a heavy-set man in his forties, thick beard, shaved temples, a padded gambeson with old bloodstains, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 951335
+    },
+    {
+      "id": "guerrero_03",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a wiry young fighter, androgynous, close-shorn head, a livid burn scar down one cheek, studded leather, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 173716
+    },
+    {
+      "id": "explorador_01",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a lean woman in her late twenties, weathered face, a long dark braid, oiled hood and a quiver strap, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 201117
+    },
+    {
+      "id": "explorador_02",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a grey-eyed man in his thirties, stubble, a fur-lined collar, a coil of rope across the chest, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 868260
+    },
+    {
+      "id": "explorador_03",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a young androgynous tracker, freckled, hair tied back with cord, patched green wool cloak, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 645879
+    },
+    {
+      "id": "mago_01",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a pale scholar in their late twenties, androgynous, ink-stained fingers, close-cropped hair, worn indigo travelling robe, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 432541
+    },
+    {
+      "id": "mago_02",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of an older woman with iron-grey hair pinned up, spectacles on a cord, layered dark scholar robes, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 99684
+    },
+    {
+      "id": "mago_03",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a gaunt young man, hollow cheeks, shaved head, a leather satchel of scrolls across the chest, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 877303
+    },
+    {
+      "id": "clerigo_01",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a broad woman in her fifties, calm face, grey hair under a linen coif, plain undyed habit with a wooden pendant, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 808996
+    },
+    {
+      "id": "clerigo_02",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a young priest, androgynous, shaved head, serene tired eyes, a travelling cassock with a rope belt, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 141853
+    },
+    {
+      "id": "clerigo_03",
+      "tipo": "retrato",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, head and shoulders only, tight crop at the collarbone, three quarter view, plain dark vignette background, no architecture, no scenery, portrait of a stern man in his forties, close beard, a scar through one eyebrow, dark vestments and a small iron symbol, neutral expression, dark neutral background",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, full body, waist up, architecture, buildings, scenery, landscape, props, weapons in frame",
+      "width": 896,
+      "height": 1152,
+      "seed": 364234
+    },
+    {
+      "id": "puente_viejo",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Old stone bridge over a wide brown river at night, seen from a muddy road in the foreground, three arches, a barricade of planks and barrels across the near end, two lanterns hanging on poles, a squat square guard tower at the far end, a dark village of shuttered houses beyond. Heavy rain, low black clouds. No figures. Palette: wet slate, black water, amber lantern light.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 150034
+    },
+    {
+      "id": "puente_viejo.amanecer",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Old stone bridge over a wide brown river at night, seen from a muddy road in the foreground, three arches, a barricade of planks and barrels across the near end, two lanterns hanging on poles, a squat square guard tower at the far end, a dark village of shuttered houses beyond. Heavy rain, low black clouds. No figures. Palette: wet slate, black water, amber lantern light. at grey dawn, first cold light, rain easing, mist on the water",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 418078
+    },
+    {
+      "id": "vado_oculto",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Hidden river ford at night, a lightning-split willow leaning over the bank, flat stepping stones breaking the black water, reed beds on both sides, a low gravel spit, far hills as a flat silhouette. Overcast moonlight. No figures. Palette: black-green water, silver moon, dead willow grey.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 939532
+    },
+    {
+      "id": "vado_oculto.crecido",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Hidden river ford at night, a lightning-split willow leaning over the bank, flat stepping stones breaking the black water, reed beds on both sides, a low gravel spit, far hills as a flat silhouette. Overcast moonlight. No figures. Palette: black-green water, silver moon, dead willow grey. in full flood, brown churning water, everything half submerged, storm",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 244151
+    },
+    {
+      "id": "aldamar_plaza",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Muddy village square of a river frontier town at night, a stone well with a cut rope in the centre, low timber-and-daub houses with steep shingle roofs, three windows lit warm amber, a leaning notice post, the black bulk of a watermill across the water at the far end. Light rain, puddles reflecting the lit windows. No figures. Palette: mud brown, wet black timber, amber window light.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 161456
+    },
+    {
+      "id": "aldamar_plaza.tormenta",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Muddy village square of a river frontier town at night, a stone well with a cut rope in the centre, low timber-and-daub houses with steep shingle roofs, three windows lit warm amber, a leaning notice post, the black bulk of a watermill across the water at the far end. Light rain, puddles reflecting the lit windows. No figures. Palette: mud brown, wet black timber, amber window light. in a violent storm at night, sheeting rain, lightning, shutters banging",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 371790
+    },
+    {
+      "id": "taberna_ancla_seca",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a small river tavern, heavy low beams, a rusted iron ship anchor hanging from the main beam, long trestle tables, a smoky hearth on the left, a plank bar with clay jugs, a closed back door with a bench beside it, fishing floats and a broken oar on the wall. Tallow candles, thick smoky air. No figures. Palette: smoke brown, ember orange, rust, dirty cream plaster.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 927287
+    },
+    {
+      "id": "casa_de_berta",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a village mayor’s house, two-storey stair in the background, whitewashed walls covered in overlapping river maps pinned in layers, a broad writing table with sealed letters, a wax seal press and a brass candlestick, a tall stone hearth burning well, a locked oak chest. Warm even candlelight. No figures. Palette: beeswax gold, dry parchment, dark oak, whitewash.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 219000
+    },
+    {
+      "id": "molino_de_tome",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a working watermill at night, the great wooden gear wheel and millstone in the centre, a stack of burst flour sacks, a wooden stair to a loft, a trapdoor in the plank floor with a hasp, flour dust hanging in a single lantern beam, the wet mill race visible through an open hatch. No figures. Palette: flour white, wet oak black, lantern amber, green river damp.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 108457
+    },
+    {
+      "id": "molino_de_tome.inundado",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a working watermill at night, the great wooden gear wheel and millstone in the centre, a stack of burst flour sacks, a wooden stair to a loft, a trapdoor in the plank floor with a hasp, flour dust hanging in a single lantern beam, the wet mill race visible through an open hatch. No figures. Palette: flour white, wet oak black, lantern amber, green river damp. flooded, water up to the sills, everything soaked and abandoned, grey light",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 636979
+    },
+    {
+      "id": "sotano_del_sello",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Round underground stone chamber older than the building above it, carved spiral channels in the floor leading to a central socket, a shallow ring of standing water, a wooden ladder coming down through a trapdoor, chalk writing scrawled across one curved wall, roots pushing between the blocks. Cold blue light from above, one lantern on the floor. No figures. Palette: cold grey stone, chalk white, black water, faint green moss.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 809315
+    },
+    {
+      "id": "torre_de_dravos",
+      "tipo": "fondo",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a square stone guard tower command room, a heavy campaign table with unrolled charts and a stack of sealed letters, a brass brazier of coals, a rack of crossbows on the wall, an untouched camp bed, a narrow arrow-slit window showing black river and rain, a strongbox under the table. Tallow lamp light, cold stone. No figures. Palette: cold grey stone, ember red, ink black, brass.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 1344,
+      "height": 768,
+      "seed": 200251
+    },
+    {
+      "id": "carta_lacrada",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, Carta lacrada de Berta: La carta que te trajo hasta acá: el lacre de la alcaldesa todavía entero, la promesa de plata y once días de ausencia escritos con buena letra. Es el objeto que más trabaja y el más perdible: se gasta dándosela a Orell para cruzar, mostrándosela a Dravos, mojándola en el vado o cuando Berta te la arranca de la mano.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 209919
+    },
+    {
+      "id": "farol_de_sebo",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, Farol de sebo: Un farol de sebo con el vidrio ahumado. Alumbra poco y huele peor, pero alcanza para ver lo que nadie quiso dejar a la vista. Se te cae al charco del sótano, o lo dejás colgado en el poste del relevo.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 280621
+    },
+    {
+      "id": "palanca_de_molino",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, Palanca de molino: Una barra de hierro de las que usan para levantar la muela. Abre la trampilla sin pedirle permiso a nadie y se consume al bajar: queda trabando la tapa para que no se cierre sola.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 150110
+    },
+    {
+      "id": "cuerda_de_molinero",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, Cuerda de molinero: Cuerda de sirga, gruesa y áspera, con un nudo cada tantos palmos para el agarre. Sirve para atarse al sauce partido y cruzar el vado con el agua encima de las piedras.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 28295
+    },
+    {
+      "id": "cuaderno_de_tome",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, El cuaderno de Tomé: Once días de anotaciones de molinero, medidas en dedos de agua, con la letra cada vez más corta hasta quedar en una línea por página. Es lo más parecido que hay a oírlo hablar.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 882692
+    },
+    {
+      "id": "medallon_de_tome",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, El medallón de Tomé: Una esquirla de piedra gris colgada de un cordón de cuero, con el borde todavía vivo del cincel. Es el pedazo que le falta al sello: sin ella la piedra cierra mal, y el río baja pero no del todo.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 314717
+    },
+    {
+      "id": "carta_de_halvar",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, La carta de Halvar: Una carta comercial, cortés hasta el empalago, con la cesión del paso anotada al margen y una fecha anterior a la carta que te trajo a vos. Es la traición de Berta por escrito, y se usa: no se colecciona.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 950411
+    },
+    {
+      "id": "sello_del_vado",
+      "tipo": "objeto",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon, El sello del vado: Una piedra oscura, más vieja que el molino que la tapa, con canales tallados en espiral que bajan hacia el zócalo. Le falta una esquirla en el borde. Mientras esté puesta, el río no crece.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+      "width": 1024,
+      "height": 1024,
+      "seed": 48917
+    },
+    {
+      "id": "portada_vado",
+      "tipo": "portada",
+      "prompt": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, painted by a concept artist for a dark fantasy game, wide establishing shot, no people, no figures, Interior of a working watermill at night, the great wooden gear wheel and millstone in the centre, a stack of burst flour sacks, a wooden stair to a loft, a trapdoor in the plank floor with a hasp, flour dust hanging in a single lantern beam, the wet mill race visible through an open hatch. No figures. Palette: flour white, wet oak black, lantern amber, green river damp.",
+      "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, people, figures, characters, portrait, close-up",
+      "width": 896,
+      "height": 1152,
+      "seed": 495415
+    }
+  ]
+}

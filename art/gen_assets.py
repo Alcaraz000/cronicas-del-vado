@@ -53,9 +53,16 @@ def imagenes_de(resultado: dict) -> list[dict]:
 
 def generar(entrada: dict, estilo: dict, workflow_base: dict) -> dict:
     wf = json.loads(json.dumps(workflow_base))
-    positivo = f"{estilo['positivo']}, {entrada['prompt']}"
+    # Manifiesto derivado: cada entrada trae su prompt y su negativo ya armados.
+    # Manifiesto de prueba de estilo: hay un `estilo` comun que antecede al prompt.
+    if entrada.get("negativo"):
+        positivo = entrada["prompt"]
+        negativo = entrada["negativo"]
+    else:
+        positivo = f"{estilo['positivo']}, {entrada['prompt']}"
+        negativo = estilo["negativo"]
     wf["6"]["inputs"]["text"] = positivo
-    wf["7"]["inputs"]["text"] = estilo["negativo"]
+    wf["7"]["inputs"]["text"] = negativo
     wf["5"]["inputs"]["width"] = entrada.get("width", 1024)
     wf["5"]["inputs"]["height"] = entrada.get("height", 1024)
     wf["3"]["inputs"]["seed"] = entrada["seed"]
@@ -93,17 +100,22 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--solo", default=None, help="generar solo este tipo")
+    ap.add_argument("--desde", type=int, default=0, help="saltear las primeras N entradas")
+    ap.add_argument("--variante", type=int, default=0, help="desplaza la semilla, para pedir otro candidato")
     args = ap.parse_args()
 
     manifiesto = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
-    estilo = manifiesto["estilo"]
+    estilo = manifiesto.get("estilo", {"pasos": 28, "cfg": 5.0, "sampler": "dpmpp_2m_sde", "scheduler": "karras"})
     workflow_base = json.loads(
-        (RAIZ / "workflows" / manifiesto["workflow"]).read_text(encoding="utf-8")
+        (RAIZ / "workflows" / manifiesto.get("workflow", "sdxl_txt2img.json")).read_text(encoding="utf-8")
     )
 
     entradas = manifiesto["entradas"]
     if args.solo:
         entradas = [e for e in entradas if e["tipo"] == args.solo]
+    entradas = entradas[args.desde:]
+    if args.variante:
+        entradas = [{**e, "seed": e["seed"] + args.variante, "id": f"{e['id']}~v{args.variante}"} for e in entradas]
 
     registro = []
     for i, entrada in enumerate(entradas, 1):
