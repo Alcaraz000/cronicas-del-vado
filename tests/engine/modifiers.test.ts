@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Attr, Difficulty, Tag } from '@/content/catalog';
 import type { Outcome, Roll } from '@/content/schema';
-import { rollMode, rollSources } from '@/engine/modifiers';
+import { buildPreview, rollMode, rollSources } from '@/engine/modifiers';
 import type { RollSource } from '@/engine/types';
-import { contextoPrueba } from '../fixtures/modifiers';
+import { odds, riskLabel, targetLine } from '@/engine/dice';
+import { campanaModificadores, contextoPrueba } from '../fixtures/modifiers';
 
 /** Tirada de prueba: los outcomes no importan para los modificadores, solo attr, dificultad, tags y condiciones. */
 function tirada(
@@ -284,5 +285,126 @@ describe('rollSources: orden y pureza', () => {
     expect(a).toEqual(b);
     expect(a).not.toBe(b);
     expect(a[0]).not.toBe(b[0]);
+  });
+});
+
+describe('buildPreview', () => {
+  it('saber normal con el mago de prueba: +2, ventaja por rasgo, 68,1 / 26,9 / 5,1 %, seguro', () => {
+    const ctx = contextoPrueba();
+    const preview = buildPreview(tirada('saber', 'normal', ['saber']), ctx);
+
+    expect(preview.attr).toBe('saber');
+    expect(preview.attrValue).toBe(2);
+    expect(preview.difficulty).toBe('normal');
+    expect(preview.difficultyMod).toBe(0);
+    expect(preview.veteranMod).toBe(0);
+    expect(preview.totalMod).toBe(2);
+    expect(preview.mode).toBe('advantage');
+    expect(preview.sources).toEqual([fuente('advantage', 'Aprendiz de escriba', 'trait')]);
+
+    // 3d6 conservando los 2 mayores, con +2: 147, 58 y 11 casos de 216.
+    expect(preview.odds.success).toBeCloseTo(147 / 216, 10);
+    expect(preview.odds.partial).toBeCloseTo(58 / 216, 10);
+    expect(preview.odds.failure).toBeCloseTo(11 / 216, 10);
+    expect(Math.round(preview.odds.success * 1000) / 10).toBe(68.1);
+    expect(Math.round(preview.odds.partial * 1000) / 10).toBe(26.9);
+    expect(Math.round(preview.odds.failure * 1000) / 10).toBe(5.1);
+    expect(preview.odds).toEqual(odds(2, 'advantage'));
+
+    expect(preview.risk).toBe('seguro');
+    expect(preview.targetLine).toBe(targetLine(2));
+  });
+
+  it('vigor dificil con tag fisico: -1, desventaja por Debilidad, probabilidades de desventaja -1, peligroso', () => {
+    const ctx = contextoPrueba();
+    const preview = buildPreview(tirada('vigor', 'dificil', ['fisico']), ctx);
+
+    expect(preview.attrValue).toBe(0);
+    expect(preview.difficultyMod).toBe(-1);
+    expect(preview.veteranMod).toBe(0);
+    expect(preview.totalMod).toBe(-1);
+    expect(preview.mode).toBe('disadvantage');
+    expect(preview.sources).toEqual([fuente('disadvantage', 'Debilidad: Mago', 'class')]);
+
+    // 3d6 conservando los 2 menores, con -1: 4, 38 y 174 casos de 216.
+    expect(preview.odds).toEqual(odds(-1, 'disadvantage'));
+    expect(preview.odds.success).toBeCloseTo(4 / 216, 10);
+    expect(preview.odds.partial).toBeCloseTo(38 / 216, 10);
+    expect(preview.odds.failure).toBeCloseTo(174 / 216, 10);
+    expect(preview.risk).toBe('peligroso');
+    expect(preview.targetLine).toBe(targetLine(-1));
+  });
+
+  it('sigilo con Empapado y Cazador furtivo: modo cancelled y probabilidades de 2d6 normales', () => {
+    const ctx = contextoPrueba({ run: { conditions: ['empapado'] } });
+    const preview = buildPreview(tirada('astucia', 'normal', ['sigilo']), ctx);
+
+    expect(preview.totalMod).toBe(1);
+    expect(preview.mode).toBe('cancelled');
+    expect(preview.sources).toHaveLength(2);
+    expect(preview.sources.every((s) => s.cancelled)).toBe(true);
+
+    // 2d6 con +1: 10, 16 y 10 casos de 36. Idéntico a tirar normal.
+    expect(preview.odds).toEqual(odds(1, 'normal'));
+    expect(preview.odds.success).toBeCloseTo(10 / 36, 10);
+    expect(preview.odds.partial).toBeCloseTo(16 / 36, 10);
+    expect(preview.odds.failure).toBeCloseTo(10 / 36, 10);
+    expect(preview.risk).toBe(riskLabel(odds(1, 'normal')));
+  });
+
+  it('la dificultad se suma al atributo: facil +1, extrema -3', () => {
+    const ctx = contextoPrueba({ character: { traits: [] } });
+    expect(buildPreview(tirada('saber', 'facil', ['saber']), ctx).totalMod).toBe(3);
+    expect(buildPreview(tirada('saber', 'extrema', ['saber']), ctx).totalMod).toBe(-1);
+    expect(buildPreview(tirada('saber', 'extrema', ['saber']), ctx).difficultyMod).toBe(-3);
+  });
+
+  it('Veterano: con levelRange [1, 3] y nivel 5 la campaña es Tranquila y resta 1 al total', () => {
+    const campanaFacil = { ...campanaModificadores, levelRange: [1, 3] as [number, number] };
+    const ctx = contextoPrueba({ character: { level: 5 }, campaign: campanaFacil });
+    const preview = buildPreview(tirada('saber', 'normal', ['saber']), ctx);
+
+    expect(preview.veteranMod).toBe(-1);
+    expect(preview.attrValue).toBe(2);
+    expect(preview.difficultyMod).toBe(0);
+    expect(preview.totalMod).toBe(1);
+    expect(preview.mode).toBe('advantage');
+    expect(preview.odds).toEqual(odds(1, 'advantage'));
+    expect(preview.targetLine).toBe(targetLine(1));
+  });
+
+  it('Veterano: con levelRange [1, 3] y nivel 6 la campaña es Paseo y resta 2', () => {
+    const campanaFacil = { ...campanaModificadores, levelRange: [1, 3] as [number, number] };
+    const ctx = contextoPrueba({ character: { level: 6 }, campaign: campanaFacil });
+    const preview = buildPreview(tirada('saber', 'normal', ['saber']), ctx);
+    expect(preview.veteranMod).toBe(-2);
+    expect(preview.totalMod).toBe(0);
+  });
+
+  it('Veterano: en Mortal y Exigente no hay modificador', () => {
+    const ctx = contextoPrueba({ character: { level: 1 } });
+    expect(buildPreview(tirada('saber', 'normal', ['saber']), ctx).veteranMod).toBe(0);
+    const ctx2 = contextoPrueba({ character: { level: 2 } });
+    expect(buildPreview(tirada('saber', 'normal', ['saber']), ctx2).veteranMod).toBe(0);
+  });
+
+  it('el riesgo sale de riskLabel sobre las mismas probabilidades', () => {
+    const ctx = contextoPrueba({ character: { traits: [] } });
+    const normal = buildPreview(tirada('saber', 'normal', ['saber']), ctx);
+    expect(normal.mode).toBe('normal');
+    expect(normal.risk).toBe(riskLabel(normal.odds));
+    expect(normal.risk).toBe(riskLabel(odds(2, 'normal')));
+  });
+
+  it('no muta el contexto y devuelve un objeto nuevo en cada llamada', () => {
+    const ctx = contextoPrueba({ run: { conditions: ['empapado'], wounds: 1 } });
+    const roll = tirada('astucia', 'normal', ['sigilo', 'fisico']);
+    const antes = JSON.stringify(ctx);
+    const a = buildPreview(roll, ctx);
+    const b = buildPreview(roll, ctx);
+    expect(JSON.stringify(ctx)).toBe(antes);
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+    expect(a.sources).not.toBe(b.sources);
   });
 });

@@ -1,7 +1,9 @@
-import { CLASSES, CONDITIONS, SKILLS, TRAITS, WOUND_LABELS, type Tag } from '@/content/catalog';
+import { CLASSES, CONDITIONS, DIFFICULTIES, SKILLS, TRAITS, WOUND_LABELS, type Tag } from '@/content/catalog';
 import type { Item, Roll } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
-import type { EvalContext, RollMode, RollSource } from '@/engine/types';
+import { odds, riskLabel, targetLine } from '@/engine/dice';
+import { campaignLabel, veteranModifier } from '@/engine/progression';
+import type { EvalContext, RollMode, RollPreview, RollSource } from '@/engine/types';
 
 const ETIQUETA_SITUACION = 'Situación';
 
@@ -75,4 +77,34 @@ export function rollMode(sources: RollSource[]): RollMode {
   if (hayVentaja) return 'advantage';
   if (hayDesventaja) return 'disadvantage';
   return 'normal';
+}
+
+/**
+ * Todo lo que la UI muestra antes de tirar: atributo, modificadores, modo, fuentes,
+ * probabilidades exactas, etiqueta de riesgo y línea de objetivo.
+ * totalMod = attrs[attr] + DIFFICULTIES[difficulty] + veteranMod, con
+ * veteranMod = veteranModifier(campaignLabel(campaign.levelRange, character.level)).
+ */
+export function buildPreview(roll: Roll, ctx: EvalContext): RollPreview {
+  const { campaign, state } = ctx;
+  const sources = rollSources(roll, ctx);
+  const mode = rollMode(sources);
+  const attrValue = state.character.attrs[roll.attr];
+  const difficultyMod = DIFFICULTIES[roll.difficulty];
+  const veteranMod = veteranModifier(campaignLabel(campaign.levelRange, state.character.level));
+  const totalMod = attrValue + difficultyMod + veteranMod;
+  const probabilidades = odds(totalMod, mode);
+  return {
+    attr: roll.attr,
+    attrValue,
+    difficulty: roll.difficulty,
+    difficultyMod,
+    veteranMod,
+    totalMod,
+    mode,
+    sources,
+    odds: probabilidades,
+    risk: riskLabel(probabilidades),
+    targetLine: targetLine(totalMod),
+  };
 }
