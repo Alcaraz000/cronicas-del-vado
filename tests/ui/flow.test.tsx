@@ -1,10 +1,13 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { App } from '@/app/App';
 import { useStore } from '@/state/store';
-import { selectGameState } from '@/state/selectors';
+import { selectGameState, writeGameState } from '@/state/selectors';
 import { campaign } from '@/content/campaigns/prueba/campaign';
+import { meta as vadoMeta } from '@/content/campaigns/vado/meta';
+import { ATTR_NAMES, CLASSES, TRAITS } from '@/content/catalog';
+import * as engine from '@/engine/resolve';
 import type { Scene } from '@/content/schema';
 import { S } from '@/ui/strings.es';
 
@@ -54,6 +57,19 @@ function reiniciarStore(): void {
   });
 }
 
+/**
+ * Deja al personaje de prueba dentro de la campaña de humo, en la primera escena.
+ * La campaña `prueba` está oculta y ya no se ofrece desde ninguna pantalla (es contenido
+ * de humo): los tests que miran la pantalla de escena entran por el store, que es el
+ * mismo camino que recorre el hub.
+ */
+async function entrarEnLaTorre(): Promise<void> {
+  await act(async () => {
+    useStore.getState().createTestCharacter();
+    await useStore.getState().startRun('prueba');
+  });
+}
+
 describe('flujo de la rebanada vertical', () => {
   beforeEach(() => {
     reiniciarStore();
@@ -63,15 +79,12 @@ describe('flujo de la rebanada vertical', () => {
     cleanup();
   });
 
-  it('inicio → nueva partida → escena p_umbral sin "otra vez" → opción sin tirada → nueva escena en el log', async () => {
+  it('primera escena sin "otra vez" → opción sin tirada → nueva escena en el log', async () => {
+    await entrarEnLaTorre();
     render(<App />);
-    expect(screen.getByText(S.titulo)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: S.inicio.continuar })).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));
 
     const umbral = escena('p_umbral');
-    await screen.findByText(textoSeguro(umbral), undefined, { timeout: 5000 });
+    await screen.findByText(textoSeguro(umbral));
     expect(useStore.getState().ui.screen).toBe('escena');
     expect(screen.queryByText(varianteDeVisita(umbral))).toBeNull();
 
@@ -94,33 +107,11 @@ describe('flujo de la rebanada vertical', () => {
     expect(useStore.getState().ui.screen).toBe('escena');
   });
 
-  it('con el personaje activo muerto, "Nueva partida de prueba" juega con uno nuevo', async () => {
-    // El muerto no vuelve (spec): endRun marca character.dead pero no cambia activeCharacterId,
-    // así que el camino más corto desde 'fin' volvía a poner al muerto en la torre.
-    const id = useStore.getState().createTestCharacter();
-    useStore.setState({
-      characters: useStore.getState().characters.map((c) => ({ ...c, dead: { campaign: 'prueba', scene: 'p_cripta' } })),
-    });
-
-    render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));
-
-    await screen.findByText(textoSeguro(escena('p_umbral')), undefined, { timeout: 5000 });
-    const s = useStore.getState();
-    expect(s.ui.screen).toBe('escena');
-    expect(s.activeCharacterId).not.toBe(id);
-    const activo = s.characters.find((c) => c.id === s.activeCharacterId);
-    expect(activo?.dead).toBeUndefined();
-    expect(activo?.run?.sceneId).toBe('p_umbral');
-    // El muerto queda en la lista, sin partida.
-    expect(s.characters.find((c) => c.id === id)?.run).toBeNull();
-  });
-
   it('una opción con tirada muestra el panel, persiste run.pending y Continuar consolida', async () => {
+    await entrarEnLaTorre();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));
     const umbral = escena('p_umbral');
-    await screen.findByText(textoSeguro(umbral), undefined, { timeout: 5000 });
+    await screen.findByText(textoSeguro(umbral));
 
     fireEvent.click(screen.getByTestId('opcion-leer_inscripcion'));
 
@@ -129,7 +120,7 @@ describe('flujo de la rebanada vertical', () => {
     expect(screen.queryByTestId('opcion-leer_inscripcion')).toBeNull();
 
     // Mientras hay una tirada pendiente, la UI no ofrece "Abandonar": el store
-    // (tarea 13) no limpia run.pending al abandonar, así que la salida se bloquea acá.
+    // no limpia run.pending al abandonar, así que la salida se bloquea acá.
     expect(screen.getByRole('button', { name: S.barra.abandonar })).toBeDisabled();
 
     const antes = selectGameState(useStore.getState());
@@ -151,13 +142,15 @@ describe('flujo de la rebanada vertical', () => {
   });
 
   it('con un guardado sin seen[campaignId], la escena se renderiza sin bucle de renders', async () => {
+    await entrarEnLaTorre();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));
     const umbral = escena('p_umbral');
-    await screen.findByText(textoSeguro(umbral), undefined, { timeout: 5000 });
+    await screen.findByText(textoSeguro(umbral));
 
     // Simula un guardado viejo o un fixture que nunca escribió `seen` para la campaña.
-    useStore.setState({ seen: {} });
+    act(() => {
+      useStore.setState({ seen: {} });
+    });
 
     // Si selectGameState devolviera un `{}` nuevo por llamada, useShallow vería un
     // cambio en cada render y React lanzaría "Maximum update depth exceeded".
@@ -165,4 +158,168 @@ describe('flujo de la rebanada vertical', () => {
     expect(selectGameState(useStore.getState())?.seen).toEqual({});
     expect(useStore.getState().ui.screen).toBe('escena');
   });
+});
+
+describe('navegación entre pantallas', () => {
+  beforeEach(() => {
+    reiniciarStore();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('sin personaje, el inicio lleva a la creación; con personaje, al hub', async () => {
+    render(<App />);
+    expect(screen.getByText(S.titulo)).toBeInTheDocument();
+    expect(screen.getByText(S.inicio.sinPersonaje)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: S.inicio.continuar })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.crearPersonaje }));
+    expect(useStore.getState().ui.screen).toBe('creacion');
+    expect(screen.getByText(S.creacion.titulos[1])).toBeInTheDocument();
+
+    // Volver desde el paso 1 sin personajes devuelve al inicio.
+    fireEvent.click(screen.getByTestId('volver'));
+    expect(useStore.getState().ui.screen).toBe('inicio');
+
+    act(() => {
+      useStore.getState().createTestCharacter();
+    });
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.campanas }));
+    expect(useStore.getState().ui.screen).toBe('hub');
+    await screen.findByText(S.hub.titulo);
+  });
+
+  it('el hub vuelve al inicio y el inicio abre y cierra las Opciones', async () => {
+    act(() => {
+      useStore.getState().createTestCharacter();
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.opciones }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(dialogo).toHaveAccessibleName(S.ajustes.titulo);
+
+    fireEvent.click(screen.getByTestId('cerrar-opciones'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.campanas }));
+    await screen.findByText(S.hub.titulo);
+    fireEvent.click(screen.getByRole('button', { name: S.hub.volver }));
+    expect(useStore.getState().ui.screen).toBe('inicio');
+  });
+});
+
+describe('la Fase C desbloquea el contenido por clase y por origen', () => {
+  beforeEach(() => {
+    reiniciarStore();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('un explorador creado a mano ve en la primera escena de Aldamar una opción de su origen', async () => {
+    render(<App />);
+
+    // 1. Inicio → creación.
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.crearPersonaje }));
+
+    // 2. Los cuatro pasos: clase, retrato y nombre, dos rasgos, resumen.
+    fireEvent.click(screen.getByTestId('clase-explorador'));
+    fireEvent.click(screen.getByTestId('siguiente'));
+
+    fireEvent.change(screen.getByLabelText(S.creacion.nombreEtiqueta), { target: { value: 'Bruna' } });
+    fireEvent.click(screen.getByTestId('siguiente'));
+
+    // `hijo_de_molinero` es `social`, la Debilidad del Explorador: la pantalla lo bloquea con motivo.
+    expect(screen.getByTestId('rasgo-hijo_de_molinero')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('rasgo-hijo_de_la_frontera'));
+    fireEvent.click(screen.getByTestId('rasgo-cazador_furtivo'));
+    fireEvent.click(screen.getByTestId('siguiente'));
+
+    fireEvent.click(screen.getByTestId('crear'));
+
+    // 3. El hub, con la dificultad relativa de Aldamar para un personaje de nivel 1.
+    await screen.findByText(S.hub.titulo);
+    const activo = useStore.getState().characters.at(-1);
+    expect(activo?.classId).toBe('explorador');
+    expect(activo?.level).toBe(1);
+    expect(activo?.traits).toEqual(['hijo_de_la_frontera', 'cazador_furtivo']);
+
+    const etiqueta = await screen.findByTestId(`etiqueta-${vadoMeta.id}`);
+    expect(etiqueta).toHaveTextContent(S.hub.etiqueta.pareja);
+
+    // 4. A jugar "El vado de Aldamar".
+    fireEvent.click(screen.getByTestId(`jugar-${vadoMeta.id}`));
+
+    // 5. En la primera escena hay una opción exclusiva de su rasgo de origen, habilitada
+    //    y marcada con el nombre del rasgo. Con el mago de prueba no existía.
+    const opcion = await screen.findByTestId('opcion-leer_el_cielo', undefined, { timeout: 10000 });
+    expect(opcion).toBeEnabled();
+    expect(opcion).toHaveTextContent(`[${TRAITS.hijo_de_la_frontera.name}]`);
+    expect(useStore.getState().ui.screen).toBe('escena');
+    expect(selectGameState(useStore.getState())?.run.campaignId).toBe(vadoMeta.id);
+  }, 20000);
+});
+
+describe('fin de partida: XP, subida de nivel y vuelta al hub', () => {
+  beforeEach(() => {
+    reiniciarStore();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('terminar una partida da XP, sube de nivel y guarda el premio que elige el jugador', async () => {
+    await entrarEnLaTorre();
+
+    // El motor entra en el final de verdad: la partida queda con outcome y la pantalla de fin
+    // es la que llama a finishRun.
+    const st = useStore.getState();
+    const gs = selectGameState(st);
+    const campana = st.ui.campaign;
+    if (gs === null || campana === null) throw new Error('La partida de prueba no arrancó');
+    const final = engine.enter(campana, gs, 'p_fin_huida');
+    expect(final.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
+    act(() => {
+      useStore.setState((s) => ({ ...writeGameState(s, final), ui: { ...s.ui, screen: 'fin' } }));
+    });
+
+    render(<App />);
+
+    // 10 del hito de p_umbral + 30 del final nuevo + 40 del bono de primera victoria (Pareja).
+    await screen.findByText(S.fin.xpGanada(80));
+    expect(screen.getByText(S.fin.subiste(3, 4))).toBeInTheDocument();
+
+    const despuesDeCerrar = useStore.getState();
+    expect(despuesDeCerrar.characters[0]?.run).toBeNull();
+    expect(despuesDeCerrar.characters[0]?.level).toBe(4);
+    expect(despuesDeCerrar.ui.subidaPendiente).toEqual({ desde: 3, hasta: 4, premios: [{ kind: 'atributo' }] });
+
+    // Con el premio sin gastar no se sale de la pantalla, y la pantalla dice por qué.
+    const volver = screen.getByTestId('volver-del-fin');
+    expect(volver).toBeDisabled();
+    expect(screen.getByText(S.fin.faltaElegirPremio)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('premio-atributo-saber'));
+
+    const personaje = useStore.getState().characters[0];
+    expect(personaje?.attrs.saber).toBe(3);
+    expect(personaje?.xp).toBe(200);
+    expect(useStore.getState().ui.subidaPendiente).toBeNull();
+
+    // Y queda guardado en localStorage, que es lo que sobrevive a la recarga.
+    const guardado = localStorage.getItem('juegorol') ?? '';
+    expect(JSON.parse(guardado).state.characters[0].attrs.saber).toBe(3);
+
+    expect(screen.getByTestId('volver-del-fin')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('volver-del-fin'));
+    expect(useStore.getState().ui.screen).toBe('hub');
+    await screen.findByText(S.hub.titulo);
+    expect(screen.getByText(S.hub.personaje.ficha('Prueba', CLASSES.mago.name, 4))).toBeInTheDocument();
+    expect(screen.getByText(S.hub.personaje.atributo(ATTR_NAMES.saber, 3))).toBeInTheDocument();
+  }, 20000);
 });

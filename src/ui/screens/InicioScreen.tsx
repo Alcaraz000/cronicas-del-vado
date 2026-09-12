@@ -1,29 +1,29 @@
-import { listCampaigns } from '@/content/campaigns';
+import { useState } from 'react';
+import { campaignTitle } from '@/content/campaigns';
 import { CLASSES } from '@/content/catalog';
+import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
+import { OpcionesModal } from '@/ui/components/OpcionesModal';
 import { S } from '@/ui/strings.es';
 import styles from './InicioScreen.module.css';
 
+/**
+ * Inicio (spec §6): Continuar si hay partida, el camino a las campañas y Opciones.
+ *
+ * No lista campañas: eso es el hub. Sin personaje el botón lleva a la creación, que es
+ * el único camino para tener uno; con personaje lleva al hub, que es donde se elige
+ * campaña y se cambia o se crea otro personaje.
+ */
 export function InicioScreen() {
   const characters = useStore((s) => s.characters);
-  const activeCharacterId = useStore((s) => s.activeCharacterId);
-  const createTestCharacter = useStore((s) => s.createTestCharacter);
-  const startRun = useStore((s) => s.startRun);
+  const activo = useStore(selectActiveCharacter);
+  const goTo = useStore((s) => s.goTo);
   const continueRun = useStore((s) => s.continueRun);
 
-  const activo = characters.find((c) => c.id === activeCharacterId) ?? null;
-  const puedeContinuar = activo !== null && activo.run !== null;
+  const [opciones, setOpciones] = useState(false);
 
-  // Con el activo muerto hace falta uno nuevo: el muerto no vuelve y startRun lo rechaza.
-  // La pantalla de personajes de verdad es de una fase posterior.
-  const nuevaPartida = (campaignId: string): void => {
-    if (activo === null || activo.dead !== undefined) createTestCharacter();
-    void startRun(campaignId);
-  };
-
-  // Hasta que exista el hub de campañas (Fase C), la pantalla de inicio ofrece a mano las
-  // campañas visibles. `prueba` está oculta y se sigue arrancando con su propio botón.
-  const campanas = listCampaigns(false);
+  const sinPersonajes = characters.length === 0;
+  const enCurso = activo?.run ?? null;
 
   return (
     <div className={styles.pantalla}>
@@ -33,26 +33,28 @@ export function InicioScreen() {
           ? S.inicio.sinPersonaje
           : S.inicio.personajeActivo(activo.name, CLASSES[activo.classId].name, activo.level)}
       </p>
+      {enCurso !== null && <p className={styles.personaje}>{S.inicio.partidaEnCurso(campaignTitle(enCurso.campaignId))}</p>}
+      {activo?.dead !== undefined && <p className={styles.aviso}>{S.inicio.personajeMuerto(activo.name)}</p>}
+
       <div className={styles.botones}>
-        {puedeContinuar && (
+        {enCurso !== null && (
           <button type="button" className={styles.primario} onClick={() => void continueRun()}>
             {S.inicio.continuar}
           </button>
         )}
-        {campanas.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={styles.primario}
-            onClick={() => nuevaPartida(c.id)}
-          >
-            {S.inicio.jugarCampana(c.title)}
-          </button>
-        ))}
-        <button type="button" className={styles.secundario} onClick={() => nuevaPartida('prueba')}>
-          {S.inicio.nuevaPrueba}
+        <button
+          type="button"
+          className={enCurso === null ? styles.primario : styles.secundario}
+          onClick={() => goTo(sinPersonajes ? 'creacion' : 'hub')}
+        >
+          {sinPersonajes ? S.inicio.crearPersonaje : S.inicio.campanas}
+        </button>
+        <button type="button" className={styles.secundario} onClick={() => setOpciones(true)}>
+          {S.inicio.opciones}
         </button>
       </div>
+
+      {opciones && <OpcionesModal onCerrar={() => setOpciones(false)} />}
     </div>
   );
 }

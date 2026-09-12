@@ -97,7 +97,11 @@ export interface Actions {
    * lo que el catálogo permite y el store es el que dice que no.
    */
   createCharacter(input: CreateCharacterInput): string;
-  /** Fase A: 'Prueba', mago de nivel 3 con Saber 2 / Astucia 1 / Presencia 1 / Vigor 0. Lo activa. */
+  /**
+   * 'Prueba', mago de nivel 3 con Saber 2 / Astucia 1 / Presencia 1 / Vigor 0. Lo activa.
+   * Desde la Fase C ninguna pantalla lo llama: el jugador crea personajes en `creacion`.
+   * Queda para los tests y para la campaña de humo, que necesitan un personaje de un renglón.
+   */
   createTestCharacter(): string;
   /** Navegación pura entre pantallas. Saliendo de 'error' se limpia el error. */
   goTo(screen: Screen): void;
@@ -127,7 +131,8 @@ export interface Actions {
   commitRoll(): void;
   /**
    * Cierra la partida terminada: endRun → escribe world y personaje (run = null, XP y nivel
-   * nuevos) y deja en `ui` el resumen, el desglose de XP y la subida pendiente. NO navega:
+   * nuevos) y deja en `ui` el resumen, el desglose de XP y la subida pendiente. `ui.campaign`
+   * queda cargada: la pantalla de fin todavía muestra cosas de esa campaña. NO navega:
    * se queda en 'fin' para que la pantalla muestre todo eso y el jugador elija sus premios.
    * Salir de ahí es cosa de `goTo` ('hub', o 'inicio' si el personaje murió).
    */
@@ -619,7 +624,10 @@ export function createAppStore(): AppStore {
                 ...s.ui,
                 // Se queda en 'fin': ahí se muestran la XP y la subida de nivel (spec §6).
                 screen: 'fin',
-                campaign: null,
+                // `campaign` NO se limpia: la pantalla de fin la sigue necesitando para el
+                // título del final y para los nombres de los PNJ del epílogo. La sueltan las
+                // transiciones que de verdad dejan la campaña (startRun, selectCharacter,
+                // deleteCharacter, importSave), todas por SIN_PARTIDA.
                 pending: null,
                 endSummary: summary,
                 ganancia: summary.xp.ganancia,

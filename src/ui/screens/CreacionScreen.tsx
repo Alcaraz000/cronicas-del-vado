@@ -46,15 +46,14 @@ function flojoPorDefecto(classId: ClassId): Attr {
   return ATTRS.filter((a) => a !== principal).at(-1) ?? 'presencia';
 }
 
-export interface CreacionScreenProps {
-  /** Personaje creado: el router de la Fase C lo usa para ir al hub. */
-  onCreado?: (characterId: string) => void;
-  /** "Volver" en el paso 1: el router lo usa para volver a Inicio. */
-  onCancelar?: () => void;
-}
-
-export function CreacionScreen({ onCreado, onCancelar }: CreacionScreenProps) {
+/**
+ * Creación de personaje en cuatro pasos (spec §6). Navega con `goTo`, igual que el resto
+ * de las pantallas: el router solo decide cuál se dibuja.
+ */
+export function CreacionScreen() {
   const createCharacter = useStore((s) => s.createCharacter);
+  const goTo = useStore((s) => s.goTo);
+  const hayPersonajes = useStore((s) => s.characters.length > 0);
 
   const [paso, setPaso] = useState<Paso>(1);
   const [classId, setClassId] = useState<ClassId | null>(null);
@@ -102,13 +101,14 @@ export function CreacionScreen({ onCreado, onCancelar }: CreacionScreenProps) {
     return null;
   }, [paso, classId, nombreLimpio, traits.length]);
 
+  // Desde el paso 1 se sale de la pantalla: al hub si ya hay con quién jugar, al inicio si no.
   const volver = useCallback((): void => {
     if (paso === 1) {
-      onCancelar?.();
+      goTo(hayPersonajes ? 'hub' : 'inicio');
       return;
     }
     setPaso((p) => (p - 1) as Paso);
-  }, [paso, onCancelar]);
+  }, [paso, goTo, hayPersonajes]);
 
   const siguiente = useCallback((): void => {
     if (motivoBloqueo !== null) return;
@@ -119,7 +119,8 @@ export function CreacionScreen({ onCreado, onCancelar }: CreacionScreenProps) {
     if (classId === null) return;
     const donde = flojo ?? flojoPorDefecto(classId);
     try {
-      const id = createCharacter({
+      // `createCharacter` ya deja activo al personaje nuevo: de acá se sale al hub a elegir campaña.
+      createCharacter({
         name: nombreLimpio,
         classId,
         portrait: portrait ?? `${classId}_01`,
@@ -127,11 +128,11 @@ export function CreacionScreen({ onCreado, onCancelar }: CreacionScreenProps) {
         attrs: repartir(classId, donde),
       });
       setErrorAlCrear(null);
-      onCreado?.(id);
+      goTo('hub');
     } catch (e) {
       setErrorAlCrear(e instanceof Error ? e.message : String(e));
     }
-  }, [classId, flojo, portrait, traits, nombreLimpio, createCharacter, onCreado]);
+  }, [classId, flojo, portrait, traits, nombreLimpio, createCharacter, goTo]);
 
   const idMotivo = 'creacion-motivo';
 

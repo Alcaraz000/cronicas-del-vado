@@ -23,6 +23,14 @@ export const CAMPAIGNS: Record<string, CampaignEntry> = {
   },
 };
 
+/**
+ * Título visible de una campaña por su id. Una campaña que ya no está en el registro
+ * (un guardado viejo, un id borrado) devuelve el id: la pantalla dice algo, no rompe.
+ */
+export function campaignTitle(campaignId: string): string {
+  return CAMPAIGNS[campaignId]?.meta.title ?? campaignId;
+}
+
 /** Metas de las campañas registradas. Con `includeHidden = false` (producción) se omiten las marcadas `hidden`. */
 export function listCampaigns(includeHidden: boolean): CampaignMeta[] {
   return Object.values(CAMPAIGNS)

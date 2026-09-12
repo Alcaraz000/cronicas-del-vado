@@ -1,9 +1,10 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { FinScreen } from '@/ui/screens/FinScreen';
 import { useStore } from '@/state/store';
 import { campaign } from '@/content/campaigns/prueba/campaign';
+import { CLASSES, SKILLS } from '@/content/catalog';
 import * as engine from '@/engine/resolve';
 import { S } from '@/ui/strings.es';
 import type { Character, GameState, Run } from '@/engine/types';
@@ -197,5 +198,96 @@ describe('FinScreen', () => {
         'La puerta no se mueve; vos sí. Rebotás contra el marco, te doblás una muñeca y, cuando levantás la vista, hay alguien parado en el arco del patio, mirándote.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('una muerte vuelve al inicio, no al hub', () => {
+    const estado = estadoEn('p_cripta', 2);
+    const pendiente = engine.beginRoll(campaign, estado, 'cruzar');
+    const final = engine.commitRoll(campaign, estado, { ...pendiente, band: 'failure' as const });
+    expect(final.run.outcome).toEqual({ kind: 'death' });
+
+    montarFinCon(final);
+    render(<FinScreen />);
+
+    const volver = screen.getByTestId('volver-del-fin');
+    expect(volver).toHaveTextContent(S.fin.volverAlInicio);
+    fireEvent.click(volver);
+    expect(useStore.getState().ui.screen).toBe('inicio');
+  });
+});
+
+describe('FinScreen: la elección de la habilidad respeta la regla de identidad', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  /** Partida ya cerrada, con un premio de habilidad esperando al jugador. */
+  function montarConPremioDeHabilidad(): void {
+    const personaje = personajeDePrueba();
+    useStore.setState({
+      characters: [{ ...personaje, level: 5, xp: 240, skills: ['erudito_de_runas'] }],
+      activeCharacterId: personaje.id,
+      world: { flags: [], fallen: [] },
+      seen: {},
+      prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
+      ui: {
+        screen: 'fin',
+        campaign,
+        pending: null,
+        error: null,
+        endSummary: {
+          outcome: { kind: 'ending', endingId: 'fin_huida' },
+          canonFlags: [],
+          discardedFlags: [],
+          xp: {
+            ganancia: { hitos: 10, finales: 30, bono: 0, total: 40, detalle: ['1 hito nuevo: +10', 'Final nuevo: +30'] },
+            otorgada: 40,
+            descartada: 0,
+            xpAntes: 200,
+            xpDespues: 240,
+            nivelAntes: 4,
+            nivelDespues: 5,
+            premios: [{ kind: 'habilidad' }, { kind: 'fortuna' }],
+            topeNivel: 6,
+            topeXp: 300,
+            topeAlcanzado: false,
+          },
+        },
+        ganancia: { hitos: 10, finales: 30, bono: 0, total: 40, detalle: ['1 hito nuevo: +10', 'Final nuevo: +30'] },
+        subidaPendiente: { desde: 4, hasta: 5, premios: [{ kind: 'habilidad' }, { kind: 'fortuna' }] },
+      },
+    });
+  }
+
+  it('muestra la habilidad prohibida deshabilitada y con el motivo, y aplica la que sí se puede', () => {
+    montarConPremioDeHabilidad();
+    render(<FinScreen />);
+
+    // Veterano es `fisico`, la Debilidad del Mago: se ve, no se puede elegir, y dice por qué.
+    const veterano = screen.getByTestId('premio-habilidad-veterano');
+    expect(veterano).toBeVisible();
+    expect(veterano).toBeDisabled();
+    expect(
+      screen.getByText(S.fin.motivoDebilidad(S.tags[SKILLS.veterano.tag], CLASSES.mago.name)),
+    ).toBeInTheDocument();
+
+    // La que ya tiene tampoco se puede elegir dos veces.
+    expect(screen.getByTestId('premio-habilidad-erudito_de_runas')).toBeDisabled();
+    expect(screen.getByText(S.fin.motivoRepetida)).toBeInTheDocument();
+
+    // El premio automático del nivel 5 se informa, no se elige.
+    expect(screen.getByText(S.fin.premioFortuna)).toBeInTheDocument();
+
+    // Y no se sale de la pantalla hasta gastarlo.
+    expect(screen.getByTestId('volver-del-fin')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('premio-habilidad-vista_arcana'));
+
+    expect(useStore.getState().characters[0]?.skills).toEqual(['erudito_de_runas', 'vista_arcana']);
+    expect(screen.getByTestId('volver-del-fin')).toBeEnabled();
   });
 });

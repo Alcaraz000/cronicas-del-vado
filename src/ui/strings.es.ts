@@ -26,15 +26,20 @@ export const S = {
   tags: TAGS_ES,
   inicio: {
     continuar: 'Continuar',
-    nuevaPrueba: 'Nueva partida de prueba',
-    jugarCampana: (titulo: string): string => `Jugar «${titulo}»`,
-    sinPersonaje: 'Todavía no hay personaje. Cualquiera de las dos opciones crea uno (mago de nivel 3).',
+    campanas: 'Campañas',
+    crearPersonaje: 'Crear personaje',
+    opciones: 'Opciones',
+    sinPersonaje: 'Todavía no tenés un personaje. Creá uno para empezar a jugar.',
     personajeActivo: (nombre: string, clase: string, nivel: number): string =>
       `${nombre} · ${clase} · nivel ${nivel}`,
+    partidaEnCurso: (titulo: string): string => `Tenés una partida en curso en «${titulo}».`,
+    personajeMuerto: (nombre: string): string =>
+      `${nombre} murió y no vuelve a jugar. Creá otro personaje para seguir.`,
   },
   hub: {
     titulo: 'Campañas',
     volver: 'Volver al inicio',
+    opciones: 'Opciones',
     personaje: {
       titulo: 'Tu personaje',
       sinPersonaje: 'Todavía no tenés un personaje activo. Creá uno para elegir campaña.',
@@ -46,10 +51,13 @@ export const S = {
       crear: 'Crear personaje',
       crearOtro: 'Crear otro personaje',
       sinCupo: (max: number): string => `Ya tenés ${max} personajes, que es el máximo. Borrá uno para crear otro.`,
-      cambiar: 'Cambiar de personaje',
+      todos: 'Tus personajes',
       enJuego: 'en juego',
       elegir: (nombre: string, clase: string, nivel: number): string =>
         `Jugar con ${nombre}, ${clase} de nivel ${nivel}`,
+      borrar: (nombre: string): string => `Borrar a ${nombre}`,
+      borrarConfirmar: (nombre: string): string =>
+        `Borrar a ${nombre} es para siempre: se pierde el personaje y la partida que tenga en curso. ¿Borrarlo?`,
     },
     campana: {
       portada: (cover: string): string => `Portada: ${cover}`,
@@ -162,7 +170,58 @@ export const S = {
     final: 'Final',
     derrota: 'Caíste. La campaña se pierde, tu personaje sigue.',
     muerte: 'Tu personaje ha muerto.',
-    volver: 'Volver al inicio',
+    volverAlHub: 'Volver a las campañas',
+    volverAlInicio: 'Volver al inicio',
+    // Progreso (spec §4: la XP es por descubrimiento y la campaña tiene un tope).
+    progreso: 'Lo que te llevás',
+    xpGanada: (xp: number): string => `+${xp} XP`,
+    sinXp: 'Esta partida no te dejó XP nueva: ya habías visto todo lo que da.',
+    desglose: 'De dónde salió',
+    nivelActual: (nivel: number, xp: number): string => `Nivel ${nivel} · ${xp} XP`,
+    subiste: (desde: number, hasta: number): string =>
+      hasta - desde === 1 ? `Subiste al nivel ${hasta}` : `Subiste del nivel ${desde} al ${hasta}`,
+    descartada: (xp: number, tope: number): string =>
+      `Esta campaña ya no te sube más: se descartaron ${xp} XP porque no lleva más allá del nivel ${tope}.`,
+    topeAlcanzado: (tope: number): string =>
+      `Esta campaña ya no te sube más: su tope es el nivel ${tope} y ya lo tenés.`,
+    // Premios de nivel. Los de elección los gasta el jugador acá mismo.
+    premioAtributo: 'Elegí el atributo que sube',
+    premioHabilidad: 'Elegí una habilidad',
+    premioFortuna: 'Desde el nivel 5 empezás cada partida con 4 de Fortuna.',
+    premioLeyenda: 'Llegaste al nivel 10: tu personaje es una leyenda.',
+    faltaElegirPremio: 'Elegí tu premio de nivel antes de salir: después no se puede.',
+    atributoBoton: (nombre: string, de: number, a: number): string => `${nombre} ${de} → ${a}`,
+    habilidadBoton: (nombre: string, tag: string): string => `${nombre} — potencia ${tag}`,
+    motivoTecho: (max: number): string => `Ya está en el techo de ${max}.`,
+    motivoDebilidad: (tag: string, clase: string): string =>
+      `No se puede: ${tag} es la Debilidad del ${clase}.`,
+    motivoRepetida: 'Ya la tenés.',
+  },
+  /**
+   * El modal de Opciones (spec §6), que por ahora es exportar e importar el guardado.
+   * Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de opciones
+   * de una escena; el texto que ve el jugador sí dice "Opciones".
+   */
+  ajustes: {
+    titulo: 'Opciones',
+    cerrar: 'Cerrar',
+    exportar: {
+      titulo: 'Exportar el guardado',
+      ayuda: 'Bajate el archivo o copiá el texto: es todo tu perfil, con los personajes y el mundo.',
+      descargar: 'Descargar el guardado',
+      etiquetaTexto: 'Tu guardado, en texto',
+      sinDescarga: 'Este navegador no dejó descargar el archivo. Copiá el texto de acá abajo.',
+      nombreArchivo: (fecha: string): string => `cronicas-del-vado-${fecha}.json`,
+    },
+    importar: {
+      titulo: 'Importar un guardado',
+      ayuda: 'Pegá acá un guardado exportado. Reemplaza todo lo que tenés ahora, y no se puede deshacer.',
+      etiquetaTexto: 'Guardado para importar',
+      boton: 'Importar',
+      vacio: 'Pegá un guardado antes de importar.',
+      error: (motivo: string): string => `No se pudo importar: ${motivo}`,
+      exito: 'Guardado importado.',
+    },
   },
   creacion: {
     titulo: 'Personaje nuevo',

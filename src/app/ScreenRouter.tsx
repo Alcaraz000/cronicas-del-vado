@@ -9,13 +9,11 @@ import { InicioScreen } from '@/ui/screens/InicioScreen';
 
 export function ScreenRouter() {
   const screen = useStore((s) => s.ui.screen);
-  const goTo = useStore((s) => s.goTo);
   switch (screen) {
     case 'inicio':
       return <InicioScreen />;
-    // `createCharacter` ya deja activo al personaje nuevo: acá solo hay que navegar.
     case 'creacion':
-      return <CreacionScreen onCreado={() => goTo('hub')} onCancelar={() => goTo('inicio')} />;
+      return <CreacionScreen />;
     case 'hub':
       return <HubScreen />;
     case 'cargando':

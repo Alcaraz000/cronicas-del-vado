@@ -1,0 +1,100 @@
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: var(--esp-4);
+  background: rgb(0 0 0 / 65%);
+}
+
+.caja {
+  display: grid;
+  gap: var(--esp-4);
+  width: min(100%, var(--ancho-columna-max));
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--esp-5);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-acento);
+}
+
+.seccion {
+  display: grid;
+  gap: var(--esp-2);
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.ayuda,
+.etiqueta {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-texto-suave);
+}
+
+.texto {
+  width: 100%;
+  padding: var(--esp-2);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente-mono);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  resize: vertical;
+}
+
+.primario,
+.secundario {
+  justify-self: start;
+  font-family: var(--fuente-ui);
+  padding: 0.5em 1.2em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie-alta);
+  color: var(--color-texto);
+}
+
+.primario {
+  background: var(--color-acento);
+  border-color: var(--color-acento);
+  color: var(--color-fondo);
+}
+
+.aviso {
+  margin: 0;
+  padding: var(--esp-2) var(--esp-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie-alta);
+  font-family: var(--fuente-ui);
+}
+
+/* El tono no se comunica solo por color: el texto del aviso ya dice qué pasó. */
+.aviso[data-tono='error'] {
+  border-color: var(--color-peligro);
+}
+
+.aviso[data-tono='exito'] {
+  border-color: var(--color-exito);
+}

@@ -24,6 +24,7 @@ vi.mock('@/content/campaigns', () => ({
   CAMPAIGNS: H.campaigns,
   listCampaigns: (incluirOcultas: boolean): CampaignMeta[] =>
     H.metas.filter((m) => incluirOcultas || m.hidden !== true),
+  campaignTitle: (id: string): string => H.campaigns[id]?.meta.title ?? id,
 }));
 
 function meta(id: string, levelRange: [number, number], extra: Partial<CampaignMeta> = {}): CampaignMeta {
@@ -259,5 +260,27 @@ describe('HubScreen', () => {
 
     fireEvent.click(screen.getByTestId('crear-personaje'));
     expect(goTo).toHaveBeenCalledWith('creacion');
+  });
+
+  it('borra un personaje con confirmación: es la única salida cuando el perfil está lleno', async () => {
+    registrar([meta('c1', [1, 3])]);
+    const deleteCharacter = vi.fn<(id: string) => void>();
+    const muerto = makeCharacter({ id: 'pj_muerto', name: 'Finado', dead: { campaign: 'c1', scene: 'x' } });
+    montarStore([muerto, makeCharacter({ id: 'pj_otro', name: 'Otra' })], 'pj_muerto', {
+      deleteCharacter,
+    } as Partial<Store>);
+    await montar();
+
+    // Con el activo muerto no se puede jugar, y el hub dice por qué.
+    expect(screen.getByTestId('jugar-c1')).toBeDisabled();
+
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fireEvent.click(screen.getByTestId('borrar-pj_muerto'));
+    expect(confirmar).toHaveBeenCalledWith(S.hub.personaje.borrarConfirmar('Finado'));
+    expect(deleteCharacter).not.toHaveBeenCalled();
+
+    confirmar.mockReturnValue(true);
+    fireEvent.click(screen.getByTestId('borrar-pj_muerto'));
+    expect(deleteCharacter).toHaveBeenCalledWith('pj_muerto');
   });
 });

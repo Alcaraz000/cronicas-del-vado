@@ -29,7 +29,11 @@ function avanzar(): void {
 describe('CreacionScreen', () => {
   beforeEach(() => {
     localStorage.clear();
-    useStore.setState({ characters: [], activeCharacterId: null });
+    useStore.setState((s) => ({
+      characters: [],
+      activeCharacterId: null,
+      ui: { ...s.ui, screen: 'creacion' },
+    }));
   });
 
   afterEach(() => {
@@ -154,10 +158,9 @@ describe('CreacionScreen', () => {
     expect(screen.getByTestId('atributo-presencia')).toHaveTextContent('1');
   });
 
-  it('al confirmar llama a createCharacter con lo elegido y avisa al que la montó', () => {
+  it('al confirmar llama a createCharacter con lo elegido y sale al hub', () => {
     const espia = espiarCreateCharacter();
-    const onCreado = vi.fn();
-    render(<CreacionScreen onCreado={onCreado} />);
+    render(<CreacionScreen />);
 
     fireEvent.click(screen.getByTestId('clase-explorador'));
     avanzar();
@@ -181,23 +184,24 @@ describe('CreacionScreen', () => {
       traits: ['cazador_furtivo', 'aprendiz_de_escriba'],
       attrs: { vigor: 0, astucia: 2, saber: 1, presencia: 1 },
     });
-    expect(onCreado).toHaveBeenCalledWith('id-nuevo');
+    expect(useStore.getState().ui.screen).toBe('hub');
   });
 
-  it('volver desde el paso 1 avisa al que la montó; desde el paso 2 retrocede de paso', () => {
-    const onCancelar = vi.fn();
-    render(<CreacionScreen onCancelar={onCancelar} />);
+  it('volver desde el paso 1 sale de la pantalla; desde el paso 2 retrocede de paso', () => {
+    render(<CreacionScreen />);
 
+    // Sin personajes todavía, salir de la creación devuelve al inicio.
     fireEvent.click(screen.getByTestId('volver'));
-    expect(onCancelar).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().ui.screen).toBe('inicio');
 
+    useStore.setState((s) => ({ ui: { ...s.ui, screen: 'creacion' } }));
     fireEvent.click(screen.getByTestId('clase-mago'));
     avanzar();
     expect(screen.getByTestId('paso')).toHaveTextContent(S.creacion.paso(2, 4));
 
     fireEvent.click(screen.getByTestId('volver'));
     expect(screen.getByTestId('paso')).toHaveTextContent(S.creacion.paso(1, 4));
-    expect(onCancelar).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().ui.screen).toBe('creacion');
   });
 
   it('cambiar de clase suelta el rasgo que pasó a ser incompatible', () => {

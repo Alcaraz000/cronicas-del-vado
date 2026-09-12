@@ -69,8 +69,15 @@
 }
 
 .otros {
+  display: grid;
+  gap: var(--esp-2);
+}
+
+/* Un personaje del perfil: quién es (o el botón para jugar con él) y el de borrarlo. */
+.fila {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--esp-2);
 }
 

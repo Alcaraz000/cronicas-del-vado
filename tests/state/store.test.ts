@@ -431,7 +431,9 @@ describe('store: ciclo de partida sin dados', () => {
     const s = store.getState();
     // Queda en 'fin' para mostrar la derrota y la XP conservada; salir de ahí es cosa de goTo.
     expect(s.ui.screen).toBe('fin');
-    expect(s.ui.campaign).toBeNull();
+    // La campaña sigue cargada: la pantalla de fin la necesita para el título del final
+    // y los nombres de los PNJ del epílogo. La suelta la transición que sale de ella.
+    expect(s.ui.campaign?.id).toBe('prueba');
     expect(s.ui.pending).toBeNull();
     expect(s.ui.endSummary?.outcome).toEqual({ kind: 'defeat' });
     expect(s.characters[0]!.run).toBeNull();

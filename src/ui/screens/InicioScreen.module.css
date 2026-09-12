@@ -21,6 +21,12 @@
   color: var(--color-texto-suave);
 }
 
+.aviso {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  color: var(--color-aviso);
+}
+
 .botones {
   display: flex;
   flex-wrap: wrap;

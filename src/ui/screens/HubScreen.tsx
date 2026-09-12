@@ -1,34 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CAMPAIGNS, listCampaigns } from '@/content/campaigns';
+import { campaignTitle, CAMPAIGNS, listCampaigns } from '@/content/campaigns';
 import { ATTRS, ATTR_NAMES, CLASSES, LIMITS } from '@/content/catalog';
 import type { CampaignMeta } from '@/content/schema';
 import { campaignLabel, topeDeNivel, veteranModifier, xpDelNivel, type CampaignLabel } from '@/engine/progression';
 import type { Character } from '@/engine/types';
-import { useStore, type Store } from '@/state/store';
+import { selectActiveCharacter } from '@/state/selectors';
+import { useStore } from '@/state/store';
+import { OpcionesModal } from '@/ui/components/OpcionesModal';
 import { Placeholder } from '@/ui/components/Placeholder';
 import { S } from '@/ui/strings.es';
 import styles from './HubScreen.module.css';
-
-/**
- * Acciones de navegación que la Fase C le agrega al store (`goTo`, `selectCharacter`).
- * El hub las lee como opcionales porque el store y esta pantalla se escriben en paralelo:
- * mientras no existan, los botones que dependen de ellas no se dibujan y el resto del hub
- * funciona igual. Cuando el store las tenga, este archivo no cambia.
- */
-type ConNavegacion = Store & {
-  goTo?: (screen: 'inicio' | 'creacion' | 'hub') => void;
-  selectCharacter?: (id: string) => void;
-};
-
-function selGoTo(s: Store): ((screen: 'inicio' | 'creacion' | 'hub') => void) | undefined {
-  const fn = (s as ConNavegacion).goTo;
-  return typeof fn === 'function' ? fn : undefined;
-}
-
-function selSelectCharacter(s: Store): ((id: string) => void) | undefined {
-  const fn = (s as ConNavegacion).selectCharacter;
-  return typeof fn === 'function' ? fn : undefined;
-}
 
 /**
  * Cuántos finales declara cada campaña. No está en `CampaignMeta` —solo en la campaña
@@ -165,13 +146,16 @@ export function HubScreen() {
   const activeCharacterId = useStore((s) => s.activeCharacterId);
   const startRun = useStore((s) => s.startRun);
   const continueRun = useStore((s) => s.continueRun);
-  const goTo = useStore(selGoTo);
-  const selectCharacter = useStore(selSelectCharacter);
+  const goTo = useStore((s) => s.goTo);
+  const selectCharacter = useStore((s) => s.selectCharacter);
+  const deleteCharacter = useStore((s) => s.deleteCharacter);
+
+  const [opciones, setOpciones] = useState(false);
 
   const metas = useMemo(() => listCampaigns(false), []);
   const totales = useTotalDeFinales(metas);
 
-  const activo = characters.find((c) => c.id === activeCharacterId) ?? null;
+  const activo = useStore(selectActiveCharacter);
   const enCursoEn = (id: string): boolean => activo?.run?.campaignId === id;
 
   /**
@@ -192,25 +176,34 @@ export function HubScreen() {
     if (etiqueta === 'mortal' || etiqueta === 'exigente') avisos.push(S.hub.confirmar[etiqueta]);
     const enCurso = activo.run;
     if (enCurso !== null) {
-      avisos.push(S.hub.confirmarPerderPartida(CAMPAIGNS[enCurso.campaignId]?.meta.title ?? enCurso.campaignId));
+      avisos.push(S.hub.confirmarPerderPartida(campaignTitle(enCurso.campaignId)));
     }
     if (avisos.length > 0 && !window.confirm([...avisos, S.hub.confirmar.seguir].join('\n\n'))) return;
 
     void startRun(meta.id);
   };
 
+  /**
+   * Borrar es definitivo y se lleva la partida en curso del personaje: se pregunta antes.
+   * Es la única salida cuando el perfil está lleno de personajes muertos, así que el hub
+   * la ofrece siempre y no solo cuando no queda cupo.
+   */
+  const borrar = (id: string, nombre: string): void => {
+    if (window.confirm(S.hub.personaje.borrarConfirmar(nombre))) deleteCharacter(id);
+  };
+
   const sinCupo = characters.length >= LIMITS.maxCharacters;
-  const otros = characters.filter((c) => c.id !== activeCharacterId);
 
   return (
     <div className={styles.pantalla}>
       <header className={styles.encabezado}>
         <h1 className={styles.titulo}>{S.hub.titulo}</h1>
-        {goTo !== undefined && (
-          <button type="button" className={styles.secundario} onClick={() => goTo('inicio')}>
-            {S.hub.volver}
-          </button>
-        )}
+        <button type="button" className={styles.secundario} onClick={() => setOpciones(true)}>
+          {S.hub.opciones}
+        </button>
+        <button type="button" className={styles.secundario} onClick={() => goTo('inicio')}>
+          {S.hub.volver}
+        </button>
       </header>
 
       <section className={styles.personaje} aria-labelledby="hub-personaje">
@@ -241,20 +234,33 @@ export function HubScreen() {
           </>
         )}
 
-        {/* Los botones que navegan solo aparecen cuando el store ofrece esas acciones. */}
-        {selectCharacter !== undefined && otros.length > 0 && (
+        {characters.length > 0 && (
           <>
-            <h3 className={styles.subtitulo}>{S.hub.personaje.cambiar}</h3>
+            <h3 className={styles.subtitulo}>{S.hub.personaje.todos}</h3>
             <ul className={styles.otros}>
-              {otros.map((c) => (
-                <li key={c.id}>
+              {characters.map((c) => (
+                <li key={c.id} className={styles.fila}>
+                  {c.id === activeCharacterId ? (
+                    <span className={styles.suave}>
+                      {S.hub.personaje.ficha(c.name, CLASSES[c.classId].name, c.level)} · {S.hub.personaje.enJuego}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.secundario}
+                      data-testid={`elegir-${c.id}`}
+                      onClick={() => selectCharacter(c.id)}
+                    >
+                      {S.hub.personaje.elegir(c.name, CLASSES[c.classId].name, c.level)}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={styles.secundario}
-                    data-testid={`elegir-${c.id}`}
-                    onClick={() => selectCharacter(c.id)}
+                    data-testid={`borrar-${c.id}`}
+                    onClick={() => borrar(c.id, c.name)}
                   >
-                    {S.hub.personaje.elegir(c.name, CLASSES[c.classId].name, c.level)}
+                    {S.hub.personaje.borrar(c.name)}
                   </button>
                 </li>
               ))}
@@ -262,20 +268,16 @@ export function HubScreen() {
           </>
         )}
 
-        {goTo !== undefined && (
-          <>
-            <button
-              type="button"
-              className={styles.secundario}
-              data-testid="crear-personaje"
-              disabled={sinCupo}
-              onClick={() => goTo('creacion')}
-            >
-              {characters.length === 0 ? S.hub.personaje.crear : S.hub.personaje.crearOtro}
-            </button>
-            {sinCupo && <p className={styles.suave}>{S.hub.personaje.sinCupo(LIMITS.maxCharacters)}</p>}
-          </>
-        )}
+        <button
+          type="button"
+          className={styles.secundario}
+          data-testid="crear-personaje"
+          disabled={sinCupo}
+          onClick={() => goTo('creacion')}
+        >
+          {characters.length === 0 ? S.hub.personaje.crear : S.hub.personaje.crearOtro}
+        </button>
+        {sinCupo && <p className={styles.suave}>{S.hub.personaje.sinCupo(LIMITS.maxCharacters)}</p>}
       </section>
 
       <ul className={styles.grilla}>
@@ -290,6 +292,8 @@ export function HubScreen() {
           />
         ))}
       </ul>
+
+      {opciones && <OpcionesModal onCerrar={() => setOpciones(false)} />}
     </div>
   );
 }
