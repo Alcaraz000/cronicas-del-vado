@@ -16,9 +16,12 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "validate": "tsx tools/validate.ts",
+    "validate:assets": "tsx tools/validate.ts --assets",
+    "lint": "run-s validate lint:text",
     "lint:text": "tsx tools/lint-text.ts",
     "simulate": "tsx tools/simulate.ts",
-    "graph": "tsx tools/graph.ts"
+    "graph": "tsx tools/graph.ts",
+    "graph:vado": "tsx tools/graph.ts --campaign vado --out src/content/campaigns/vado/design/03-grafo.generated.md"
   },
   "dependencies": {
     "react": "^19.3.0",
