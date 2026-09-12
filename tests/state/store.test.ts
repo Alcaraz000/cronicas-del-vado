@@ -215,3 +215,122 @@ describe('selectors', () => {
     expect(s.seen).toEqual({});
   });
 });
+
+describe('store: ciclo de partida sin dados', () => {
+  it('startRun("prueba") carga la campaña, crea el run y entra a la escena inicial', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    const promesa = store.getState().startRun('prueba');
+    expect(store.getState().ui.screen).toBe('cargando');
+    await promesa;
+
+    const s = store.getState();
+    expect(s.ui.screen).toBe('escena');
+    expect(s.ui.error).toBeNull();
+    expect(s.ui.pending).toBeNull();
+    expect(s.ui.campaign?.id).toBe('prueba');
+
+    const gs = selectGameState(s);
+    expect(gs).not.toBeNull();
+    expect(gs!.run.campaignId).toBe('prueba');
+    expect(gs!.run.contentVersion).toBe(1);
+    expect(gs!.run.fortune).toBe(3);
+    expect(gs!.run.wounds).toBe(0);
+    expect(gs!.run.powerUsed).toBe(false);
+    expect(gs!.run.sceneId).toBe('p_umbral');
+    expect(gs!.run.milestones).toContain('entrar_a_la_torre');
+    expect(gs!.run.log).toHaveLength(1);
+    expect(gs!.run.log[0]).toMatchObject({ kind: 'scene', sceneId: 'p_umbral' });
+    expect(typeof gs!.run.rngSeed).toBe('number');
+
+    expect(readSaved().state.characters[0]!.run?.sceneId).toBe('p_umbral');
+  });
+
+  it('dos partidas seguidas tienen semillas distintas', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('prueba');
+    const seed1 = selectGameState(store.getState())!.run.rngSeed;
+    await store.getState().startRun('prueba');
+    const seed2 = selectGameState(store.getState())!.run.rngSeed;
+    expect(seed1).not.toBe(seed2);
+  });
+
+  it('startRun con campaña desconocida va a error y retry vuelve a inicio si no hay run', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('no_existe');
+    expect(store.getState().ui.screen).toBe('error');
+    expect(store.getState().ui.error).toContain('no_existe');
+    store.getState().retry();
+    expect(store.getState().ui.screen).toBe('inicio');
+    expect(store.getState().ui.error).toBeNull();
+  });
+
+  it('startRun sin personaje activo va a error', async () => {
+    const store = createAppStore();
+    await store.getState().startRun('prueba');
+    expect(store.getState().ui.screen).toBe('error');
+    expect(store.getState().ui.error).toBe('No hay personaje activo');
+  });
+
+  it('choose avanza a la escena siguiente, registra la elección y persiste', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('prueba');
+    store.getState().choose('rodear_patio');
+
+    const gs = selectGameState(store.getState())!;
+    expect(store.getState().ui.screen).toBe('escena');
+    expect(gs.run.sceneId).toBe('p_patio');
+    expect(gs.run.visited).toEqual({ p_umbral: 1 });
+    expect(gs.run.log.some((e) => e.kind === 'choice' && e.choiceId === 'rodear_patio')).toBe(true);
+    expect(gs.run.log[gs.run.log.length - 1]).toMatchObject({ kind: 'scene', sceneId: 'p_patio' });
+    expect(gs.character.flags).toContain('char:place.torre_abandonada');
+    expect(readSaved().state.characters[0]!.run?.sceneId).toBe('p_patio');
+    expect(Object.keys(readSaved().state.seen.prueba ?? {})).toContain('p_umbral');
+  });
+
+  it('continueRun retoma la partida guardada en un store nuevo', async () => {
+    const store1 = createAppStore();
+    store1.getState().createTestCharacter();
+    await store1.getState().startRun('prueba');
+    store1.getState().choose('rodear_patio');
+
+    const store2 = createAppStore();
+    await store2.persist.rehydrate();
+    expect(store2.getState().ui.screen).toBe('inicio');
+    expect(store2.getState().ui.campaign).toBeNull();
+    await store2.getState().continueRun();
+    const s = store2.getState();
+    expect(s.ui.screen).toBe('escena');
+    expect(s.ui.campaign?.id).toBe('prueba');
+    expect(s.ui.pending).toBeNull();
+    expect(selectGameState(s)!.run.sceneId).toBe('p_patio');
+  });
+
+  it('continueRun sin partida en curso vuelve a inicio', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().continueRun();
+    expect(store.getState().ui.screen).toBe('inicio');
+  });
+
+  it('abandonRun marca derrota y finishRun deja run null, registra la partida y vuelve a inicio', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('prueba');
+    store.getState().abandonRun();
+
+    const s = store.getState();
+    expect(s.ui.screen).toBe('inicio');
+    expect(s.ui.campaign).toBeNull();
+    expect(s.ui.pending).toBeNull();
+    expect(s.ui.endSummary?.outcome).toEqual({ kind: 'defeat' });
+    expect(s.characters[0]!.run).toBeNull();
+    expect(s.characters[0]!.campaignLog.prueba).toMatchObject({ runs: 1, wins: 0 });
+    expect(s.characters[0]!.campaignLog.prueba?.milestones).toContain('entrar_a_la_torre');
+    expect(selectGameState(s)).toBeNull();
+    expect(readSaved().state.characters[0]!.run).toBeNull();
+  });
+});
