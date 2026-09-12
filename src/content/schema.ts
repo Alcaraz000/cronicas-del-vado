@@ -278,3 +278,34 @@ export const ChoiceSchema = z
     message: 'Una opción debe tener exactamente uno de roll u outcome',
     path: ['roll'],
   });
+
+const SceneKindSchema = z.enum(['normal', 'hub', 'encounter', 'rest', 'ending']);
+
+export const RedirectSchema = z.object({
+  when: ConditionSchema,
+  to: idSchema,
+});
+
+export const SceneSchema = z
+  .object({
+    id: idSchema,
+    kind: SceneKindSchema,
+    lethal: z.literal(true).optional(),
+    place: idSchema,
+    variant: idSchema.optional(),
+    cg: idSchema.optional(),
+    npcs: z.array(idSchema).optional(),
+    redirect: z.array(RedirectSchema).optional(),
+    onEnter: z.array(EffectSchema).optional(),
+    text: TextSchema,
+    choices: z.array(ChoiceSchema),
+    ending: z.object({ id: idSchema, epilogue: TextSchema }).optional(),
+  })
+  .refine((scene) => scene.kind !== 'ending' || scene.ending !== undefined, {
+    message: 'Una escena de tipo ending necesita el campo ending',
+    path: ['ending'],
+  })
+  .refine((scene) => scene.kind !== 'ending' || scene.choices.length === 0, {
+    message: 'Una escena de tipo ending no puede tener opciones',
+    path: ['choices'],
+  });

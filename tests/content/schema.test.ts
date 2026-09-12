@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { ConditionSchema, EffectSchema, TextSchema, OutcomeSchema, RollSchema, ChoiceSchema } from '@/content/schema';
+import {
+  ConditionSchema,
+  EffectSchema,
+  TextSchema,
+  OutcomeSchema,
+  RollSchema,
+  ChoiceSchema,
+  RedirectSchema,
+  SceneSchema,
+} from '@/content/schema';
 
 describe('ConditionSchema', () => {
   it('acepta una condición anidada con all/any/not y todas las hojas', () => {
@@ -194,5 +203,81 @@ describe('ChoiceSchema', () => {
 
   it('rechaza una opción sin roll ni outcome', () => {
     expect(ChoiceSchema.safeParse({ id: 'nada', label: 'Nada' }).success).toBe(false);
+  });
+});
+
+describe('RedirectSchema', () => {
+  it('acepta when + to', () => {
+    expect(RedirectSchema.safeParse({ when: { flag: 'run:partio' }, to: 'm_final' }).success).toBe(true);
+  });
+
+  it('rechaza un redirect sin when', () => {
+    expect(RedirectSchema.safeParse({ to: 'm_final' }).success).toBe(false);
+  });
+});
+
+describe('SceneSchema', () => {
+  const opcion = { id: 'partir', label: 'Partir', outcome: { next: 'm_final' } };
+
+  it('acepta una escena normal con redirect, onEnter, npcs y opciones', () => {
+    const escena: unknown = {
+      id: 'm_inicio',
+      kind: 'normal',
+      place: 'm_claro',
+      variant: 'noche',
+      npcs: ['m_guia'],
+      redirect: [{ when: { flag: 'run:partio' }, to: 'm_final' }],
+      onEnter: [{ milestone: 'm_llegar' }],
+      text: ['Llegás al claro.'],
+      choices: [opcion],
+    };
+    expect(SceneSchema.safeParse(escena).success).toBe(true);
+  });
+
+  it('acepta una escena lethal', () => {
+    const escena: unknown = { id: 'm_cripta', kind: 'normal', lethal: true, place: 'm_claro', text: ['Oscuro.'], choices: [opcion] };
+    expect(SceneSchema.safeParse(escena).success).toBe(true);
+  });
+
+  it('acepta un ending con ending y sin opciones', () => {
+    const escena: unknown = {
+      id: 'm_final',
+      kind: 'ending',
+      place: 'm_claro',
+      text: ['Dejás el claro atrás.'],
+      choices: [],
+      ending: { id: 'm_fin', epilogue: ['El sendero te lleva de vuelta.'] },
+    };
+    expect(SceneSchema.safeParse(escena).success).toBe(true);
+  });
+
+  it('rechaza un ending con opciones', () => {
+    const escena: unknown = {
+      id: 'm_final',
+      kind: 'ending',
+      place: 'm_claro',
+      text: ['Dejás el claro atrás.'],
+      choices: [opcion],
+      ending: { id: 'm_fin', epilogue: ['El sendero te lleva de vuelta.'] },
+    };
+    const resultado = SceneSchema.safeParse(escena);
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.issues.some((issue) => /no puede tener opciones/.test(issue.message))).toBe(true);
+    }
+  });
+
+  it('rechaza un ending sin el campo ending', () => {
+    const escena: unknown = { id: 'm_final', kind: 'ending', place: 'm_claro', text: ['Fin.'], choices: [] };
+    const resultado = SceneSchema.safeParse(escena);
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.issues.some((issue) => /necesita el campo ending/.test(issue.message))).toBe(true);
+    }
+  });
+
+  it('rechaza kind y lethal con valores inválidos', () => {
+    expect(SceneSchema.safeParse({ id: 'x', kind: 'boss', place: 'm_claro', text: [], choices: [] }).success).toBe(false);
+    expect(SceneSchema.safeParse({ id: 'x', kind: 'normal', lethal: false, place: 'm_claro', text: [], choices: [] }).success).toBe(false);
   });
 });
