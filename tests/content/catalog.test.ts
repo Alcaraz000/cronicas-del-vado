@@ -6,12 +6,19 @@ import {
   DIFFICULTIES,
   DIFFICULTY_NAMES,
   CLASSES,
+  TRAITS,
+  SKILLS,
+  CONDITIONS,
+  FUMBLE_DEFAULT_CONDITION,
   LIMITS,
   WOUND_LABELS,
   type Attr,
   type Tag,
   type Difficulty,
   type ClassId,
+  type TraitId,
+  type SkillId,
+  type ConditionId,
 } from '@/content/catalog';
 
 describe('catalog: atributos, tags y dificultades', () => {
@@ -130,5 +137,93 @@ describe('catalog: clases', () => {
         }
       }
     }
+  });
+});
+
+describe('catalog: rasgos, habilidades y condiciones', () => {
+  const traitIds = Object.keys(TRAITS) as TraitId[];
+  const skillIds = Object.keys(SKILLS) as SkillId[];
+  const conditionIds = Object.keys(CONDITIONS) as ConditionId[];
+
+  it('los ids no se repiten entre rasgos, habilidades y condiciones', () => {
+    const all = [...traitIds, ...skillIds, ...conditionIds];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('hay 8 rasgos en el orden del diseño', () => {
+    expect(traitIds).toEqual([
+      'hijo_de_la_frontera',
+      'criado_en_el_templo',
+      'desertor',
+      'huerfano_de_la_peste',
+      'aprendiz_de_escriba',
+      'contrabandista',
+      'cazador_furtivo',
+      'hijo_de_molinero',
+    ]);
+  });
+
+  it('ningún rasgo repite tag con otro rasgo: 8 rasgos, 8 tags distintos, todos del catálogo', () => {
+    const tags = traitIds.map((id) => TRAITS[id].tag);
+    expect(tags).toHaveLength(8);
+    expect(new Set(tags).size).toBe(8);
+    for (const tag of tags) {
+      expect(TAGS).toContain(tag);
+    }
+  });
+
+  it('los tags de los rasgos son los del diseño', () => {
+    expect(TRAITS.hijo_de_la_frontera.tag).toBe('supervivencia');
+    expect(TRAITS.criado_en_el_templo.tag).toBe('fe');
+    expect(TRAITS.desertor.tag).toBe('fisico');
+    expect(TRAITS.huerfano_de_la_peste.tag).toBe('percepcion');
+    expect(TRAITS.aprendiz_de_escriba.tag).toBe('saber');
+    expect(TRAITS.contrabandista.tag).toBe('engano');
+    expect(TRAITS.cazador_furtivo.tag).toBe('sigilo');
+    expect(TRAITS.hijo_de_molinero.tag).toBe('social');
+  });
+
+  it('cada rasgo tiene nombre y descripción no vacíos', () => {
+    for (const id of traitIds) {
+      expect(TRAITS[id].name.length).toBeGreaterThan(0);
+      expect(TRAITS[id].description.length).toBeGreaterThan(0);
+    }
+    expect(TRAITS.desertor.name).toBe('Desertor');
+    expect(TRAITS.huerfano_de_la_peste.name).toBe('Huérfano de la peste');
+  });
+
+  it('hay 12 habilidades con nombre y con tag del catálogo', () => {
+    expect(skillIds).toEqual([
+      'veterano', 'intimidante', 'orador', 'rastreador', 'ojo_avizor', 'escurridizo',
+      'erudito_de_runas', 'vista_arcana', 'voz_del_templo', 'curandero', 'superviviente', 'manos_ligeras',
+    ]);
+    for (const id of skillIds) {
+      expect(SKILLS[id].name.length).toBeGreaterThan(0);
+      expect(TAGS).toContain(SKILLS[id].tag);
+    }
+    expect(SKILLS.veterano.tag).toBe('fisico');
+    expect(SKILLS.manos_ligeras.tag).toBe('sigilo');
+    expect(SKILLS.intimidante.tag).toBe('social');
+    expect(SKILLS.orador.tag).toBe('social');
+    expect(SKILLS.vista_arcana.tag).toBe('magia');
+  });
+
+  it('hay 6 condiciones; su tag es un Tag del catálogo o "all"', () => {
+    expect(conditionIds).toEqual(['envenenado', 'asustado', 'exhausto', 'empapado', 'perseguido', 'agotado']);
+    for (const id of conditionIds) {
+      const tag = CONDITIONS[id].tag;
+      expect(tag === 'all' || TAGS.includes(tag)).toBe(true);
+    }
+    expect(CONDITIONS.envenenado.tag).toBe('all');
+    expect(CONDITIONS.asustado.tag).toBe('social');
+    expect(CONDITIONS.exhausto.tag).toBe('fisico');
+    expect(CONDITIONS.empapado.tag).toBe('sigilo');
+    expect(CONDITIONS.perseguido.tag).toBe('huida');
+    expect(CONDITIONS.agotado.tag).toBe('magia');
+  });
+
+  it('la condición por defecto del Fallo grave es exhausto y existe en el catálogo', () => {
+    expect(FUMBLE_DEFAULT_CONDITION).toBe('exhausto');
+    expect(conditionIds).toContain(FUMBLE_DEFAULT_CONDITION);
   });
 });

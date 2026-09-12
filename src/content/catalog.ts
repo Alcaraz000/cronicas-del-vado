@@ -97,6 +97,98 @@ export const CLASSES = {
 } as const satisfies Record<string, ClassDef>;
 export type ClassId = keyof typeof CLASSES;
 
+// Rasgo de origen: ventaja permanente en UN tag + flag `char:origen.<id>` (lo escribe el store al crear el personaje).
+export interface TraitDef {
+  name: string;
+  tag: Tag;
+  description: string;
+}
+
+export const TRAITS = {
+  hijo_de_la_frontera: {
+    name: 'Hijo de la frontera',
+    tag: 'supervivencia',
+    description: 'Creciste donde el mapa se acaba; el monte no te asusta.',
+  },
+  criado_en_el_templo: {
+    name: 'Criado en el templo',
+    tag: 'fe',
+    description: 'Sabés qué se dice y qué se calla delante de un altar.',
+  },
+  desertor: {
+    name: 'Desertor',
+    tag: 'fisico',
+    description: 'Serviste, peleaste y te fuiste. Todavía sabés parar un golpe.',
+  },
+  huerfano_de_la_peste: {
+    name: 'Huérfano de la peste',
+    tag: 'percepcion',
+    description: 'Aprendiste a mirar antes de entrar a una casa.',
+  },
+  aprendiz_de_escriba: {
+    name: 'Aprendiz de escriba',
+    tag: 'saber',
+    description: 'Leés rápido, incluso lo que no está escrito para vos.',
+  },
+  contrabandista: {
+    name: 'Contrabandista',
+    tag: 'engano',
+    description: 'Mentir con cara de piedra fue tu oficio.',
+  },
+  cazador_furtivo: {
+    name: 'Cazador furtivo',
+    tag: 'sigilo',
+    description: 'Sabés moverte sin que el bosque ni el guardabosque te oigan.',
+  },
+  hijo_de_molinero: {
+    name: 'Hijo de molinero',
+    tag: 'social',
+    description: 'Conocés a la gente de pueblo porque sos de pueblo.',
+  },
+} as const satisfies Record<string, TraitDef>;
+export type TraitId = keyof typeof TRAITS;
+
+// Habilidad: ventaja permanente en un tag. Se gana una en los niveles 3, 5, 7 y 9.
+export interface SkillDef {
+  name: string;
+  tag: Tag;
+}
+
+export const SKILLS = {
+  veterano: { name: 'Veterano', tag: 'fisico' },
+  intimidante: { name: 'Intimidante', tag: 'social' },
+  orador: { name: 'Orador', tag: 'social' },
+  rastreador: { name: 'Rastreador', tag: 'percepcion' },
+  ojo_avizor: { name: 'Ojo avizor', tag: 'percepcion' },
+  escurridizo: { name: 'Escurridizo', tag: 'huida' },
+  erudito_de_runas: { name: 'Erudito de runas', tag: 'saber' },
+  vista_arcana: { name: 'Vista arcana', tag: 'magia' },
+  voz_del_templo: { name: 'Voz del templo', tag: 'fe' },
+  curandero: { name: 'Curandero', tag: 'supervivencia' },
+  superviviente: { name: 'Superviviente', tag: 'supervivencia' },
+  manos_ligeras: { name: 'Manos ligeras', tag: 'sigilo' },
+} as const satisfies Record<string, SkillDef>;
+export type SkillId = keyof typeof SKILLS;
+
+// Condición: desventaja temporal en un tag, o en todas las tiradas ('all').
+export interface ConditionDef {
+  name: string;
+  tag: Tag | 'all';
+}
+
+export const CONDITIONS = {
+  envenenado: { name: 'Envenenado', tag: 'all' },
+  asustado: { name: 'Asustado', tag: 'social' },
+  exhausto: { name: 'Exhausto', tag: 'fisico' },
+  empapado: { name: 'Empapado', tag: 'sigilo' },
+  perseguido: { name: 'Perseguido', tag: 'huida' },
+  agotado: { name: 'Agotado', tag: 'magia' },
+} as const satisfies Record<string, ConditionDef>;
+export type ConditionId = keyof typeof CONDITIONS;
+
+// Condición que aplica un Fallo grave (doble 1) cuando la tirada no define un outcome `fumble` propio.
+export const FUMBLE_DEFAULT_CONDITION: ConditionId = 'exhausto';
+
 export const LIMITS = {
   maxItems: 6,          // ranuras de objetos por partida
   maxConditions: 3,     // condiciones simultáneas; la cuarta reemplaza a la más antigua
