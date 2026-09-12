@@ -105,3 +105,95 @@ describe('applyEffects: inmutabilidad', () => {
     expect(result.seen).toBe(ctx.state.seen);
   });
 });
+
+describe('applyEffects: objetos', () => {
+  it('give agrega el objeto a run.items', () => {
+    const result = applyEffects([{ give: 'llave_de_hierro' }], contexto());
+    expect(result.run.items).toEqual(['llave_de_hierro']);
+  });
+
+  it('give ignora un objeto que ya se tiene', () => {
+    const ctx = contexto({ items: ['llave_de_hierro'] });
+    const result = applyEffects([{ give: 'llave_de_hierro' }], ctx);
+    expect(result.run.items).toEqual(['llave_de_hierro']);
+  });
+
+  it('give ignora el objeto si ya hay maxItems (6) objetos', () => {
+    const seis = ['o1', 'o2', 'o3', 'o4', 'o5', 'o6'];
+    const ctx = contexto({ items: seis });
+    const result = applyEffects([{ give: 'o7' }], ctx);
+    expect(result.run.items).toEqual(seis);
+  });
+
+  it('give con 5 objetos agrega el sexto', () => {
+    const ctx = contexto({ items: ['o1', 'o2', 'o3', 'o4', 'o5'] });
+    const result = applyEffects([{ give: 'o6' }], ctx);
+    expect(result.run.items).toEqual(['o1', 'o2', 'o3', 'o4', 'o5', 'o6']);
+  });
+
+  it('take quita el objeto si está', () => {
+    const ctx = contexto({ items: ['llave_de_hierro', 'antorcha'] });
+    const result = applyEffects([{ take: 'llave_de_hierro' }], ctx);
+    expect(result.run.items).toEqual(['antorcha']);
+  });
+
+  it('take de un objeto ausente deja la lista igual', () => {
+    const ctx = contexto({ items: ['antorcha'] });
+    const result = applyEffects([{ take: 'llave_de_hierro' }], ctx);
+    expect(result.run.items).toEqual(['antorcha']);
+  });
+
+  it('give seguido de take deja la lista vacía (se aplican en orden)', () => {
+    const result = applyEffects([{ give: 'llave_de_hierro' }, { take: 'llave_de_hierro' }], contexto());
+    expect(result.run.items).toEqual([]);
+  });
+});
+
+describe('applyEffects: hitos', () => {
+  it('milestone agrega el hito a run.milestones', () => {
+    const result = applyEffects([{ milestone: 'entrar' }], contexto());
+    expect(result.run.milestones).toEqual(['entrar']);
+  });
+
+  it('milestone no duplica un hito ya alcanzado', () => {
+    const ctx = contexto({ milestones: ['entrar'] });
+    const result = applyEffects([{ milestone: 'entrar' }], ctx);
+    expect(result.run.milestones).toEqual(['entrar']);
+  });
+});
+
+describe('applyEffects: relojes', () => {
+  it('clock suma delta partiendo de 0 si el reloj no tenía valor', () => {
+    const result = applyEffects([{ clock: 'pelea', delta: 1 }], contexto());
+    expect(result.run.clocks).toEqual({ pelea: 1 });
+  });
+
+  it('clock no supera el max declarado en la campaña', () => {
+    const ctx = contexto({ clocks: { pelea: 1 } });
+    const result = applyEffects([{ clock: 'pelea', delta: 5 }], ctx);
+    expect(result.run.clocks).toEqual({ pelea: 2 });
+  });
+
+  it('clock no baja de 0', () => {
+    const ctx = contexto({ clocks: { pelea: 1 } });
+    const result = applyEffects([{ clock: 'pelea', delta: -3 }], ctx);
+    expect(result.run.clocks).toEqual({ pelea: 0 });
+  });
+
+  it('clock con delta 0 deja el reloj en su valor (y lo crea en 0 si no existía)', () => {
+    const result = applyEffects([{ clock: 'pelea', delta: 0 }], contexto());
+    expect(result.run.clocks).toEqual({ pelea: 0 });
+  });
+
+  it('clock de un reloj no declarado en la campaña no cambia nada', () => {
+    const result = applyEffects([{ clock: 'inexistente', delta: 1 }], contexto());
+    expect(result.run.clocks).toEqual({});
+  });
+
+  it('clock no muta el objeto clocks de entrada', () => {
+    const ctx = contexto({ clocks: { pelea: 1 } });
+    const result = applyEffects([{ clock: 'pelea', delta: 1 }], ctx);
+    expect(ctx.state.run.clocks).toEqual({ pelea: 1 });
+    expect(result.run.clocks).not.toBe(ctx.state.run.clocks);
+  });
+});

@@ -1,5 +1,10 @@
+import { LIMITS } from '@/content/catalog';
 import type { Effect, FlagId } from '@/content/schema';
 import type { EvalContext, GameState, Run } from '@/engine/types';
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
 
 function addUnique(list: readonly string[], value: string): string[] {
   return list.includes(value) ? [...list] : [...list, value];
@@ -19,14 +24,34 @@ function clearFlag(run: Run, flag: FlagId): Run {
   return { ...run, stagedFlags: run.stagedFlags.filter((f) => f !== flag) };
 }
 
-function applyOne(run: Run, effect: Effect): Run {
+function giveItem(run: Run, itemId: string): Run {
+  if (run.items.length >= LIMITS.maxItems || run.items.includes(itemId)) return run;
+  return { ...run, items: [...run.items, itemId] };
+}
+
+function takeItem(run: Run, itemId: string): Run {
+  return { ...run, items: run.items.filter((i) => i !== itemId) };
+}
+
+function applyClock(run: Run, name: string, delta: number, ctx: EvalContext): Run {
+  const def: { max: number; label: string } | undefined = ctx.campaign.clocks[name];
+  if (def === undefined) return run;
+  const current: number = run.clocks[name] ?? 0;
+  return { ...run, clocks: { ...run.clocks, [name]: clamp(current + delta, 0, def.max) } };
+}
+
+function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('set' in effect) return setFlag(run, effect.set);
   if ('clear' in effect) return clearFlag(run, effect.clear);
+  if ('give' in effect) return giveItem(run, effect.give);
+  if ('take' in effect) return takeItem(run, effect.take);
+  if ('clock' in effect) return applyClock(run, effect.clock, effect.delta, ctx);
+  if ('milestone' in effect) return { ...run, milestones: addUnique(run.milestones, effect.milestone) };
   return run;
 }
 
 export function applyEffects(effects: Effect[] | undefined, ctx: EvalContext): GameState {
   if (effects === undefined || effects.length === 0) return ctx.state;
-  const run: Run = effects.reduce<Run>((acc, effect) => applyOne(acc, effect), ctx.state.run);
+  const run: Run = effects.reduce<Run>((acc, effect) => applyOne(acc, effect, ctx), ctx.state.run);
   return { ...ctx.state, run };
 }
