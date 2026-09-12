@@ -1,7 +1,7 @@
 # Outline — "El vado de Aldamar"
 
 > Mapa navegable de la campaña y **contrato** para quien construya el esqueleto en TypeScript (Fase C).
-> Fuentes por encima de este documento: `docs/superpowers/specs/2026-09-10-juegorol-design.md` (§3, §4, §5, §11), `src/content/schema.ts`, `src/content/catalog.ts`, las 10 reglas de `tools/lib/validate/rules/` y `00-biblia.md`.
+> Fuentes por encima de este documento: `docs/superpowers/specs/2026-09-10-juegorol-design.md` (§3, §4, §5, §11), `src/content/schema.ts`, `src/content/catalog.ts`, las 11 reglas de `tools/lib/validate/rules/` y `00-biblia.md`.
 > **Si algo de acá choca con el validador, gana el validador.**
 > **Todas las cuentas de la campaña viven en este documento.** La biblia manda en lo cualitativo (voces, tono, ficción, canon); acá manda la aritmética. Donde la biblia cite una cifra, está copiada de acá.
 
@@ -603,7 +603,7 @@ No es un error del grafo, es el precio de que la memoria economice. **Tres mitig
 
 ---
 
-## 5. Verificación de las 10 reglas del validador
+## 5. Verificación de las 11 reglas del validador
 
 Regla por regla, leídas de `tools/lib/validate/rules/`. Lo que dice cada punto es un **contrato para el esqueleto**: si el esqueleto se desvía, la que manda es la regla.
 
@@ -842,9 +842,24 @@ Siete y siete. Los tres PNJ de `world/` llevan un párrafo **de narrador** con v
 
 Solo corre con `ctx.profile === 'release'`. Plan de perfil:
 
-- **Fase C (esqueleto) y lotes 1-6:** `lintProfile: 'smoke'`. El esqueleto puede llevar `TODO` en `text`, `label`, `lockedHint`, outcomes y epílogos; r10 no lo mira y las otras nueve reglas sí, que es exactamente lo que se quiere de un esqueleto.
+- **Fase C (esqueleto) y lotes 1-6:** `lintProfile: 'smoke'`. El esqueleto puede llevar `TODO` en `text`, `label`, `lockedHint`, outcomes y epílogos; r10 no lo mira y las otras diez reglas sí, que es exactamente lo que se quiere de un esqueleto.
 - **Lote 7 (el último):** el lote cambia `lintProfile` a `'release'` **en su primer commit** y a partir de ahí `npm run validate` falla mientras quede un `TODO`. Es el interruptor que convierte el esqueleto en campaña terminada.
 - `r10` mira `text`, `label`, `lockedHint`, el `text` de cada outcome y el `epilogue`. **No** mira `premise`, `voice`, `canonPrompt` ni `description`: esos cuatro se revisan a mano en la pasada final.
+
+---
+
+### r11 `r11_reward` — qué puede hacer un `reward` de final
+
+`endings[*].reward` se aplica **con la partida ya terminada**: no hay escena, no hay tirada, y el estado de la partida (heridas, condiciones, relojes, fortuna, inventario, flags `run:`) se descarta en ese mismo instante. Lo único que cruza ese borde son las reliquias y los flags con el prefijo de la campaña. Por eso la lista es blanca y corta:
+
+- `{ give: <objeto con relic: true> }` — la reliquia pasa a `character.relics`.
+- `{ set: 'char:vado.…' }` o `{ set: 'world:vado.…' }` — el flag se suma al canon que escribe el final.
+
+Cualquier otro efecto es error: `wound`, `heal`, `clock`, `milestone`, `fortune`, `addCondition`, `removeCondition`, `take`, `clear`, `lethal`, un `give` de un objeto que no es reliquia y un `set` de un `run:` o de un espacio compartido. **El motor no los rechaza, los ignora en silencio** (`applyReward`, `src/engine/resolve.ts`): lanzar al cerrar la partida le rompería el final a un jugador por un error de contenido. Motor permisivo, validador estricto; que las dos mitades sigan diciendo lo mismo lo fija `tests/coherencia.reward.test.ts`.
+
+**Contrato para el esqueleto.** La campaña tiene **un solo `reward`**: `endings.fin_heredero.reward = [{ give: 'sello_del_vado' }]`, y `sello_del_vado` es `relic: true` y vive en `src/content/world/items.ts` (§5, r07). Los otros tres finales no llevan `reward`. Los dos flags de canon de `fin_heredero` —`char:vado.heredero` y `world:vado.sello_perdido`— los escribe su `onEnter`, **no** el `reward`: así se apuestan como cualquier otro flag de la partida y el `reward` queda con una sola responsabilidad, la piedra.
+
+Que el objeto y el flag existan y estén declarados lo comprueba r07; r11 solo decide si el efecto pinta algo ahí.
 
 ---
 
@@ -877,7 +892,7 @@ Solo corre con `ctx.profile === 'release'`. Plan de perfil:
 
 **6. Se juega a mano hasta cada uno de los cuatro finales, y para eso `quedarte_con_el_sello` va SIN `requires` en el lote 0.** `fin_heredero` cuelga de `char:vado.sabe_del_sello`, y las cinco escenas que escriben ese flag (`a2_ley_cartas`, `a2_fuera_sello`, `a1_ilse_patio`, `a2_ley_berta`, `a2_fuera_ilse`) **no están en las 23**: el validador no se queja —`isSatisfiable` devuelve `true` para cualquier condición que no sea de clase, así que r02 lo da por alcanzable— pero jugarlo a mano era imposible. El `requires` se le agrega en el **lote 6**, cuando ya existe `a2_fuera_sello`. `cl_desenlace` no baja de 4 libres en ningún momento: en el lote 0 tiene 5 opciones y las 5 son libres; en el lote 7 llega a 7 con 4 libres.
 
-**7. Se cierran corriendo `npm run validate` (9 de 10 reglas en verde) y `simulate`**, y se agrega `tests/content/vado.test.ts` con las invariantes que ningún validador cubre (biblia §6.3): sin callejones, sin bucles de `outcome` sin salida, ninguna tirada de puerta repetible, y `run:con_la_ley`/`run:contra_la_ley` mutuamente excluyentes.
+**7. Se cierran corriendo `npm run validate` (10 de 11 reglas en verde) y `simulate`**, y se agrega `tests/content/vado.test.ts` con las invariantes que ningún validador cubre (biblia §6.3): sin callejones, sin bucles de `outcome` sin salida, ninguna tirada de puerta repetible, y `run:con_la_ley`/`run:contra_la_ley` mutuamente excluyentes.
 
 ### 6.2 Los 7 lotes de prosa
 

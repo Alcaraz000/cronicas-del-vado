@@ -1,7 +1,7 @@
 # Biblia de campaña — "El vado de Aldamar"
 
 > Documento normativo de la Fase B. Integra las cuatro partes de diseño en una sola versión.
-> Fuentes de verdad por encima de este documento: `docs/superpowers/specs/2026-09-10-juegorol-design.md` (§3, §4, §5, §11), `src/content/schema.ts`, `src/content/catalog.ts` y las 10 reglas de `tools/lib/validate/rules/`.
+> Fuentes de verdad por encima de este documento: `docs/superpowers/specs/2026-09-10-juegorol-design.md` (§3, §4, §5, §11), `src/content/schema.ts`, `src/content/catalog.ts` y las 11 reglas de `tools/lib/validate/rules/`.
 > **Si algo de acá choca con el validador, gana el validador**: el contenido que no compila no existe.
 
 ---
@@ -891,7 +891,8 @@ TOTAL de outcomes con texto en esta escena: <n>   ← tiene que cuadrar con outl
 
 ## 13. Verificaciones abiertas (para la Fase C y la D)
 
-1. **`reward` está muerto: hay que darle vida en la Fase C.** `endRun` **sí existe** (`src/engine/resolve.ts:509`) y ya hace lo suyo: reemplaza los `char:vado.*` y `world:vado.*` por lo apostado en `run.stagedFlags` y actualiza `campaignLog`. Lo que **no** hace —verificado con grep sobre `src/`— es leer `campaign.endings[*].reward` en ningún lado: el `reward` solo aparece en `schema.ts` y en dos reglas del validador. Y `relics: string[]` de `types.ts` no lo escribe nadie: se inicializa vacío en `store.ts:142` y ahí queda. **Consecuencia: hoy ningún final entrega reliquia.** Tarea de Fase C, antes del lote 7: que `endRun` aplique `campaign.endings[id].reward` en la rama `outcome.kind === 'ending'` y escriba `world.relics` / `character.relics`. El lote 7 se cierra con un test que compruebe que `sello_del_vado` aparece en el perfil después de `fin_heredero` y **no** después de los otros tres.
+1. **`reward` ya está vivo (cerrado en la Fase C).** `endRun` aplica `campaign.endings[id].reward` en la rama `outcome.kind === 'ending'` con `applyReward` (`src/engine/resolve.ts`): un `{ give: <relic> }` suma la reliquia a `character.relics` con tope de 2 y sin duplicar, y un `{ set: 'char:…' | 'world:…' }` se une al canon que escribe el final. El resto de los efectos se ignora en silencio y los prohíbe el validador con la regla `r11_reward` (outline §5). La reliquia se resuelve contra la campaña **fusionada con WORLD** (`conMundo`, `src/state/store.ts`), que es lo que hace el store al cargar: sin esa fusión `sello_del_vado` no existiría para el motor, porque r07 exige que las reliquias vivan solo en `world/items.ts`. Verificado de punta a punta en `tests/content/vado.test.ts` —las cuatro clases juegan hasta `fin_heredero` y terminan con `sello_del_vado` en el perfil, y los otros tres finales no entregan nada— y la coherencia entre motor y validador en `tests/coherencia.reward.test.ts`. **Queda abierto:** `EndSummary` no dice qué reliquia se sumó, así que la pantalla de fin de campaña (spec §5) todavía no puede mostrarla; hace falta un campo nuevo (p. ej. `relicGained?: string`).
+
 2. **r08 no cubre a `world/`.** Un párrafo de Orell, Ilse o Halvar con `met`/`knows`/`endingSeen` compila. Hasta que r08 gane una opción "campaña donde este PNJ debuta", depende de la pasada de voz y de la casilla 6 de la checklist, sobre la lista de 21 escenas del outline §5/r08(c).
 3. **r02 no chequea callejones.** Las cuatro invariantes de §6.3 no las mira ningún validador. Se implementan como test de contenido en `tests/content/vado.test.ts` en el lote 0, junto con las dos reglas de arranques de §2.7.
 4. **Escenas `rest` y muerte.** Medir con `simulate` que la escena mortal no quede decorativa. Si lo queda, se saca el `heal` de `a2_ley_guardia`.
