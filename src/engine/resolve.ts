@@ -10,7 +10,11 @@ import { rollDice } from '@/engine/rng';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
   Band,
+  CampaignLogEntry,
+  Character,
+  EndSummary,
   EvalContext,
+  Fallen,
   GameState,
   LogEntry,
   PendingRoll,
@@ -18,6 +22,7 @@ import type {
   RenderedScene,
   ResolvedParagraph,
   Run,
+  WorldState,
 } from '@/engine/types';
 
 // resolve.ts, parte 1 (Tarea 9): getScene, enter, render.
@@ -478,4 +483,87 @@ export function commitRoll(campaign: Campaign, state: GameState, pending: Pendin
     return next;
   }
   return enter(campaign, next, outcome.next);
+}
+
+/** Unión ordenada sin duplicados: primero `base`, después los de `extra` que no estaban. */
+function unionStrings(base: readonly string[], extra: readonly string[]): string[] {
+  const out = [...base];
+  for (const x of extra) {
+    if (!out.includes(x)) out.push(x);
+  }
+  return out;
+}
+
+/**
+ * Cierra la partida y devuelve el mundo y el personaje nuevos más un resumen.
+ * - ending: los `char:<campaña>.*` del personaje y los `world:<campaña>.*` del mundo se REEMPLAZAN por los
+ *   apostados en run.stagedFlags (canon); los de otras campañas y los espacios compartidos se conservan.
+ *   campaignLog: runs+1, wins+1, endings ∪ id, milestones ∪ run.milestones, canonEnding = id.
+ * - defeat: runs+1, milestones ∪ run.milestones; lo apostado se descarta.
+ * - death: como defeat, más character.dead, world.fallen y world:caido.<campaña>.
+ * En todos los casos character.run = null.
+ */
+export function endRun(
+  campaign: Campaign,
+  state: GameState,
+): { world: WorldState; character: Character; summary: EndSummary } {
+  const { run, character, world } = state;
+  const outcome = run.outcome;
+  if (outcome === undefined) {
+    throw new Error('La partida no terminó todavía');
+  }
+  const id = campaign.id;
+  const charPrefix = `char:${id}.`;
+  const worldPrefix = `world:${id}.`;
+  const prev: CampaignLogEntry = character.campaignLog[id] ?? { runs: 0, wins: 0, endings: [], milestones: [] };
+  const milestones = unionStrings(prev.milestones, run.milestones);
+
+  if (outcome.kind === 'ending') {
+    const stagedChar = run.stagedFlags.filter((f) => f.startsWith(charPrefix));
+    const stagedWorld = run.stagedFlags.filter((f) => f.startsWith(worldPrefix));
+    const charFlags = [...character.flags.filter((f) => !f.startsWith(charPrefix)), ...stagedChar];
+    const worldFlags = [...world.flags.filter((f) => !f.startsWith(worldPrefix)), ...stagedWorld];
+    const entry: CampaignLogEntry = {
+      runs: prev.runs + 1,
+      wins: prev.wins + 1,
+      endings: unionStrings(prev.endings, [outcome.endingId]),
+      milestones,
+      canonEnding: outcome.endingId,
+    };
+    return {
+      world: { ...world, flags: worldFlags, fallen: [...world.fallen] },
+      character: { ...character, flags: charFlags, campaignLog: { ...character.campaignLog, [id]: entry }, run: null },
+      summary: { outcome, canonFlags: [...stagedChar, ...stagedWorld], discardedFlags: [] },
+    };
+  }
+
+  const entry: CampaignLogEntry = { ...prev, runs: prev.runs + 1, milestones };
+  const baseCharacter: Character = {
+    ...character,
+    flags: [...character.flags],
+    campaignLog: { ...character.campaignLog, [id]: entry },
+    run: null,
+  };
+  const summary: EndSummary = { outcome, canonFlags: [], discardedFlags: [...run.stagedFlags] };
+
+  if (outcome.kind === 'defeat') {
+    return {
+      world: { ...world, flags: [...world.flags], fallen: [...world.fallen] },
+      character: baseCharacter,
+      summary,
+    };
+  }
+
+  const fallen: Fallen = {
+    name: character.name,
+    classId: character.classId,
+    level: character.level,
+    campaign: id,
+    scene: run.sceneId,
+  };
+  return {
+    world: { ...world, flags: unionStrings(world.flags, [`world:caido.${id}`]), fallen: [...world.fallen, fallen] },
+    character: { ...baseCharacter, dead: { campaign: id, scene: run.sceneId } },
+    summary,
+  };
 }
