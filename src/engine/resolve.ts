@@ -108,8 +108,9 @@ function ultimoHablante(paragraphs: ResolvedParagraph[]): string | undefined {
 
 /**
  * Badge que la UI muestra entre corchetes, derivado del requires de la opción.
- * En la Fase A el nombre de un objeto se busca solo en campaign.items (WORLD.items está vacío);
- * si no está, se usa el id.
+ * El nombre de un objeto se busca en campaign.items, que ya incluye los objetos del mundo: el store
+ * fusiona WORLD en la campaña antes de dársela al motor (`conMundo` en state/store.ts), así que las
+ * reliquias, que solo se declaran en world/items.ts, también se encuentran acá. Si no está, se usa el id.
  */
 function badgeDe(cond: Condition, campaign: Campaign): string | undefined {
   if ('class' in cond) {

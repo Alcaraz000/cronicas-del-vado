@@ -239,9 +239,14 @@ export function createAppStore(): AppStore {
           const gs = selectGameState(st);
           return st.ui.campaign && gs ? { campaign: st.ui.campaign, gs } : null;
         };
-        /** Marca la partida como derrota y la cierra con finishRun (camino común de abandonRun y startRun). */
-        const terminarComoDerrota = (campaign: Campaign, gs: GameState): void => {
-          const run: Run = { ...gs.run, outcome: { kind: 'defeat' } };
+        /**
+         * Cierra la partida con finishRun (camino común de abandonRun y startRun). Si todavía no tenía
+         * desenlace se cierra como derrota; si YA lo tenía se respeta, porque pisarlo registraría mal:
+         * una partida terminada que quedó sin cerrar (recarga parada en la pantalla de fin, con el run
+         * persistido y su outcome adentro) perdería la victoria, el final y el canon, o la muerte.
+         */
+        const terminarPartida = (campaign: Campaign, gs: GameState): void => {
+          const run: Run = gs.run.outcome !== undefined ? gs.run : { ...gs.run, outcome: { kind: 'defeat' } };
           set((s) => ({
             ...writeGameState(s, { ...gs, run }),
             ui: { ...s.ui, campaign, pending: null, screen: 'fin' },
@@ -260,7 +265,7 @@ export function createAppStore(): AppStore {
           if (!gs) return;
           const enUi = st.ui.campaign;
           const campaign = enUi !== null && enUi.id === gs.run.campaignId ? enUi : await loadCampaign(gs.run.campaignId);
-          terminarComoDerrota(campaign, gs);
+          terminarPartida(campaign, gs);
         };
         /** Escribe un PendingRoll nuevo en ui.pending y su tupla mínima en run.pending. */
         const writePending = (gs: GameState, pending: PendingRoll): void => {
@@ -418,7 +423,7 @@ export function createAppStore(): AppStore {
           abandonRun() {
             const ctx = playing();
             if (!ctx) return;
-            terminarComoDerrota(ctx.campaign, ctx.gs);
+            terminarPartida(ctx.campaign, ctx.gs);
           },
 
           retry() {

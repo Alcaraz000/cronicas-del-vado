@@ -372,14 +372,26 @@ describe('applyEffects: lethal y desenlaces', () => {
     expect(result.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
   });
 
-  it('solo { lethal } aplica lethal: un efecto fuera del tipo Effect no hiere', () => {
-    // El catch-all de applyOne era `return applyLethal(run)`: cualquier efecto que
-    // no reconociera infligía 2 Heridas. Ahora lethal se comprueba explícitamente y
-    // el resto cae en la comprobación exhaustiva con `never`, que además deja de
-    // compilar cuando una fase futura agregue una variante a Effect.
+  it('solo { lethal } aplica lethal: un efecto fuera del tipo Effect no hace nada', () => {
+    // El catch-all de applyOne era `return applyLethal(run)`: cualquier efecto que no reconociera
+    // infligía 2 Heridas. Ahora lethal se comprueba explícitamente y el resto cae en la comprobación
+    // exhaustiva con `never`, que además deja de compilar cuando una fase futura agregue una
+    // variante a Effect. En runtime el efecto desconocido es inocuo: devuelve el run igual, no un
+    // objeto basura que el reduce siguiera arrastrando y el store persistiera.
+    const ctx = contexto({ wounds: 1, flags: ['run:algo'] });
     const futuro = { teletransportar: 'p_cripta' } as unknown as Effect;
-    const result = applyEffects([futuro], contexto({ wounds: 0 }));
-    expect(result.run.wounds).not.toBe(2);
+    const result = applyEffects([futuro], ctx);
+    expect(result.run).toEqual(ctx.state.run);
+    expect(result.run.wounds).toBe(1);
+    expect(result.run.flags).toEqual(['run:algo']);
     expect(result.run.outcome).toBeUndefined();
+  });
+
+  it('un efecto desconocido en el medio de una lista no rompe los que vienen después', () => {
+    const futuro = { teletransportar: 'p_cripta' } as unknown as Effect;
+    const result = applyEffects([{ wound: 1 }, futuro, { set: 'run:sigue' }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(1);
+    expect(result.run.stagedFlags).toEqual([]);
+    expect(result.run.flags).toEqual(['run:sigue']);
   });
 });

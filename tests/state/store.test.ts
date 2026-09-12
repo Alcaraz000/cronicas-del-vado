@@ -289,6 +289,33 @@ describe('store: ciclo de partida sin dados', () => {
     expect(gs.run.log).toHaveLength(1);
   });
 
+  it('una partida ya terminada que no se cerró (recarga parada en el fin) conserva su desenlace', async () => {
+    // Camino real: llegás a un final, te quedás en la pantalla de fin sin tocar "Volver al inicio"
+    // y recargás. `ui` no se persiste, así que volvés a inicio con character.run todavía puesto,
+    // con su outcome adentro. Empezar otra partida no puede convertir esa victoria en derrota.
+    const store1 = createAppStore();
+    store1.getState().createTestCharacter();
+    await store1.getState().startRun('prueba');
+    store1.getState().choose('rodear_patio');
+    store1.getState().choose('rendirse');
+    store1.getState().choose('salir');
+    expect(store1.getState().ui.screen).toBe('fin');
+    expect(selectGameState(store1.getState())!.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
+
+    const store2 = createAppStore();
+    await store2.persist.rehydrate();
+    expect(store2.getState().ui.screen).toBe('inicio');
+
+    await store2.getState().startRun('prueba');
+
+    const s = store2.getState();
+    const registro = s.characters[0]!.campaignLog['prueba'];
+    expect(registro).toMatchObject({ runs: 1, wins: 1, canonEnding: 'fin_huida' });
+    expect(registro?.endings).toContain('fin_huida');
+    expect(s.ui.screen).toBe('escena');
+    expect(selectGameState(s)!.run.sceneId).toBe('p_umbral');
+  });
+
   it('cierra la partida en curso aunque la campaña no esté cargada en ui (recarga sin continuar)', async () => {
     const store1 = createAppStore();
     store1.getState().createTestCharacter();

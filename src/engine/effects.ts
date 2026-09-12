@@ -91,10 +91,13 @@ function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('fortune' in effect) return applyFortune(run, effect.fortune, ctx);
   if ('lethal' in effect) return applyLethal(run);
 
-  // Si el tipo Effect gana una variante nueva, esta línea deja de compilar
-  // y obliga a implementarla acá (mismo patrón que conditions.ts).
+  // Si el tipo Effect gana una variante nueva, la asignación a `never` deja de compilar y obliga a
+  // implementarla acá (mismo patrón que conditions.ts). El valor no se devuelve —de ahí el `void`—:
+  // en runtime un efecto desconocido tiene que ser inocuo y dejar el run intacto, no convertirse
+  // en el run y seguir viaje por el reduce hasta el guardado.
   const restante: never = effect;
-  return restante;
+  void restante;
+  return run;
 }
 
 export function applyEffects(effects: Effect[] | undefined, ctx: EvalContext): GameState {
