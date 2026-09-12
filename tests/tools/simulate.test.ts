@@ -15,7 +15,14 @@ import { informeMarkdown, lineasDeAserciones } from '../../tools/lib/simulate/in
 import { combinaciones, simularCarrera, simularPartida } from '../../tools/lib/simulate/partida';
 import { habilidadesPermitidas, paresDeRasgos, personajeDeCarrera } from '../../tools/lib/simulate/personajes';
 import { candidatas, elegirOpcion, peorDadoConservado, probExito, probFallo } from '../../tools/lib/simulate/politicas';
-import { CLASES, NIVELES, POLITICAS, type ConfigSim } from '../../tools/lib/simulate/types';
+import {
+  CLASES,
+  NIVELES,
+  POLITICAS,
+  type ConfigSim,
+  type ResultadoCarrera,
+  type ResultadoPartida,
+} from '../../tools/lib/simulate/types';
 
 const config: ConfigSim = { campaignId: minimal.id, n: 2, k: 3, semilla: 1234, maxPasos: MAX_PASOS_POR_DEFECTO };
 
@@ -256,6 +263,34 @@ describe('agregado e informe', () => {
     // En `minimal` la codiciosa siempre tiene una opción sin tirada: nunca tira.
     expect(agregado.avisos.some((a) => a.includes('sin tirar un solo dado'))).toBe(true);
     expect(agregado.avisos.every((a) => typeof a === 'string' && a.length > 0)).toBe(true);
+  });
+
+  it('el «en objetivo» se mide sobre escenas DISTINTAS, no sobre las mostradas', () => {
+    // El objetivo 24-30 de la spec §11 es el que el outline §4 verifica ruta por ruta con la
+    // columna «escenas distintas» (29, 31 y 27 en las tres rutas típicas, contra 32, 38 y 30
+    // pantallas). Contar las pantallas metería las vueltas al hub y mediría otra cosa.
+    const partida = (escenas: readonly string[]): ResultadoPartida => ({
+      clase: 'guerrero', nivel: 1, politica: 'aleatoria', carrera: 0, partida: 1,
+      desenlace: { kind: 'ending', endingId: 'm_fin' },
+      escenas: [...escenas], opciones: [], palabras: 0, heridas: 0, tiradas: 0, fallos: 0,
+      fallosCrudos: 0, fortunaGastada: 0, poderUsado: false, hitos: [], flags: [],
+      nivelAntes: 1, nivelDespues: 1, xpDespues: 0, logRecortado: false,
+    });
+    const repetir = (distintas: number, vueltas: number): string[] => [
+      ...Array.from({ length: distintas }, (_, i) => `e${String(i)}`),
+      ...Array.from({ length: vueltas }, () => 'e0'),
+    ];
+    const carrera = (partidas: ResultadoPartida[]): ResultadoCarrera => ({
+      clase: 'guerrero', nivel: 1, politica: 'aleatoria', carrera: 0, partidas,
+      xpFinal: 0, nivelFinal: 1, flagsPersonaje: [], flagsMundo: [],
+    });
+    // Dos partidas de 26 y 28 escenas distintas —las dos dentro del objetivo— que además vuelven
+    // 14 y 10 veces al hub. Contando pantallas las dos quedarían afuera y el informe diría que la
+    // campaña mide mal cuando mide bien.
+    const agregado = agregar(minimal, [carrera([partida(repetir(26, 14)), partida(repetir(28, 10))])]);
+    expect(agregado.global.escenas.media).toBe(39);
+    expect(agregado.global.escenasDistintas.media).toBe(27);
+    expect(agregado.global.enObjetivo).toBe(1);
   });
 
   it('porNumeroDePartida agrupa por posición dentro de la carrera', () => {

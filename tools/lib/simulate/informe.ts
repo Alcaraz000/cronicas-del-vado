@@ -60,7 +60,7 @@ export function lineasDeAserciones(agregado: Agregado): { titulo: string; detall
 
 function tablaCombinaciones(filas: readonly FilaCombinacion[]): string {
   const cabecera = [
-    '| Clase | Nivel | Política | Partidas | Escenas | Distintas | En objetivo | Palabras | Derrota | Muerte | Heridas | Tiradas | Fallo (dados) | Fallo (final) |',
+    '| Clase | Nivel | Política | Partidas | Pantallas | Distintas | Distintas en objetivo | Palabras | Derrota | Muerte | Heridas | Tiradas | Fallo (dados) | Fallo (final) |',
     '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   const cuerpo = filas.map(
@@ -185,7 +185,7 @@ export function informeMarkdown(
   partes.push('## Longitud, derrota y dificultad');
   partes.push(
     [
-      `- Longitud por partida: **${resumenBreve(g.escenas)}** escenas mostradas, **${resumenBreve(g.escenasDistintas)}** distintas (el objetivo de diseño es ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}; cae dentro el ${pct(g.enObjetivo)})`,
+      `- Longitud por partida: **${resumenBreve(g.escenasDistintas)}** escenas distintas (el objetivo de diseño es ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}; cae dentro el ${pct(g.enObjetivo)}), **${resumenBreve(g.escenas)}** pantallas contando las vueltas al hub`,
       `- Palabras leídas por partida: **${resumenBreve(g.palabras)}**`,
       `- Derrota ${pct(g.derrota)} · muerte ${pct(g.muerte)} · heridas al terminar ${dec(g.heridasMedia, 2)}`,
       `- Tiradas por partida ${dec(g.tiradasMedia)} · Fallo en los dados ${pct(g.tasaFalloCruda)} · Fallo después de Fortuna y Poder ${pct(g.tasaFallo)}`,
@@ -225,7 +225,7 @@ export function resumenConsola(campaign: Campaign, config: ConfigSim, agregado: 
     `Cobertura: ${agregado.escenasVisitadas}/${agregado.escenasTotales} escenas, ${agregado.opcionesElegidas}/${agregado.opcionesTotales} opciones`,
   );
   lineas.push(
-    `Longitud ${dec(g.escenas.media)} escenas (${dec(g.escenasDistintas.media)} distintas, ${pct(g.enObjetivo)} en ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}) · ${Math.round(g.palabras.media)} palabras`,
+    `Longitud ${dec(g.escenasDistintas.media)} escenas distintas (${pct(g.enObjetivo)} en ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}) · ${dec(g.escenas.media)} pantallas · ${Math.round(g.palabras.media)} palabras`,
   );
   lineas.push(
     `Derrota ${pct(g.derrota)} · muerte ${pct(g.muerte)} · heridas ${dec(g.heridasMedia, 2)} · Fallo ${pct(g.tasaFalloCruda)} en dados, ${pct(g.tasaFallo)} final`,

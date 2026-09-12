@@ -3,7 +3,14 @@ import type { Campaign } from '@/content/schema';
 import { alcanzablesSinMemoria, opcionesDeMemoria, todasLasOpciones } from './grafo';
 import { CLASES, type Combinacion, type ResultadoCarrera, type ResultadoPartida } from './types';
 
-/** Objetivo de diseño de la spec §11: una partida dura entre 24 y 30 escenas. */
+/**
+ * Objetivo de diseño de la spec §11: una partida dura entre 24 y 30 escenas.
+ *
+ * Se mide sobre escenas **distintas**, no sobre pantallas. Es la lectura que usa el propio outline
+ * §4, que verifica sus tres rutas típicas con 29, 31 y 27 escenas distintas mientras declara 32, 38
+ * y 30 pantallas y las tres dentro de la ventana de 30-45 minutos. Contar pantallas mezclaría el
+ * largo de la campaña con las vueltas al hub, que son tiempo de juego pero no contenido nuevo.
+ */
 export const LARGO_OBJETIVO: readonly [number, number] = [24, 30];
 
 /** Tope de muerte a nivel 1 con política codiciosa (aserción 2 de la spec §10). */
@@ -116,9 +123,9 @@ function calcularAvisos(campaign: Campaign, agregado: Omit<Agregado, 'avisos'>):
   const avisos: string[] = [];
   const g = agregado.global;
 
-  if (g.escenas.media > LARGO_OBJETIVO[1] || g.escenas.media < LARGO_OBJETIVO[0]) {
+  if (g.escenasDistintas.media > LARGO_OBJETIVO[1] || g.escenasDistintas.media < LARGO_OBJETIVO[0]) {
     avisos.push(
-      `La partida media dura ${g.escenas.media.toFixed(1)} escenas (${g.escenasDistintas.media.toFixed(1)} distintas) y el objetivo de diseño es ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}.`,
+      `La partida media recorre ${g.escenasDistintas.media.toFixed(1)} escenas distintas (${g.escenas.media.toFixed(1)} pantallas) y el objetivo de diseño es ${LARGO_OBJETIVO[0]}–${LARGO_OBJETIVO[1]}.`,
     );
   }
   for (const fila of agregado.filas) {
@@ -207,9 +214,10 @@ function fila(partidas: readonly ResultadoPartida[], carrerasDe: readonly Result
   const escenas = resumir(partidas.map((p) => p.escenas.length));
   const escenasDistintas = resumir(partidas.map((p) => new Set(p.escenas).size));
   const palabras = resumir(partidas.map((p) => p.palabras));
-  const dentro = partidas.filter(
-    (p) => p.escenas.length >= LARGO_OBJETIVO[0] && p.escenas.length <= LARGO_OBJETIVO[1],
-  ).length;
+  const dentro = partidas.filter((p) => {
+    const distintas = new Set(p.escenas).size;
+    return distintas >= LARGO_OBJETIVO[0] && distintas <= LARGO_OBJETIVO[1];
+  }).length;
   const tiradas = partidas.reduce((s, p) => s + p.tiradas, 0);
   const fallos = partidas.reduce((s, p) => s + p.fallos, 0);
   const fallosCrudos = partidas.reduce((s, p) => s + p.fallosCrudos, 0);
