@@ -192,3 +192,89 @@ describe('evaluate: personaje y partida', () => {
     expect(evaluate({ condition: 'envenenado' }, ctx)).toBe(false);
   });
 });
+
+describe('evaluate: memoria y relojes', () => {
+  it('visited sin min equivale a min 1 (una visita previa completa)', () => {
+    expect(evaluate({ visited: 'p_umbral' }, makeCtx(minimal, { run: { visited: {} } }))).toBe(false);
+    expect(evaluate({ visited: 'p_umbral' }, makeCtx(minimal, { run: { visited: { p_umbral: 0 } } }))).toBe(false);
+    expect(evaluate({ visited: 'p_umbral' }, makeCtx(minimal, { run: { visited: { p_umbral: 1 } } }))).toBe(true);
+  });
+
+  it('visited con min exige al menos esa cantidad de visitas', () => {
+    const cond: Condition = { visited: 'p_umbral', min: 2 };
+    expect(evaluate(cond, makeCtx(minimal, { run: { visited: { p_umbral: 1 } } }))).toBe(false);
+    expect(evaluate(cond, makeCtx(minimal, { run: { visited: { p_umbral: 2 } } }))).toBe(true);
+    expect(evaluate(cond, makeCtx(minimal, { run: { visited: { p_umbral: 5 } } }))).toBe(true);
+    // Otra escena visitada no cuenta.
+    expect(evaluate(cond, makeCtx(minimal, { run: { visited: { p_patio: 9 } } }))).toBe(false);
+  });
+
+  it('met es azúcar de flag char:met.<npc> (personaje o apostado)', () => {
+    expect(evaluate({ met: 'orell' }, makeCtx(minimal, { character: { flags: ['char:met.orell'] } }))).toBe(true);
+    expect(evaluate({ met: 'orell' }, makeCtx(minimal, { run: { stagedFlags: ['char:met.orell'] } }))).toBe(true);
+    expect(evaluate({ met: 'orell' }, makeCtx(minimal, { character: { flags: ['char:met.ilse'] } }))).toBe(false);
+    expect(evaluate({ met: 'orell' }, makeCtx())).toBe(false);
+  });
+
+  it('knows es azúcar de flag char:place.<lugar> (personaje o apostado)', () => {
+    expect(evaluate({ knows: 'vado_oculto' }, makeCtx(minimal, { character: { flags: ['char:place.vado_oculto'] } }))).toBe(true);
+    expect(evaluate({ knows: 'vado_oculto' }, makeCtx(minimal, { run: { stagedFlags: ['char:place.vado_oculto'] } }))).toBe(true);
+    expect(evaluate({ knows: 'vado_oculto' }, makeCtx(minimal, { character: { flags: ['char:place.puente_viejo'] } }))).toBe(false);
+    expect(evaluate({ knows: 'vado_oculto' }, makeCtx())).toBe(false);
+  });
+
+  it('clock gte compara run.clocks[nombre] >= gte', () => {
+    const ctx = makeCtx(minimal, { run: { clocks: { pelea: 2 } } });
+    expect(evaluate({ clock: 'pelea', gte: 1 }, ctx)).toBe(true);
+    expect(evaluate({ clock: 'pelea', gte: 2 }, ctx)).toBe(true);
+    expect(evaluate({ clock: 'pelea', gte: 3 }, ctx)).toBe(false);
+  });
+
+  it('clock ausente vale 0', () => {
+    const ctx = makeCtx(minimal, { run: { clocks: {} } });
+    expect(evaluate({ clock: 'sospecha', gte: 0 }, ctx)).toBe(true);
+    expect(evaluate({ clock: 'sospecha', gte: 1 }, ctx)).toBe(false);
+  });
+
+  it('endingSeen lee character.campaignLog[campaign.id].endings', () => {
+    const ctx = makeCtx(minimal, {
+      character: {
+        campaignLog: { [minimal.id]: { runs: 2, wins: 1, endings: ['fin_crecida'], milestones: [] } },
+      },
+    });
+    expect(evaluate({ endingSeen: 'fin_crecida' }, ctx)).toBe(true);
+    expect(evaluate({ endingSeen: 'fin_heredero' }, ctx)).toBe(false);
+  });
+
+  it('endingSeen ignora finales de otras campañas y personajes sin registro', () => {
+    const otra = makeCtx(minimal, {
+      character: {
+        campaignLog: { __otra_campania__: { runs: 1, wins: 1, endings: ['fin_crecida'], milestones: [] } },
+      },
+    });
+    expect(evaluate({ endingSeen: 'fin_crecida' }, otra)).toBe(false);
+    expect(evaluate({ endingSeen: 'fin_crecida' }, makeCtx(minimal, { character: { campaignLog: {} } }))).toBe(false);
+  });
+
+  it('no muta el contexto', () => {
+    const ctx = makeCtx(minimal, {
+      run: { flags: ['run:a'], visited: { p_umbral: 1 }, clocks: { pelea: 1 }, items: ['llave_de_hierro'] },
+      character: { flags: ['char:met.orell'] },
+      world: { flags: ['world:m.x'] },
+    });
+    const antes = JSON.stringify(ctx);
+    evaluate(
+      {
+        all: [
+          { flag: 'run:a' },
+          { visited: 'p_umbral' },
+          { met: 'orell' },
+          { clock: 'pelea', gte: 1 },
+          { not: { any: [{ item: 'nada' }, { endingSeen: 'fin_x' }, { flag: 'world:m.x' }] } },
+        ],
+      },
+      ctx,
+    );
+    expect(JSON.stringify(ctx)).toBe(antes);
+  });
+});

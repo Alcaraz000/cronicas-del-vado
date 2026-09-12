@@ -25,12 +25,18 @@ export function hasFlag(state: GameState, flag: string): boolean {
 /**
  * Evalúa una condición de contenido contra el estado. Pura: no muta nada.
  * `undefined` significa "sin condición" y siempre es true.
+ *
+ * Semántica (sección F del contrato):
+ * - visited: (run.visited[x] ?? 0) >= (min ?? 1); cuenta visitas previas COMPLETAS.
+ * - met / knows: azúcar de los flags derivados `char:met.<npc>` / `char:place.<lugar>`.
+ * - clock: (run.clocks[x] ?? 0) >= gte.
+ * - endingSeen: character.campaignLog[campaign.id]?.endings incluye x.
  */
 export function evaluate(cond: Condition | undefined, ctx: EvalContext): boolean {
   if (cond === undefined) {
     return true;
   }
-  const { state } = ctx;
+  const { campaign, state } = ctx;
   const { character, run } = state;
 
   // Flags y combinadores lógicos.
@@ -75,6 +81,28 @@ export function evaluate(cond: Condition | undefined, ctx: EvalContext): boolean
     return run.conditions.includes(cond.condition);
   }
 
-  // Memoria y relojes: se implementan en el ciclo siguiente.
-  return false;
+  // Memoria y relojes.
+  if ('visited' in cond) {
+    const visitas = run.visited[cond.visited] ?? 0;
+    return visitas >= (cond.min ?? 1);
+  }
+  if ('met' in cond) {
+    return hasFlag(state, `char:met.${cond.met}`);
+  }
+  if ('knows' in cond) {
+    return hasFlag(state, `char:place.${cond.knows}`);
+  }
+  if ('clock' in cond) {
+    const valor = run.clocks[cond.clock] ?? 0;
+    return valor >= cond.gte;
+  }
+  if ('endingSeen' in cond) {
+    const registro = character.campaignLog[campaign.id];
+    return registro?.endings.includes(cond.endingSeen) ?? false;
+  }
+
+  // Si el tipo Condition gana una variante nueva, esta línea deja de compilar
+  // y obliga a implementarla acá.
+  const restante: never = cond;
+  return restante;
 }
