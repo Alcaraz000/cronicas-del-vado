@@ -83,6 +83,20 @@ describe('rollDice', () => {
     expect(rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 0)).toEqual([]);
   });
 
+  /**
+   * Valor dorado de la cadena completa hash32 → mulberry32 → mapeo a 1-6. La promesa
+   * "recargar a mitad de tirada devuelve los mismos dados" depende de los tres eslabones:
+   * los tests de arriba fijan hash32 y la reproducibilidad relativa, pero sin dados literales
+   * un cambio en mulberry32 o en el mapeo pasaría en silencio con todo en verde.
+   */
+  it('valor dorado: la tirada inicial de p_umbral/leer_inscripcion da 4, 1 y 6', () => {
+    expect(rollDice(3826002220, 'p_umbral', 'leer_inscripcion', 0, 0, 3)).toEqual([4, 1, 6]);
+  });
+
+  it('valor dorado: la primera repetición con Fortuna de esa misma tirada da 6', () => {
+    expect(rollDice(3826002220, 'p_umbral', 'leer_inscripcion', 0, 1, 1)).toEqual([6]);
+  });
+
   it('los mismos argumentos dan los mismos dados (recargar y repetir = mismos dados)', () => {
     const a = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 3);
     const b = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 3);
