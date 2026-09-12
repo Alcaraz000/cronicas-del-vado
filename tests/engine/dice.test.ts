@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandOdds, classify, keepDice, odds } from '@/engine/dice';
+import { bandOdds, classify, keepDice, odds, riskLabel, targetLine } from '@/engine/dice';
 
 describe('keepDice', () => {
   it('normal y cancelled conservan siempre los índices 0 y 1', () => {
@@ -185,5 +185,59 @@ describe('odds', () => {
   it('las tres bandas suman 1', () => {
     const o = odds(-1, 'disadvantage');
     expect(o.success + o.partial + o.failure).toBeCloseTo(1, 12);
+  });
+});
+
+describe('riskLabel', () => {
+  it('seguro en los bordes inclusivos: fallo 0,20 y éxito 0,40', () => {
+    expect(riskLabel({ success: 0.4, partial: 0.4, failure: 0.2 })).toBe('seguro');
+    expect(riskLabel({ success: 0.7, partial: 0.25, failure: 0.05 })).toBe('seguro');
+  });
+
+  it('no es seguro si el éxito no llega a 0,40 aunque el fallo sea bajo', () => {
+    expect(riskLabel({ success: 0.3, partial: 0.6, failure: 0.1 })).toBe('arriesgado');
+    expect(riskLabel({ success: 0.399, partial: 0.401, failure: 0.2 })).toBe('arriesgado');
+  });
+
+  it('arriesgado hasta fallo 0,45 inclusive', () => {
+    expect(riskLabel({ success: 0.3, partial: 0.25, failure: 0.45 })).toBe('arriesgado');
+    expect(riskLabel({ success: 0.5, partial: 0.29, failure: 0.21 })).toBe('arriesgado');
+  });
+
+  it('peligroso desde fallo 0,451', () => {
+    expect(riskLabel({ success: 0.3, partial: 0.249, failure: 0.451 })).toBe('peligroso');
+    expect(riskLabel({ success: 0.05, partial: 0.27, failure: 0.68 })).toBe('peligroso');
+  });
+
+  it('funciona con las probabilidades reales de odds', () => {
+    expect(riskLabel(odds(2, 'normal'))).toBe('seguro');
+    expect(riskLabel(odds(1, 'advantage'))).toBe('seguro');
+    expect(riskLabel(odds(2, 'advantage'))).toBe('seguro');
+    expect(riskLabel(odds(0, 'normal'))).toBe('arriesgado');
+    expect(riskLabel(odds(1, 'normal'))).toBe('arriesgado');
+    // fallo 19,4 % (≤ 20) pero éxito 35,6 % (< 40): no alcanza para seguro
+    expect(riskLabel(odds(0, 'advantage'))).toBe('arriesgado');
+    expect(riskLabel(odds(-1, 'normal'))).toBe('peligroso');
+    expect(riskLabel(odds(0, 'disadvantage'))).toBe('peligroso');
+  });
+});
+
+describe('targetLine', () => {
+  it('mod 0: 10+ éxito, 7+ con costo', () => {
+    expect(targetLine(0)).toBe(
+      'Necesitás 10+ en los dados para éxito, 7+ con costo · doble 1 siempre falla · doble 6 siempre crítico',
+    );
+  });
+
+  it('mod +2 baja los umbrales en los dados', () => {
+    expect(targetLine(2)).toBe(
+      'Necesitás 8+ en los dados para éxito, 5+ con costo · doble 1 siempre falla · doble 6 siempre crítico',
+    );
+  });
+
+  it('mod -1 los sube', () => {
+    expect(targetLine(-1)).toBe(
+      'Necesitás 11+ en los dados para éxito, 8+ con costo · doble 1 siempre falla · doble 6 siempre crítico',
+    );
   });
 });

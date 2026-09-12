@@ -81,3 +81,20 @@ export function odds(totalMod: number, mode: RollMode): Odds {
   const b = bandOdds(totalMod, mode);
   return { success: b.crit + b.success, partial: b.partial, failure: b.failure + b.fumble };
 }
+
+/**
+ * seguro: fallo ≤ 20 % Y éxito ≥ 40 %; si no, arriesgado: fallo ≤ 45 %; si no, peligroso.
+ * Los bordes son inclusivos.
+ */
+export function riskLabel(o: Odds): Risk {
+  if (o.failure <= 0.2 && o.success >= 0.4) return 'seguro';
+  if (o.failure <= 0.45) return 'arriesgado';
+  return 'peligroso';
+}
+
+/** Objetivo expresado en los dados: con modificador m hace falta 10-m para éxito y 7-m con costo. */
+export function targetLine(totalMod: number): string {
+  const success = 10 - totalMod;
+  const partial = 7 - totalMod;
+  return `Necesitás ${success}+ en los dados para éxito, ${partial}+ con costo · doble 1 siempre falla · doble 6 siempre crítico`;
+}
