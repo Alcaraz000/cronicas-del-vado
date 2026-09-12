@@ -1,0 +1,106 @@
+.lista {
+  list-style: none;
+  margin: var(--esp-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--esp-2);
+}
+
+.fila {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: var(--esp-2);
+  background: var(--color-superficie);
+}
+
+.fila[data-enabled='false'] {
+  opacity: 0.55;
+}
+
+.boton {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-2);
+  width: 100%;
+  font: inherit;
+  color: var(--color-texto);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  cursor: not-allowed;
+}
+
+.numero {
+  min-width: 1.5em;
+  font-family: var(--fuente-ui);
+  font-weight: 700;
+  color: var(--color-acento);
+}
+
+.label {
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+}
+
+.badge,
+.vista {
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+  color: var(--color-texto-suave);
+}
+
+.mortal {
+  color: var(--color-peligroso);
+}
+
+.detalle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  margin-top: var(--esp-1);
+  padding-left: 2em;
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+}
+
+.chip,
+.fuente,
+.riesgo,
+.odds {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--color-superficie-alta);
+}
+
+.fuente[data-cancelled='true'] {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.riesgo[data-riesgo='seguro'] {
+  color: var(--color-seguro);
+}
+
+.riesgo[data-riesgo='arriesgado'] {
+  color: var(--color-arriesgado);
+}
+
+.riesgo[data-riesgo='peligroso'] {
+  color: var(--color-peligroso);
+}
+
+.hint {
+  margin: var(--esp-1) 0 0 2em;
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+  font-style: italic;
+  color: var(--color-texto-suave);
+}

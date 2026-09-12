@@ -1,0 +1,8 @@
+.parrafo {
+  margin: 0 0 var(--esp-2);
+}
+
+.hablante {
+  font-family: var(--fuente-ui);
+  color: var(--color-acento);
+}

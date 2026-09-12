@@ -1,0 +1,45 @@
+.pantalla {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--esp-4);
+  min-height: 100vh;
+  padding: var(--esp-6);
+  text-align: center;
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fuente-juego);
+  font-size: 2.2rem;
+  color: var(--color-acento);
+}
+
+.personaje {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  color: var(--color-texto-suave);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  justify-content: center;
+}
+
+.primario,
+.secundario {
+  font-family: var(--fuente-ui);
+  padding: 0.6em 1.4em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie-alta);
+  color: var(--color-texto);
+}
+
+.primario {
+  background: var(--color-acento);
+  border-color: var(--color-acento);
+  color: var(--color-fondo);
+}

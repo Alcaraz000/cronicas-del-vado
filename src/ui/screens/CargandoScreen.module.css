@@ -1,0 +1,7 @@
+.pantalla {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  font-family: var(--fuente-ui);
+  color: var(--color-texto-suave);
+}

@@ -1,0 +1,35 @@
+/* El texto de juego usa la fuente serif y el tamaño de juego (escalado por prefs.fontScale);
+   el body de la tarea 1 está en fuente de UI, por eso se declara acá. */
+.columna {
+  display: grid;
+  gap: var(--esp-2);
+  max-width: var(--ancho-columna-max);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+  line-height: var(--interlineado-juego);
+}
+
+.escena {
+  padding-top: var(--esp-2);
+  border-top: 1px solid var(--color-borde);
+}
+
+.eleccion {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  font-style: italic;
+  color: var(--color-texto-suave);
+}
+
+.tirada {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+  color: var(--color-texto-suave);
+}
+
+.resultado {
+  padding-left: var(--esp-4);
+  border-left: 2px solid var(--color-borde);
+}
