@@ -24,6 +24,12 @@ const TAGS_ES: Record<Tag, string> = {
 export const S = {
   titulo: 'Crónicas del Vado — prototipo',
   tags: TAGS_ES,
+  /** Cadenas compartidas por más de una superficie (Cajon, Dialogo, y lo que venga). */
+  comun: {
+    cerrar: 'Cerrar',
+    cancelar: 'Cancelar',
+    confirmar: 'Confirmar',
+  },
   inicio: {
     continuar: 'Continuar',
     campanas: 'Campañas',
