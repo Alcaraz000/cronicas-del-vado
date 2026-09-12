@@ -1,7 +1,8 @@
-import { LIMITS } from '@/content/catalog';
-import type { Campaign, Choice, Scene } from '@/content/schema';
+import { CLASSES, LIMITS, SKILLS, TRAITS } from '@/content/catalog';
+import type { Campaign, Choice, Condition, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
 import { applyEffects } from '@/engine/effects';
+import { buildPreview } from '@/engine/modifiers';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
   EvalContext,
@@ -16,6 +17,8 @@ import type {
 // resolve.ts, parte 1 (Tarea 9): getScene, enter, render.
 // La Tarea 10 agrega en este mismo archivo: choose, beginRoll, rerollDie, usePower,
 // usePlegaria, restorePending, commitRoll y endRun.
+
+const BADGE_RECUERDO = 'Recuerdo';
 
 export function getScene(campaign: Campaign, sceneId: string): Scene {
   const scene = campaign.scenes[sceneId];
@@ -92,14 +95,65 @@ function ultimoHablante(paragraphs: ResolvedParagraph[]): string | undefined {
   return undefined;
 }
 
-function renderChoice(choice: Choice): RenderedChoice {
+/**
+ * Badge que la UI muestra entre corchetes, derivado del requires de la opción.
+ * En la Fase A el nombre de un objeto se busca solo en campaign.items (WORLD.items está vacío);
+ * si no está, se usa el id.
+ */
+function badgeDe(cond: Condition, campaign: Campaign): string | undefined {
+  if ('class' in cond) {
+    return CLASSES[cond.class].name;
+  }
+  if ('trait' in cond) {
+    return TRAITS[cond.trait].name;
+  }
+  if ('skill' in cond) {
+    return SKILLS[cond.skill].name;
+  }
+  if ('item' in cond) {
+    return campaign.items[cond.item]?.name ?? cond.item;
+  }
+  if ('met' in cond || 'knows' in cond || 'endingSeen' in cond) {
+    return BADGE_RECUERDO;
+  }
+  if ('flag' in cond) {
+    return cond.flag.startsWith('char:') ? BADGE_RECUERDO : undefined;
+  }
+  if ('all' in cond) {
+    return primerBadge(cond.all, campaign);
+  }
+  if ('any' in cond) {
+    return primerBadge(cond.any, campaign);
+  }
+  return undefined;
+}
+
+function primerBadge(conds: Condition[], campaign: Campaign): string | undefined {
+  for (const cond of conds) {
+    const badge = badgeDe(cond, campaign);
+    if (badge !== undefined) {
+      return badge;
+    }
+  }
+  return undefined;
+}
+
+function renderChoice(choice: Choice, ctx: EvalContext): RenderedChoice {
+  const cumple = evaluate(choice.requires, ctx);
+  const next = choice.outcome?.next;
+  const destino = next !== undefined ? ctx.campaign.scenes[next] : undefined;
+  const badge = choice.requires !== undefined ? badgeDe(choice.requires, ctx.campaign) : undefined;
+
   return {
     id: choice.id,
     label: choice.label,
-    visible: true,
-    enabled: true,
-    leadsToLethal: false,
-    alreadySeen: false,
+    visible: cumple || choice.lockedHint !== undefined,
+    enabled: cumple,
+    ...(badge !== undefined ? { badge } : {}),
+    ...(choice.lockedHint !== undefined ? { lockedHint: choice.lockedHint } : {}),
+    ...(choice.roll !== undefined ? { preview: buildPreview(choice.roll, ctx) } : {}),
+    leadsToLethal: destino !== undefined && destino.lethal === true,
+    alreadySeen: next !== undefined && (ctx.state.seen[next]?.length ?? 0) > 0,
   };
 }
 
@@ -127,7 +181,7 @@ export function render(campaign: Campaign, state: GameState): RenderedScene {
     ...(scene.cg !== undefined ? { cg: scene.cg } : {}),
     ...(portraitNpc !== undefined ? { portraitNpc } : {}),
     paragraphs,
-    choices: scene.choices.map((choice) => renderChoice(choice)),
+    choices: scene.choices.map((choice) => renderChoice(choice, ctx)),
     ...(ending !== undefined ? { ending } : {}),
   };
 }

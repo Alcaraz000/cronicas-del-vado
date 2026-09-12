@@ -112,3 +112,113 @@ describe('render: metadatos, retrato y final', () => {
     expect(vista.choices).toEqual([]);
   });
 });
+
+function opcion(vista: RenderedScene, id: string) {
+  const encontrada = vista.choices.find((c) => c.id === id);
+  if (encontrada === undefined) {
+    throw new Error(`La escena renderizada no tiene la opción ${id}`);
+  }
+  return encontrada;
+}
+
+describe('render: opciones', () => {
+  it('sin requires: visible, habilitada, sin badge ni lockedHint', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    const abrir = opcion(vista, 'abrir');
+    expect(abrir.visible).toBe(true);
+    expect(abrir.enabled).toBe(true);
+    expect(abrir.badge).toBeUndefined();
+    expect(abrir.lockedHint).toBeUndefined();
+    expect(abrir.label).toBe('Abrir la puerta con cuidado');
+  });
+
+  it('badge por tipo de requires: clase, rasgo, habilidad y objeto', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_sala');
+    expect(opcion(vista, 'magia').badge).toBe('Mago');
+    expect(opcion(vista, 'escriba').badge).toBe('Aprendiz de escriba');
+    expect(opcion(vista, 'rastrear').badge).toBe('Rastreador');
+    expect(opcion(vista, 'llave').badge).toBe('Llave vieja');
+  });
+
+  it('badge Recuerdo para knows, para flag char: y para all/any con un hijo de memoria', () => {
+    const { vista: puerta } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    expect(opcion(puerta, 'recuerdo').badge).toBe('Recuerdo');
+    expect(opcion(puerta, 'cronica').badge).toBe('Recuerdo');
+
+    const { vista: sala } = entrarYRenderizar(crearEstadoMemoria(), 'm_sala');
+    // all: [{ wounds }, { met }] → wounds no da badge; met sí.
+    expect(opcion(sala, 'combinado').badge).toBe('Recuerdo');
+  });
+
+  it('requires cumplido: visible y habilitada, conserva el lockedHint como dato', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_sala');
+    const magia = opcion(vista, 'magia');
+    expect(magia.visible).toBe(true);
+    expect(magia.enabled).toBe(true);
+    expect(magia.lockedHint).toBe('Solo un mago lee estas runas');
+    expect(opcion(vista, 'escriba').enabled).toBe(true);
+  });
+
+  it('requires fallido con lockedHint: visible y deshabilitada, con el hint', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_sala');
+    const rastrear = opcion(vista, 'rastrear');
+    expect(rastrear.visible).toBe(true);
+    expect(rastrear.enabled).toBe(false);
+    expect(rastrear.lockedHint).toBe('No sabés leer huellas');
+
+    const llave = opcion(vista, 'llave');
+    expect(llave.visible).toBe(true);
+    expect(llave.enabled).toBe(false);
+  });
+
+  it('requires fallido sin lockedHint: invisible y deshabilitada', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    const secreto = opcion(vista, 'secreto');
+    expect(secreto.visible).toBe(false);
+    expect(secreto.enabled).toBe(false);
+  });
+
+  it('la opción Recuerdo se bloquea en la primera visita y se habilita tras derivar memoria', () => {
+    const { vista: primera } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    expect(opcion(primera, 'recuerdo').enabled).toBe(false);
+
+    const segunda = render(memoria, segundaVisitaAPuerta());
+    expect(opcion(segunda, 'recuerdo').enabled).toBe(true);
+  });
+
+  it('leadsToLethal es true solo si outcome.next apunta a una escena lethal', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    expect(opcion(vista, 'entrar_cripta').leadsToLethal).toBe(true);
+    expect(opcion(vista, 'abrir').leadsToLethal).toBe(false);
+    expect(opcion(vista, 'forzar').leadsToLethal).toBe(false);
+  });
+
+  it('alreadySeen es true si la escena destino tiene hashes en seen', () => {
+    const sinMemoria = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta').vista;
+    expect(opcion(sinMemoria, 'abrir').alreadySeen).toBe(false);
+
+    const conMemoria = entrarYRenderizar(crearEstadoMemoria({ seen: { m_sala: ['abc'] } }), 'm_puerta').vista;
+    expect(opcion(conMemoria, 'abrir').alreadySeen).toBe(true);
+    expect(opcion(conMemoria, 'entrar_cripta').alreadySeen).toBe(false);
+  });
+
+  it('preview solo en opciones con tirada; el mago forzando la puerta tiene desventaja por Debilidad', () => {
+    const { vista } = entrarYRenderizar(crearEstadoMemoria(), 'm_puerta');
+    expect(opcion(vista, 'abrir').preview).toBeUndefined();
+
+    const preview = opcion(vista, 'forzar').preview;
+    expect(preview).toBeDefined();
+    expect(preview?.attr).toBe('vigor');
+    expect(preview?.attrValue).toBe(0);
+    expect(preview?.difficulty).toBe('dificil');
+    expect(preview?.totalMod).toBe(-1);
+    expect(preview?.mode).toBe('disadvantage');
+  });
+
+  it('el estado no se modifica al renderizar', () => {
+    const estado = enter(memoria, crearEstadoMemoria(), 'm_sala');
+    const antes = JSON.stringify(estado);
+    render(memoria, estado);
+    expect(JSON.stringify(estado)).toBe(antes);
+  });
+});
