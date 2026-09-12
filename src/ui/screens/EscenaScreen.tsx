@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
-import { WORLD } from '@/content/world';
 import { fortuneMax } from '@/engine/progression';
 import { render as renderScene } from '@/engine/resolve';
 import { selectGameState } from '@/state/selectors';
@@ -32,9 +31,9 @@ export function EscenaScreen() {
     [campaign, gs],
   );
 
+  // La campaña ya viene con el mundo adentro (store.conMundo): acá no hay nada que fusionar.
   const nombres = useMemo(() => {
     const mapa: Record<string, string> = {};
-    for (const npc of Object.values(WORLD.npcs)) mapa[npc.id] = npc.name;
     if (campaign !== null) {
       for (const npc of Object.values(campaign.npcs)) mapa[npc.id] = npc.name;
     }
@@ -54,7 +53,7 @@ export function EscenaScreen() {
 
   if (campaign === null || gs === null || rendered === null) return <CargandoScreen />;
 
-  const placeName = campaign.places[rendered.place]?.name ?? WORLD.places[rendered.place]?.name ?? rendered.place;
+  const placeName = campaign.places[rendered.place]?.name ?? rendered.place;
   const fondo = rendered.variant !== undefined ? `${rendered.place}.${rendered.variant}` : rendered.place;
   const retrato = rendered.portraitNpc !== undefined ? (nombres[rendered.portraitNpc] ?? rendered.portraitNpc) : null;
 

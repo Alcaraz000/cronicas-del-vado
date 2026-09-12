@@ -1,8 +1,9 @@
 import { create, type Mutate, type StoreApi, type UseBoundStore } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { LIMITS, type Attr, type ClassId, type TraitId } from '@/content/catalog';
-import type { Campaign } from '@/content/schema';
+import type { Campaign, WorldContent } from '@/content/schema';
 import { CAMPAIGNS } from '@/content/campaigns/index';
+import { WORLD } from '@/content/world';
 import type {
   Character,
   EndSummary,
@@ -160,10 +161,28 @@ function activeCharacter(s: PersistedSlice): Character | null {
   return s.characters.find((c) => c.id === s.activeCharacterId) ?? null;
 }
 
+/**
+ * Devuelve la campaña con el contenido compartido adentro: PNJ, lugares y objetos de WORLD.
+ * El motor resuelve todo contra `campaign` y nada más (`modifiers.ts`, `resolve.ts`), así que sin
+ * esto una reliquia declarada solo en `world/items.ts` —que es donde el diseño manda declararlas—
+ * nunca daría ventaja ni mostraría su nombre. Fusionando acá, motor, UI y validador ven lo mismo.
+ *
+ * Ante una colisión de id gana WORLD: r07 ya prohíbe que una campaña redefina un id de `world/`,
+ * de modo que una colisión es contenido roto y el mundo es la fuente canónica.
+ */
+export function conMundo(campaign: Campaign, world: WorldContent): Campaign {
+  return {
+    ...campaign,
+    npcs: { ...campaign.npcs, ...world.npcs },
+    places: { ...campaign.places, ...world.places },
+    items: { ...campaign.items, ...world.items },
+  };
+}
+
 async function loadCampaign(campaignId: string): Promise<Campaign> {
   const entry = CAMPAIGNS[campaignId];
   if (!entry) throw new Error(`Campaña desconocida: ${campaignId}`);
-  return entry.load();
+  return conMundo(await entry.load(), WORLD);
 }
 
 function newRun(campaign: Campaign, character: Character): Run {
