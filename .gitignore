@@ -28,3 +28,7 @@ art/masters/
 # salidas de la prueba de estilo (los másteres se respaldan fuera de git)
 art/prueba_estilo_reporte.json
 art/assets.index.json
+
+# worktrees de desarrollo (fases con subagentes)
+.worktrees/
+.superpowers/
