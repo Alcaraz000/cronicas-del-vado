@@ -1,0 +1,233 @@
+import { z } from 'zod';
+import {
+  ATTRS,
+  TAGS,
+  DIFFICULTIES,
+  CLASSES,
+  TRAITS,
+  SKILLS,
+  CONDITIONS,
+  type Attr,
+  type Tag,
+  type Difficulty,
+  type ClassId,
+  type TraitId,
+  type SkillId,
+  type ConditionId,
+} from '@/content/catalog';
+
+// ---------------------------------------------------------------------------
+// Tipos de contenido (escritos a mano; los esquemas zod de abajo los espejan y
+// un test con expectTypeOf comprueba que coinciden en los dos sentidos).
+// ---------------------------------------------------------------------------
+
+export type FlagId = `run:${string}` | `char:${string}` | `world:${string}`;
+
+export type SceneKind = 'normal' | 'hub' | 'encounter' | 'rest' | 'ending';
+
+export type Condition =
+  | { flag: FlagId }
+  | { not: Condition }
+  | { all: Condition[] }
+  | { any: Condition[] }
+  | { class: ClassId }
+  | { trait: TraitId }
+  | { skill: SkillId }
+  | { item: string }
+  | { attr: Attr; gte: number }
+  | { wounds: { gte?: number; lte?: number } }
+  | { condition: ConditionId }
+  | { visited: string; min?: number }
+  | { met: string }
+  | { knows: string }
+  | { clock: string; gte: number }
+  | { endingSeen: string };
+
+export type Effect =
+  | { set: FlagId }
+  | { clear: FlagId }
+  | { give: string }
+  | { take: string }
+  | { wound: 1 | 2 }
+  | { heal: 1 }
+  | { addCondition: ConditionId }
+  | { removeCondition: ConditionId | 'all' }
+  | { clock: string; delta: number }
+  | { milestone: string }
+  | { fortune: number }
+  | { lethal: true };
+
+export interface TextVariant {
+  when?: Condition;
+  text: string;
+}
+
+export interface Paragraph {
+  speaker?: string;
+  variants: TextVariant[];
+}
+
+export type Text = (string | Paragraph)[];
+
+export interface Outcome {
+  text?: Text;
+  effects?: Effect[];
+  next: string;
+}
+
+export interface Roll {
+  attr: Attr;
+  difficulty: Difficulty;
+  tags: Tag[];
+  advantageIf?: Condition;
+  disadvantageIf?: Condition;
+  outcomes: { success: Outcome; partial: Outcome; failure: Outcome; crit?: Outcome; fumble?: Outcome };
+}
+
+export interface Choice {
+  id: string;
+  label: string;
+  requires?: Condition;
+  lockedHint?: string;
+  roll?: Roll;
+  outcome?: Outcome;
+}
+
+export interface Redirect {
+  when: Condition;
+  to: string;
+}
+
+// Orden fijo del motor (Tarea 9): enter resuelve `redirect` sobre el estado de
+// entrada; aplica `onEnter` de la escena final; render evalúa `when`, `requires`
+// y `advantageIf` contra ese estado (todavía sin la memoria de esta escena); al
+// elegir se deriva la memoria (visited, met, place, párrafos vistos), se aplican
+// efectos y se entra a la siguiente escena.
+export interface Scene {
+  id: string;
+  kind: SceneKind;
+  lethal?: true;
+  place: string;
+  variant?: string;
+  cg?: string;
+  npcs?: string[];
+  redirect?: Redirect[];
+  onEnter?: Effect[];
+  text: Text;
+  choices: Choice[];
+  ending?: { id: string; epilogue: Text };
+}
+
+export interface Npc {
+  id: string;
+  name: string;
+  portrait: string;
+  voice: string;
+  canonPrompt: string;
+}
+
+export interface Place {
+  id: string;
+  name: string;
+  background: string;
+  variants?: Record<string, string>;
+  canonPrompt: string;
+}
+
+export interface Item {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  advantageTags?: Tag[];
+  relic?: true;
+}
+
+export interface CampaignMeta {
+  id: string;
+  contentVersion: number;
+  title: string;
+  premise: string;
+  cover: string;
+  levelRange: [number, number];
+  durationMin: [number, number];
+  lethalScenes: number;
+  lintProfile: 'smoke' | 'release';
+  hidden?: true;
+}
+
+export interface Campaign extends CampaignMeta {
+  start: string;
+  scenes: Record<string, Scene>;
+  npcs: Record<string, Npc>;
+  places: Record<string, Place>;
+  items: Record<string, Item>;
+  flags: Record<string, string>;
+  milestones: Record<string, { label: string }>;
+  clocks: Record<string, { max: number; label: string }>;
+  endings: Record<string, { title: string; hidden?: true; reward?: Effect[] }>;
+}
+
+export interface WorldContent {
+  npcs: Record<string, Npc>;
+  places: Record<string, Place>;
+  items: Record<string, Item>;
+  flags: Record<string, string>;
+}
+
+// ---------------------------------------------------------------------------
+// Esquemas zod espejo
+// ---------------------------------------------------------------------------
+
+const FLAG_REGEX = /^(run|char|world):/;
+
+export const FlagIdSchema = z.custom<FlagId>(
+  (value) => typeof value === 'string' && FLAG_REGEX.test(value),
+  { message: 'El flag debe empezar con run:, char: o world:' },
+);
+
+const AttrSchema = z.enum(ATTRS);
+const TagSchema = z.enum(TAGS);
+const DifficultySchema = z.enum(Object.keys(DIFFICULTIES) as [Difficulty, ...Difficulty[]]);
+const ClassIdSchema = z.enum(Object.keys(CLASSES) as [ClassId, ...ClassId[]]);
+const TraitIdSchema = z.enum(Object.keys(TRAITS) as [TraitId, ...TraitId[]]);
+const SkillIdSchema = z.enum(Object.keys(SKILLS) as [SkillId, ...SkillId[]]);
+const ConditionIdSchema = z.enum(Object.keys(CONDITIONS) as [ConditionId, ...ConditionId[]]);
+
+const idSchema = z.string().min(1);
+
+export const ConditionSchema: z.ZodType<Condition> = z.lazy(() =>
+  z.union([
+    z.object({ flag: FlagIdSchema }),
+    z.object({ not: ConditionSchema }),
+    z.object({ all: z.array(ConditionSchema) }),
+    z.object({ any: z.array(ConditionSchema) }),
+    z.object({ class: ClassIdSchema }),
+    z.object({ trait: TraitIdSchema }),
+    z.object({ skill: SkillIdSchema }),
+    z.object({ item: idSchema }),
+    z.object({ attr: AttrSchema, gte: z.number().int() }),
+    z.object({ wounds: z.object({ gte: z.number().int().optional(), lte: z.number().int().optional() }) }),
+    z.object({ condition: ConditionIdSchema }),
+    z.object({ visited: idSchema, min: z.number().int().min(1).optional() }),
+    z.object({ met: idSchema }),
+    z.object({ knows: idSchema }),
+    z.object({ clock: idSchema, gte: z.number().int() }),
+    z.object({ endingSeen: idSchema }),
+  ]),
+);
+
+export const EffectSchema = z.union([
+  z.object({ set: FlagIdSchema }),
+  z.object({ clear: FlagIdSchema }),
+  z.object({ give: idSchema }),
+  z.object({ take: idSchema }),
+  z.object({ wound: z.union([z.literal(1), z.literal(2)]) }),
+  z.object({ heal: z.literal(1) }),
+  z.object({ addCondition: ConditionIdSchema }),
+  z.object({ removeCondition: z.union([ConditionIdSchema, z.literal('all')]) }),
+  z.object({ clock: idSchema, delta: z.number().int() }),
+  z.object({ milestone: idSchema }),
+  z.object({ fortune: z.number().int() }),
+  z.object({ lethal: z.literal(true) }),
+]);
