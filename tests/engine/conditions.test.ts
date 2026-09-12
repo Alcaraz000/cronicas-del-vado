@@ -127,3 +127,68 @@ describe('evaluate: casos base y combinadores', () => {
     expect(evaluate(cond, makeCtx(minimal, { run: { flags: [] } }))).toBe(false);
   });
 });
+
+describe('evaluate: personaje y partida', () => {
+  it('class compara con character.classId', () => {
+    const ctx = makeCtx(minimal, { character: { classId: 'mago' } });
+    expect(evaluate({ class: 'mago' }, ctx)).toBe(true);
+    expect(evaluate({ class: 'guerrero' }, ctx)).toBe(false);
+  });
+
+  it('trait busca en character.traits', () => {
+    const ctx = makeCtx(minimal, { character: { traits: ['aprendiz_de_escriba', 'cazador_furtivo'] } });
+    expect(evaluate({ trait: 'aprendiz_de_escriba' }, ctx)).toBe(true);
+    expect(evaluate({ trait: 'desertor' }, ctx)).toBe(false);
+  });
+
+  it('skill busca en character.skills', () => {
+    const ctx = makeCtx(minimal, { character: { skills: ['rastreador'] } });
+    expect(evaluate({ skill: 'rastreador' }, ctx)).toBe(true);
+    expect(evaluate({ skill: 'orador' }, ctx)).toBe(false);
+  });
+
+  it('item busca en run.items', () => {
+    const ctx = makeCtx(minimal, { run: { items: ['llave_de_hierro'] } });
+    expect(evaluate({ item: 'llave_de_hierro' }, ctx)).toBe(true);
+    expect(evaluate({ item: 'carta_lacrada' }, ctx)).toBe(false);
+  });
+
+  it('attr gte compara character.attrs[attr] >= gte', () => {
+    const ctx = makeCtx(minimal, { character: { attrs: { vigor: 0, astucia: 1, saber: 2, presencia: 1 } } });
+    expect(evaluate({ attr: 'saber', gte: 2 }, ctx)).toBe(true);
+    expect(evaluate({ attr: 'saber', gte: 3 }, ctx)).toBe(false);
+    expect(evaluate({ attr: 'vigor', gte: 0 }, ctx)).toBe(true);
+    expect(evaluate({ attr: 'vigor', gte: 1 }, ctx)).toBe(false);
+  });
+
+  it('wounds gte solo', () => {
+    expect(evaluate({ wounds: { gte: 1 } }, makeCtx(minimal, { run: { wounds: 0 } }))).toBe(false);
+    expect(evaluate({ wounds: { gte: 1 } }, makeCtx(minimal, { run: { wounds: 1 } }))).toBe(true);
+    expect(evaluate({ wounds: { gte: 1 } }, makeCtx(minimal, { run: { wounds: 3 } }))).toBe(true);
+  });
+
+  it('wounds lte solo', () => {
+    expect(evaluate({ wounds: { lte: 1 } }, makeCtx(minimal, { run: { wounds: 0 } }))).toBe(true);
+    expect(evaluate({ wounds: { lte: 1 } }, makeCtx(minimal, { run: { wounds: 1 } }))).toBe(true);
+    expect(evaluate({ wounds: { lte: 1 } }, makeCtx(minimal, { run: { wounds: 2 } }))).toBe(false);
+  });
+
+  it('wounds gte y lte a la vez (rango cerrado)', () => {
+    const cond: Condition = { wounds: { gte: 1, lte: 2 } };
+    expect(evaluate(cond, makeCtx(minimal, { run: { wounds: 0 } }))).toBe(false);
+    expect(evaluate(cond, makeCtx(minimal, { run: { wounds: 1 } }))).toBe(true);
+    expect(evaluate(cond, makeCtx(minimal, { run: { wounds: 2 } }))).toBe(true);
+    expect(evaluate(cond, makeCtx(minimal, { run: { wounds: 3 } }))).toBe(false);
+  });
+
+  it('wounds sin gte ni lte es siempre true', () => {
+    expect(evaluate({ wounds: {} }, makeCtx(minimal, { run: { wounds: 0 } }))).toBe(true);
+    expect(evaluate({ wounds: {} }, makeCtx(minimal, { run: { wounds: 3 } }))).toBe(true);
+  });
+
+  it('condition busca en run.conditions', () => {
+    const ctx = makeCtx(minimal, { run: { conditions: ['asustado', 'empapado'] } });
+    expect(evaluate({ condition: 'asustado' }, ctx)).toBe(true);
+    expect(evaluate({ condition: 'envenenado' }, ctx)).toBe(false);
+  });
+});

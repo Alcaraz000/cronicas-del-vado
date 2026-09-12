@@ -31,7 +31,9 @@ export function evaluate(cond: Condition | undefined, ctx: EvalContext): boolean
     return true;
   }
   const { state } = ctx;
+  const { character, run } = state;
 
+  // Flags y combinadores lógicos.
   if ('flag' in cond) {
     return hasFlag(state, cond.flag);
   }
@@ -44,6 +46,35 @@ export function evaluate(cond: Condition | undefined, ctx: EvalContext): boolean
   if ('any' in cond) {
     return cond.any.some((c) => evaluate(c, ctx));
   }
-  // Las demás variantes se implementan en los ciclos siguientes.
+
+  // Personaje.
+  if ('class' in cond) {
+    return character.classId === cond.class;
+  }
+  if ('trait' in cond) {
+    return character.traits.includes(cond.trait);
+  }
+  if ('skill' in cond) {
+    return character.skills.includes(cond.skill);
+  }
+  if ('attr' in cond) {
+    return character.attrs[cond.attr] >= cond.gte;
+  }
+
+  // Partida.
+  if ('item' in cond) {
+    return run.items.includes(cond.item);
+  }
+  if ('wounds' in cond) {
+    const { gte, lte } = cond.wounds;
+    const cumpleMin = gte === undefined || run.wounds >= gte;
+    const cumpleMax = lte === undefined || run.wounds <= lte;
+    return cumpleMin && cumpleMax;
+  }
+  if ('condition' in cond) {
+    return run.conditions.includes(cond.condition);
+  }
+
+  // Memoria y relojes: se implementan en el ciclo siguiente.
   return false;
 }
