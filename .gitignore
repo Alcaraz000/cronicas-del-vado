@@ -1,9 +1,19 @@
+# dependencias y salidas de build
 node_modules/
 dist/
-coverage/
-.env
-.env.*
-art/masters/
+.vite/
+*.tsbuildinfo
+
+# registros
+npm-debug.log*
 *.log
+
+# editores y sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
 .DS_Store
 Thumbs.db
+
+# másteres de arte (fase G; se respaldan fuera de git)
+art/masters/
