@@ -1,0 +1,56 @@
+{
+  "workflow": "sdxl_txt2img.json",
+  "estilo": {
+    "positivo": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, dramatic chiaroscuro lighting, muted earthy palette with warm lantern accents, medieval european setting, cinematic composition, highly detailed, painted by a concept artist for a dark fantasy game",
+    "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing",
+    "pasos": 28,
+    "cfg": 5.0,
+    "sampler": "dpmpp_2m_sde",
+    "scheduler": "karras"
+  },
+  "entradas": [
+    { "tipo": "retrato", "id": "orell", "seed": 101, "width": 896, "height": 1152,
+      "prompt": "portrait of Orell, a grey-bearded sergeant in his fifties, weathered face, tired patient eyes, dented mail hauberk under a soaked wool cloak, holding a crossbow pointed at the ground, three-quarter view, shoulders up, neutral dark background, night rain" },
+    { "tipo": "retrato", "id": "ilse", "seed": 102, "width": 896, "height": 1152,
+      "prompt": "portrait of Ilse, a young woman of twenty with dark braided hair, stubborn jaw, mud on her cheek, plain green wool dress with a mender's apron, holding a shuttered lantern, three-quarter view, shoulders up, neutral dark background" },
+    { "tipo": "retrato", "id": "dravos", "seed": 103, "width": 896, "height": 1152,
+      "prompt": "portrait of Captain Dravos, a hard-faced man of forty with a shaved head and a scar across the brow, polished steel gorget over a black surcoat, cold calculating stare, three-quarter view, shoulders up, neutral dark background" },
+    { "tipo": "retrato", "id": "berta", "seed": 104, "width": 896, "height": 1152,
+      "prompt": "portrait of Berta, the village mayor, a heavyset woman of sixty with iron-grey hair pinned up, shrewd eyes, fur-trimmed russet mantle over a linen dress, a sealed letter in her hand, three-quarter view, shoulders up, neutral dark background" },
+    { "tipo": "retrato", "id": "mago_jugador", "seed": 105, "width": 896, "height": 1152,
+      "prompt": "portrait of a travelling scholar-mage, androgynous, late twenties, ink-stained fingers, close-cropped hair, worn indigo travelling robe with a satchel of scrolls, wary expression, three-quarter view, shoulders up, neutral dark background" },
+
+    { "tipo": "fondo", "id": "puente_viejo", "seed": 201, "width": 1344, "height": 768,
+      "prompt": "an old stone bridge over a swollen dark river at night, barricaded with planks and barrels, two guards with a lantern, rain falling, a shuttered village on the far bank, no people in foreground, wide establishing shot" },
+    { "tipo": "fondo", "id": "aldamar_plaza", "seed": 202, "width": 1344, "height": 768,
+      "prompt": "the empty square of a small border village at night, timber and daub houses, three windows lit, a dry well, wet cobblestones reflecting lantern light, smoke from a chimney, wide establishing shot, no people" },
+    { "tipo": "fondo", "id": "molino", "seed": 203, "width": 1344, "height": 768,
+      "prompt": "an old watermill beside a river at night, its wheel stopped, one window glowing amber though it should be empty, tall grass, a leaning fence, overcast sky, wide establishing shot, no people" },
+    { "tipo": "fondo", "id": "taberna_interior", "seed": 204, "width": 1344, "height": 768,
+      "prompt": "the interior of a small village tavern at night, low beams, a hearth fire, three long tables, hanging copper pots, a clay jug and cups, warm firelight against cold blue window light, wide interior shot, no people" },
+    { "tipo": "fondo", "id": "vado_crecido", "seed": 205, "width": 1344, "height": 768,
+      "prompt": "a river ford in full flood during a storm, brown churning water over submerged stepping stones, a broken willow, lightning behind low hills, driving rain, wide dramatic establishing shot, no people" },
+
+    { "tipo": "objeto", "id": "sello_del_vado", "seed": 301, "width": 1024, "height": 1024,
+      "prompt": "a single ancient bronze seal disc the size of a palm, worn spiral river runes, verdigris in the grooves, a leather thong through a hole, lying on flat neutral grey background, centered, studio lighting, object study" },
+    { "tipo": "objeto", "id": "carta_lacrada", "seed": 302, "width": 1024, "height": 1024,
+      "prompt": "a single folded parchment letter closed with a dark red wax seal, slightly water-stained edges, lying on flat neutral grey background, centered, studio lighting, object study" },
+    { "tipo": "objeto", "id": "llave_de_hierro", "seed": 303, "width": 1024, "height": 1024,
+      "prompt": "a single large rusted iron key with a cloverleaf bow, pitted surface, lying on flat neutral grey background, centered, studio lighting, object study" },
+    { "tipo": "objeto", "id": "medallon_de_tome", "seed": 304, "width": 1024, "height": 1024,
+      "prompt": "a single tarnished silver medallion on a broken chain, engraved with a millwheel, one edge bent, lying on flat neutral grey background, centered, studio lighting, object study" },
+    { "tipo": "objeto", "id": "farol_de_ilse", "seed": 305, "width": 1024, "height": 1024,
+      "prompt": "a single battered tin shuttered lantern with smoke-blackened horn panes, its candle unlit, lying on flat neutral grey background, centered, studio lighting, object study" },
+
+    { "tipo": "escena", "id": "acusacion_en_la_plaza", "seed": 401, "width": 1344, "height": 768,
+      "prompt": "a captain in a black surcoat pointing an accusing finger at a lone traveller in a village square at night, villagers watching from doorways with lanterns, tense standoff, rain, cinematic dark fantasy illustration" },
+    { "tipo": "escena", "id": "cuerpo_en_el_molino", "seed": 402, "width": 1344, "height": 768,
+      "prompt": "the interior of a watermill at night, a man's body face down beside the millstone, an overturned lantern still burning, flour dust hanging in the light, a trapdoor ajar in the floor, grim cinematic dark fantasy illustration, no gore" },
+    { "tipo": "escena", "id": "cruzar_el_vado", "seed": 403, "width": 1344, "height": 768,
+      "prompt": "a lone figure wading waist deep across a flooded river ford in a storm, holding something above the water, crossbowmen silhouetted on the far bank, lightning, driving rain, cinematic dark fantasy illustration" },
+    { "tipo": "escena", "id": "sotano_del_sello", "seed": 404, "width": 1344, "height": 768,
+      "prompt": "a low vaulted stone cellar beneath a mill, water seeping between the flagstones, carved spiral river runes on the far wall, a young woman holding a lantern up to read them, cinematic dark fantasy illustration" },
+    { "tipo": "escena", "id": "final_la_crecida", "seed": 405, "width": 1344, "height": 768,
+      "prompt": "a river bursting its banks at dawn, water sweeping past a village that stands just above the flood line, a small figure on a rise watching, first grey light breaking through storm clouds, hopeful melancholy, cinematic dark fantasy illustration" }
+  ]
+}

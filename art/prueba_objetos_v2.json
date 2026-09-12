@@ -1,0 +1,37 @@
+{
+  "workflow": "sdxl_txt2img.json",
+  "estilo": {
+    "positivo": "painterly digital illustration, semi-realistic fantasy concept art, oil painting texture, visible brushwork, muted earthy palette, single object centered on a plain flat grey background, no scenery, no props, no decoration, painted item icon for a dark fantasy game",
+    "negativo": "photo, photorealistic, 3d render, cgi, anime, manga, cartoon, cel shading, flat vector, smooth airbrush, plastic skin, text, watermark, signature, logo, blurry, lowres, extra limbs, deformed hands, oversaturated, neon colors, modern clothing, scenery, background objects, foliage, plants, palm leaves, lanterns, table, cloth, hands, multiple objects, collage, border, frame",
+    "pasos": 28,
+    "cfg": 5.0,
+    "sampler": "dpmpp_2m_sde",
+    "scheduler": "karras"
+  },
+  "entradas": [
+    {
+      "tipo": "objeto",
+      "id": "sello_del_vado_v2",
+      "seed": 301,
+      "width": 1024,
+      "height": 1024,
+      "prompt": "a single ancient bronze seal disc the size of a palm, worn spiral river runes, verdigris in the grooves, a leather thong through a hole, centered on a plain flat grey background"
+    },
+    {
+      "tipo": "objeto",
+      "id": "llave_de_hierro_v2",
+      "seed": 303,
+      "width": 1024,
+      "height": 1024,
+      "prompt": "a single large rusted iron key with a cloverleaf bow, pitted surface, centered on a plain flat grey background"
+    },
+    {
+      "tipo": "objeto",
+      "id": "medallon_de_tome_v2",
+      "seed": 304,
+      "width": 1024,
+      "height": 1024,
+      "prompt": "a single tarnished silver medallion on a broken chain, engraved with a millwheel, one edge bent, centered on a plain flat grey background"
+    }
+  ]
+}

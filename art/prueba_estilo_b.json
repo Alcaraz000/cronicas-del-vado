@@ -1,0 +1,61 @@
+{
+  "workflow": "sdxl_txt2img.json",
+  "estilo": {
+    "positivo": "traditional oil painting on canvas, thick impasto brushwork, visible brush strokes and palette knife texture, painterly soft edges, limited muted earthy palette, warm lantern glow against cold shadow, dark fantasy book illustration, medieval european, painted by Greg Rutkowski and Craig Mullins",
+    "negativo": "photograph, photo, dslr, hyperrealistic, sharp focus, octane render, unreal engine, 3d render, cgi, smooth digital airbrush, anime, cartoon, cel shading, flat vector, text, watermark, signature, blurry, lowres, deformed hands, oversaturated, neon, modern clothing, tropical plants, palm leaves",
+    "pasos": 28,
+    "cfg": 5.0,
+    "sampler": "dpmpp_2m_sde",
+    "scheduler": "karras"
+  },
+  "entradas": [
+    {
+      "tipo": "retrato",
+      "id": "orell_B",
+      "seed": 101,
+      "width": 896,
+      "height": 1152,
+      "prompt": "portrait of Orell, a grey-bearded sergeant in his fifties, weathered face, tired patient eyes, dented mail hauberk under a soaked wool cloak, holding a crossbow pointed at the ground, three-quarter view, shoulders up, neutral dark background, night rain"
+    },
+    {
+      "tipo": "retrato",
+      "id": "ilse_B",
+      "seed": 102,
+      "width": 896,
+      "height": 1152,
+      "prompt": "portrait of Ilse, a young woman of twenty with dark braided hair, stubborn jaw, mud on her cheek, plain green wool dress with a mender's apron, holding a shuttered lantern, three-quarter view, shoulders up, neutral dark background"
+    },
+    {
+      "tipo": "fondo",
+      "id": "puente_viejo_B",
+      "seed": 201,
+      "width": 1344,
+      "height": 768,
+      "prompt": "an old stone bridge over a swollen dark river at night, barricaded with planks and barrels, two guards with a lantern, rain falling, a shuttered village on the far bank, no people in foreground, wide establishing shot"
+    },
+    {
+      "tipo": "fondo",
+      "id": "vado_crecido_B",
+      "seed": 205,
+      "width": 1344,
+      "height": 768,
+      "prompt": "a river ford in full flood during a storm, brown churning water over submerged stepping stones, a broken willow, lightning behind low hills, driving rain, wide dramatic establishing shot, no people"
+    },
+    {
+      "tipo": "objeto",
+      "id": "sello_del_vado_B",
+      "seed": 301,
+      "width": 1024,
+      "height": 1024,
+      "prompt": "a single ancient bronze seal disc the size of a palm, worn spiral river runes, verdigris in the grooves, a leather thong through a hole, lying on flat neutral grey background, centered, studio lighting, object study"
+    },
+    {
+      "tipo": "escena",
+      "id": "cuerpo_en_el_molino_B",
+      "seed": 402,
+      "width": 1344,
+      "height": 768,
+      "prompt": "the interior of a watermill at night, a man's body face down beside the millstone, an overturned lantern still burning, flour dust hanging in the light, a trapdoor ajar in the floor, grim cinematic dark fantasy illustration, no gore"
+    }
+  ]
+}
