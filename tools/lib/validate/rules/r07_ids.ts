@@ -40,6 +40,19 @@ export const r07_ids: Rule = (campaign, ctx) => {
     }
   };
 
+  /**
+   * Flag de un `set` o un `clear`. Los espacios compartidos no se pueden escribir desde el contenido:
+   * `endRun` solo promociona lo apostado con el prefijo de la campaña, así que un `{ set: 'char:met.orell' }`
+   * funciona durante la partida y se pierde al terminar, en silencio. Leerlos en condiciones sí vale.
+   */
+  const flagEscrito = (flag: string, sceneId?: string): void => {
+    if (esCompartido(flag)) {
+      push(`El flag ${flag} es de un espacio compartido que deriva el motor: una campaña no puede escribirlo con set ni clear (sí leerlo en condiciones)`, sceneId);
+      return;
+    }
+    flagOk(flag, sceneId);
+  };
+
   for (const flag of Object.keys(campaign.flags)) {
     if (!prefijoCorrecto(flag)) push(`El flag declarado ${flag} debe llevar el prefijo de la campaña (char:${campaign.id}. o world:${campaign.id}.)`);
   }
@@ -64,8 +77,8 @@ export const r07_ids: Rule = (campaign, ctx) => {
       }
     }
     for (const effect of sceneEffects(scene)) {
-      if ('set' in effect) flagOk(effect.set, sid);
-      else if ('clear' in effect) flagOk(effect.clear, sid);
+      if ('set' in effect) flagEscrito(effect.set, sid);
+      else if ('clear' in effect) flagEscrito(effect.clear, sid);
       else if ('give' in effect) { if (!existe('items', effect.give)) push(`El objeto ${effect.give} (give) no existe`, sid); }
       else if ('take' in effect) { if (!existe('items', effect.take)) push(`El objeto ${effect.take} (take) no existe`, sid); }
       else if ('addCondition' in effect) { if (!has(CONDITIONS, effect.addCondition)) push(`La condición ${effect.addCondition} no existe en el catálogo`, sid); }
@@ -98,8 +111,8 @@ export const r07_ids: Rule = (campaign, ctx) => {
   for (const { endingId, effects } of endingRewards(campaign)) {
     for (const effect of effects) {
       const contexto = `reward del final ${endingId}`;
-      if ('set' in effect) flagOk(effect.set);
-      else if ('clear' in effect) flagOk(effect.clear);
+      if ('set' in effect) flagEscrito(effect.set);
+      else if ('clear' in effect) flagEscrito(effect.clear);
       else if ('give' in effect) { if (!existe('items', effect.give)) push(`El objeto ${effect.give} (give) no existe (${contexto})`); }
       else if ('take' in effect) { if (!existe('items', effect.take)) push(`El objeto ${effect.take} (take) no existe (${contexto})`); }
       else if ('addCondition' in effect) { if (!has(CONDITIONS, effect.addCondition)) push(`La condición ${effect.addCondition} no existe en el catálogo (${contexto})`); }

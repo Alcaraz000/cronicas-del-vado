@@ -11,7 +11,7 @@ import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fi
 import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
 import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05RewardLethal, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
 import { rotaR06Autobucle, rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
-import { rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
+import { rotaR07EscribeCompartido, rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
 import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
@@ -196,9 +196,21 @@ describe('r07_ids', () => {
   it('prefijo de campaña incorrecto', () => {
     expect(soloRegla(rotaR07Prefijo, 'r07_ids')[0]?.message).toContain('char:otra.cosa');
   });
-  it('acepta los espacios compartidos por prefijo', () => {
-    const conMet = { ...campanaBase, scenes: { ...campanaBase.scenes, b_inicio: { ...campanaBase.scenes.b_inicio!, onEnter: [{ set: 'char:met.viajero' as const }, { set: 'world:caido.base' as const }] } } };
+  it('acepta los espacios compartidos por prefijo en condiciones, que es donde se leen', () => {
+    const conMet = conEscena(
+      campanaBase,
+      conOpcion(b_inicio, { ...opcion(b_inicio, 'recordar'), requires: { any: [{ flag: 'char:met.viajero' }, { flag: 'world:caido.base' }] } }),
+    );
     expect(validateCampaign(conMet, ctx())).toEqual([]);
+  });
+  it('rechaza set/clear de un espacio compartido: el motor descarta esos flags al terminar', () => {
+    // endRun solo promociona lo apostado con el prefijo de la campaña (char:<id>. / world:<id>.).
+    // Un `{ set: 'char:met.orell' }` funciona durante la partida y se pierde al final, en silencio.
+    const issues = soloRegla(rotaR07EscribeCompartido, 'r07_ids');
+    expect(issues).toHaveLength(2);
+    expect(issues[0]?.message).toContain('char:met.viajero');
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[1]?.message).toContain('world:caido.base');
   });
   it('los espacios compartidos salen de world.flags: agregar uno nuevo no obliga a tocar la regla', () => {
     // r07 no puede tener su propia copia de las claves de src/content/world/flags.ts:
