@@ -152,6 +152,29 @@ describe('FinScreen', () => {
     ).toBeInTheDocument();
   });
 
+  it('un párrafo con speaker muestra el nombre del PNJ, no su id', () => {
+    // FinScreen reimplementaba el render de párrafos sin el mapa de nombres que usa TextColumn:
+    // el primer final con una línea de diálogo iba a imprimir "centinela:" en vez de "El centinela:".
+    const base = estadoEn('p_umbral', 0);
+    const final: GameState = {
+      ...base,
+      run: {
+        ...base.run,
+        outcome: { kind: 'defeat' },
+        log: [{ kind: 'outcome', paragraphs: [{ speaker: 'centinela', text: '—Te lo dije, no era para vos.' }] }],
+      },
+    };
+
+    montarFinCon(final);
+    render(<FinScreen />);
+
+    const nombre = campaign.npcs['centinela']?.name ?? '';
+    expect(nombre).toBe('El centinela');
+    expect(screen.getByText(`${nombre}:`)).toBeInTheDocument();
+    expect(screen.queryByText('centinela:')).toBeNull();
+    expect(screen.getByText('—Te lo dije, no era para vos.')).toBeInTheDocument();
+  });
+
   it('desenlace de derrota: muestra el texto que el motor dejó en el log, no solo el título', () => {
     // Herido dos veces (2 Heridas) en el umbral: un Fallo en "Forzar a hombros
     // la puerta interior" aplica `{ wound: 1 }` (no `lethal`) y llega a 3

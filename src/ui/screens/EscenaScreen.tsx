@@ -6,6 +6,7 @@ import { render as renderScene } from '@/engine/resolve';
 import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { OptionList } from '@/ui/components/OptionList';
+import { useNombresDePnj } from '@/ui/components/Parrafos';
 import { Placeholder } from '@/ui/components/Placeholder';
 import { RollPanel } from '@/ui/components/RollPanel';
 import { StatusBar } from '@/ui/components/StatusBar';
@@ -31,14 +32,7 @@ export function EscenaScreen() {
     [campaign, gs],
   );
 
-  // La campaña ya viene con el mundo adentro (store.conMundo): acá no hay nada que fusionar.
-  const nombres = useMemo(() => {
-    const mapa: Record<string, string> = {};
-    if (campaign !== null) {
-      for (const npc of Object.values(campaign.npcs)) mapa[npc.id] = npc.name;
-    }
-    return mapa;
-  }, [campaign]);
+  const nombres = useNombresDePnj();
 
   const onPick = useCallback(
     (choiceId: string): void => {
@@ -74,7 +68,7 @@ export function EscenaScreen() {
           {retrato !== null && <Placeholder label={`${S.placeholder.retrato}: ${retrato}`} aspect="3:4" />}
         </aside>
         <main className={styles.columna}>
-          <TextColumn log={gs.run.log} nombres={nombres} />
+          <TextColumn log={gs.run.log} />
           {pending !== null ? (
             <RollPanel
               pending={pending}

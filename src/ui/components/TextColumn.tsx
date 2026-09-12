@@ -1,33 +1,19 @@
 import { useEffect, useRef } from 'react';
-import type { LogEntry, ResolvedParagraph } from '@/engine/types';
+import type { LogEntry } from '@/engine/types';
+import { Parrafos } from '@/ui/components/Parrafos';
 import { S } from '@/ui/strings.es';
 import styles from './TextColumn.module.css';
 
 export interface TextColumnProps {
   log: LogEntry[];
-  /** id de PNJ → nombre visible (campaña ∪ mundo) */
-  nombres: Record<string, string>;
 }
 
-function Parrafos({ parrafos, nombres }: { parrafos: ResolvedParagraph[]; nombres: Record<string, string> }) {
-  return (
-    <>
-      {parrafos.map((p, i) => (
-        <p key={i} className={styles.parrafo}>
-          {p.speaker !== undefined && <strong className={styles.hablante}>{nombres[p.speaker] ?? p.speaker}: </strong>}
-          <span>{p.text}</span>
-        </p>
-      ))}
-    </>
-  );
-}
-
-function Entrada({ entry, nombres }: { entry: LogEntry; nombres: Record<string, string> }) {
+function Entrada({ entry }: { entry: LogEntry }) {
   switch (entry.kind) {
     case 'scene':
       return (
         <section className={styles.escena} data-scene={entry.sceneId}>
-          <Parrafos parrafos={entry.paragraphs} nombres={nombres} />
+          <Parrafos parrafos={entry.paragraphs} />
         </section>
       );
     case 'choice':
@@ -46,13 +32,13 @@ function Entrada({ entry, nombres }: { entry: LogEntry; nombres: Record<string, 
     case 'outcome':
       return (
         <section className={styles.resultado}>
-          <Parrafos parrafos={entry.paragraphs} nombres={nombres} />
+          <Parrafos parrafos={entry.paragraphs} />
         </section>
       );
   }
 }
 
-export function TextColumn({ log, nombres }: TextColumnProps) {
+export function TextColumn({ log }: TextColumnProps) {
   const fin = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,7 +49,7 @@ export function TextColumn({ log, nombres }: TextColumnProps) {
   return (
     <div className={styles.columna}>
       {log.map((entry, i) => (
-        <Entrada key={i} entry={entry} nombres={nombres} />
+        <Entrada key={i} entry={entry} />
       ))}
       <div ref={fin} />
     </div>

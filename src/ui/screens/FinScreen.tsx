@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { LogEntry, ResolvedParagraph, RunOutcome } from '@/engine/types';
 import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
+import { Parrafos } from '@/ui/components/Parrafos';
 import { S } from '@/ui/strings.es';
 import styles from './FinScreen.module.css';
 
@@ -64,12 +65,7 @@ export function FinScreen() {
       <p className={styles.etiqueta}>{S.fin.final}</p>
       <h1 className={styles.titulo}>{titulo}</h1>
       <div className={styles.epilogo}>
-        {parrafos.map((p, i) => (
-          <p key={i}>
-            {p.speaker !== undefined && <strong>{p.speaker}: </strong>}
-            <span>{p.text}</span>
-          </p>
-        ))}
+        <Parrafos parrafos={parrafos} />
       </div>
       <button type="button" className={styles.boton} onClick={finishRun}>
         {S.fin.volver}
