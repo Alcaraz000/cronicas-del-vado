@@ -126,6 +126,23 @@ describe('choose', () => {
     expect(kinds(next.run.log)).toEqual(['scene', 'choice', 'outcome']);
     expect(next.run.visited).toEqual({ t_sala: 1 });
   });
+
+  it('limpia run.pending: una tirada pendiente de la escena que se abandona no sobrevive al choose', () => {
+    const state = estadoEn('t_inicio', { run: { pending: { choiceId: 'mirar', rerolls: [], powerUsed: false } } });
+    const next = choose(campaign, state, 'pasar');
+    expect(next.run.pending).toBeUndefined();
+    expect('pending' in next.run).toBe(false);
+  });
+
+  it('un pending abandonado con el Poder ya marcado no le devuelve el Poder gratis al jugador', () => {
+    const state = estadoEn('t_inicio', { run: { pending: { choiceId: 'mirar', rerolls: [], powerUsed: true } } });
+    const next = choose(campaign, state, 'pasar');
+    expect(next.run.powerUsed).toBe(false);
+    expect(next.run.pending).toBeUndefined();
+    expect('pending' in next.run).toBe(false);
+    // Sin pending que restaurar, restorePending no tiene nada equivocado para resolver.
+    expect(restorePending(campaign, next)).toBeNull();
+  });
 });
 
 describe('beginRoll', () => {

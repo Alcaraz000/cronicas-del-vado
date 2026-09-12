@@ -236,8 +236,9 @@ function appendLogEntries(state: GameState, entries: LogEntry[]): GameState {
 /**
  * Elegir una opción SIN tirada.
  * Orden fijo: deriveMemory(escena actual) → log 'choice' → applyEffects(outcome.effects)
- * → log 'outcome' (si hay texto) → si la partida terminó (defeat/death) se devuelve sin entrar;
- * si no, enter(outcome.next).
+ * → log 'outcome' (si hay texto) → limpiar run.pending (una tirada pendiente de la escena que se
+ * abandona no puede sobrevivir a un choose: si no, restorePending la resolvería contra la escena
+ * nueva) → si la partida terminó (defeat/death) se devuelve sin entrar; si no, enter(outcome.next).
  */
 export function choose(campaign: Campaign, state: GameState, choiceId: string): GameState {
   const scene = getScene(campaign, state.run.sceneId);
@@ -257,6 +258,7 @@ export function choose(campaign: Campaign, state: GameState, choiceId: string): 
     const paragraphs = resolveText(outcome.text, { campaign, state: next });
     next = appendLogEntries(next, [{ kind: 'outcome', paragraphs }]);
   }
+  next = { ...next, run: withoutPending(next.run) };
   if (next.run.outcome !== undefined) {
     return next;
   }
