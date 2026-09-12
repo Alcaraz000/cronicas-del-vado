@@ -1,0 +1,295 @@
+import { useEffect, useMemo, useState } from 'react';
+import { CAMPAIGNS, listCampaigns } from '@/content/campaigns';
+import { ATTRS, ATTR_NAMES, CLASSES, LIMITS } from '@/content/catalog';
+import type { CampaignMeta } from '@/content/schema';
+import { campaignLabel, topeDeNivel, veteranModifier, xpDelNivel, type CampaignLabel } from '@/engine/progression';
+import type { Character } from '@/engine/types';
+import { useStore, type Store } from '@/state/store';
+import { Placeholder } from '@/ui/components/Placeholder';
+import { S } from '@/ui/strings.es';
+import styles from './HubScreen.module.css';
+
+/**
+ * Acciones de navegación que la Fase C le agrega al store (`goTo`, `selectCharacter`).
+ * El hub las lee como opcionales porque el store y esta pantalla se escriben en paralelo:
+ * mientras no existan, los botones que dependen de ellas no se dibujan y el resto del hub
+ * funciona igual. Cuando el store las tenga, este archivo no cambia.
+ */
+type ConNavegacion = Store & {
+  goTo?: (screen: 'inicio' | 'creacion' | 'hub') => void;
+  selectCharacter?: (id: string) => void;
+};
+
+function selGoTo(s: Store): ((screen: 'inicio' | 'creacion' | 'hub') => void) | undefined {
+  const fn = (s as ConNavegacion).goTo;
+  return typeof fn === 'function' ? fn : undefined;
+}
+
+function selSelectCharacter(s: Store): ((id: string) => void) | undefined {
+  const fn = (s as ConNavegacion).selectCharacter;
+  return typeof fn === 'function' ? fn : undefined;
+}
+
+/**
+ * Cuántos finales declara cada campaña. No está en `CampaignMeta` —solo en la campaña
+ * completa—, así que el hub lo pide con el `import()` dinámico del registro y lo cachea
+ * por id. De paso calienta el chunk de la campaña que el jugador está por empezar.
+ * Si la carga falla, la tarjeta muestra los finales vistos sin total y no rompe nada.
+ */
+const totalDeFinales = new Map<string, number>();
+
+async function contarFinales(campaignId: string): Promise<void> {
+  if (totalDeFinales.has(campaignId)) return;
+  const entry = CAMPAIGNS[campaignId];
+  if (entry === undefined) return;
+  try {
+    const campaign = await entry.load();
+    totalDeFinales.set(campaignId, Object.keys(campaign.endings).length);
+  } catch {
+    // Campaña que no carga: la tarjeta se dibuja igual, sin el total de finales.
+  }
+}
+
+function leerCache(ids: readonly string[]): Record<string, number> {
+  const totales: Record<string, number> = {};
+  for (const id of ids) {
+    const total = totalDeFinales.get(id);
+    if (total !== undefined) totales[id] = total;
+  }
+  return totales;
+}
+
+function useTotalDeFinales(metas: readonly CampaignMeta[]): Record<string, number> {
+  // `clave` es una cadena para que el efecto no se dispare por identidad del array.
+  const clave = metas.map((m) => m.id).join('|');
+  const ids = useMemo(() => (clave === '' ? [] : clave.split('|')), [clave]);
+  const [totales, setTotales] = useState<Record<string, number>>(() => leerCache(ids));
+
+  useEffect(() => {
+    let vivo = true;
+    void Promise.all(ids.map(contarFinales)).then(() => {
+      if (vivo) setTotales(leerCache(ids));
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [ids]);
+
+  return totales;
+}
+
+interface TarjetaProps {
+  meta: CampaignMeta;
+  /** Personaje activo, o null si todavía no hay uno. Sin él no hay dificultad relativa. */
+  personaje: Character | null;
+  totalFinales: number | undefined;
+  enCurso: boolean;
+  onJugar: (meta: CampaignMeta) => void;
+}
+
+function TarjetaCampana({ meta, personaje, totalFinales, enCurso, onJugar }: TarjetaProps) {
+  const muerto = personaje !== null && personaje.dead !== undefined;
+  const etiqueta: CampaignLabel | null =
+    personaje === null ? null : campaignLabel(meta.levelRange, personaje.level);
+  const veterano = etiqueta === null ? 0 : veteranModifier(etiqueta);
+  const registro = personaje?.campaignLog[meta.id];
+  const vistos = registro?.endings.length ?? 0;
+  const tope = topeDeNivel(meta.levelRange);
+  const sinJugo = personaje !== null && personaje.xp >= xpDelNivel(tope);
+
+  const motivo = personaje === null
+    ? S.hub.campana.necesitaPersonaje
+    : muerto
+      ? S.hub.campana.personajeMuerto
+      : null;
+
+  return (
+    <li className={styles.tarjeta}>
+      <Placeholder label={S.hub.campana.portada(meta.cover)} aspect="3:4" />
+      <h3 className={styles.tituloCampana}>{meta.title}</h3>
+
+      {etiqueta !== null && (
+        <p className={styles.etiqueta} data-etiqueta={etiqueta} data-testid={`etiqueta-${meta.id}`}>
+          <strong className={styles.palabra}>{S.hub.etiqueta[etiqueta]}</strong>{' '}
+          <span className={styles.etiquetaDetalle}>{S.hub.etiquetaDetalle[etiqueta]}</span>
+        </p>
+      )}
+      {veterano !== 0 && (
+        <p className={styles.veterano} data-testid={`veterano-${meta.id}`} title={S.hub.veteranoTitulo}>
+          {S.hub.veterano(veterano)}
+        </p>
+      )}
+
+      <p className={styles.premisa}>{meta.premise}</p>
+
+      <ul className={styles.datos}>
+        <li>{S.hub.campana.nivelSugerido(meta.levelRange)}</li>
+        <li>{S.hub.campana.duracion(meta.durationMin)}</li>
+        <li>{S.hub.campana.tope(tope)}</li>
+        <li>
+          {totalFinales === undefined
+            ? S.hub.campana.finalesSinTotal(vistos)
+            : S.hub.campana.finales(vistos, totalFinales)}
+        </li>
+        <li>{S.hub.campana.partidas(registro?.runs ?? 0)}</li>
+      </ul>
+
+      {/* La regla de la muerte, alcanzable con el teclado (details) y al pasar el cursor (title). */}
+      <details className={styles.mortales}>
+        <summary title={S.hub.campana.reglaMortal}>
+          <span aria-hidden="true">{meta.lethalScenes > 0 ? '☠ ' : ''}</span>
+          {S.hub.campana.mortales(meta.lethalScenes)}
+        </summary>
+        <p className={styles.regla}>{S.hub.campana.reglaMortal}</p>
+      </details>
+
+      {sinJugo && <p className={styles.aviso}>{S.hub.campana.topeAlcanzado}</p>}
+      {enCurso && <p className={styles.aviso}>{S.hub.campana.enCurso}</p>}
+
+      <button
+        type="button"
+        className={styles.jugar}
+        data-testid={`jugar-${meta.id}`}
+        disabled={motivo !== null}
+        onClick={() => onJugar(meta)}
+      >
+        {enCurso ? S.hub.campana.continuar : S.hub.campana.comenzar}
+      </button>
+      {motivo !== null && <p className={styles.motivo}>{motivo}</p>}
+    </li>
+  );
+}
+
+export function HubScreen() {
+  const characters = useStore((s) => s.characters);
+  const activeCharacterId = useStore((s) => s.activeCharacterId);
+  const startRun = useStore((s) => s.startRun);
+  const continueRun = useStore((s) => s.continueRun);
+  const goTo = useStore(selGoTo);
+  const selectCharacter = useStore(selSelectCharacter);
+
+  const metas = useMemo(() => listCampaigns(false), []);
+  const totales = useTotalDeFinales(metas);
+
+  const activo = characters.find((c) => c.id === activeCharacterId) ?? null;
+  const enCursoEn = (id: string): boolean => activo?.run?.campaignId === id;
+
+  /**
+   * Todo lo que el jugador tiene que saber ANTES de arrancar, en una sola confirmación:
+   * el riesgo de la dificultad (Exigente o Mortal) y, si venía jugando otra campaña, que
+   * empezar esta la cierra como derrota (es lo que hace `startRun` al llamar a endRun).
+   * Nunca bloquea: elegir mal está permitido, elegir a ciegas no.
+   */
+  const jugar = (meta: CampaignMeta): void => {
+    if (activo === null || activo.dead !== undefined) return;
+    if (enCursoEn(meta.id)) {
+      void continueRun();
+      return;
+    }
+
+    const avisos: string[] = [];
+    const etiqueta = campaignLabel(meta.levelRange, activo.level);
+    if (etiqueta === 'mortal' || etiqueta === 'exigente') avisos.push(S.hub.confirmar[etiqueta]);
+    const enCurso = activo.run;
+    if (enCurso !== null) {
+      avisos.push(S.hub.confirmarPerderPartida(CAMPAIGNS[enCurso.campaignId]?.meta.title ?? enCurso.campaignId));
+    }
+    if (avisos.length > 0 && !window.confirm([...avisos, S.hub.confirmar.seguir].join('\n\n'))) return;
+
+    void startRun(meta.id);
+  };
+
+  const sinCupo = characters.length >= LIMITS.maxCharacters;
+  const otros = characters.filter((c) => c.id !== activeCharacterId);
+
+  return (
+    <div className={styles.pantalla}>
+      <header className={styles.encabezado}>
+        <h1 className={styles.titulo}>{S.hub.titulo}</h1>
+        {goTo !== undefined && (
+          <button type="button" className={styles.secundario} onClick={() => goTo('inicio')}>
+            {S.hub.volver}
+          </button>
+        )}
+      </header>
+
+      <section className={styles.personaje} aria-labelledby="hub-personaje">
+        <h2 id="hub-personaje" className={styles.subtitulo}>
+          {S.hub.personaje.titulo}
+        </h2>
+
+        {activo === null ? (
+          <p className={styles.suave}>{S.hub.personaje.sinPersonaje}</p>
+        ) : (
+          <>
+            <p className={styles.ficha}>
+              {S.hub.personaje.ficha(activo.name, CLASSES[activo.classId].name, activo.level)}
+            </p>
+            <ul className={styles.atributos}>
+              {ATTRS.map((attr) => (
+                <li key={attr} className={styles.atributo}>
+                  {S.hub.personaje.atributo(ATTR_NAMES[attr], activo.attrs[attr])}
+                </li>
+              ))}
+            </ul>
+            <p className={styles.suave}>
+              {activo.level >= LIMITS.maxLevel
+                ? S.hub.personaje.nivelMaximo(activo.xp)
+                : S.hub.personaje.xp(activo.xp, Math.max(0, xpDelNivel(activo.level + 1) - activo.xp))}
+            </p>
+            {activo.dead !== undefined && <p className={styles.aviso}>{S.hub.personaje.muerto(activo.name)}</p>}
+          </>
+        )}
+
+        {/* Los botones que navegan solo aparecen cuando el store ofrece esas acciones. */}
+        {selectCharacter !== undefined && otros.length > 0 && (
+          <>
+            <h3 className={styles.subtitulo}>{S.hub.personaje.cambiar}</h3>
+            <ul className={styles.otros}>
+              {otros.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className={styles.secundario}
+                    data-testid={`elegir-${c.id}`}
+                    onClick={() => selectCharacter(c.id)}
+                  >
+                    {S.hub.personaje.elegir(c.name, CLASSES[c.classId].name, c.level)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {goTo !== undefined && (
+          <>
+            <button
+              type="button"
+              className={styles.secundario}
+              data-testid="crear-personaje"
+              disabled={sinCupo}
+              onClick={() => goTo('creacion')}
+            >
+              {characters.length === 0 ? S.hub.personaje.crear : S.hub.personaje.crearOtro}
+            </button>
+            {sinCupo && <p className={styles.suave}>{S.hub.personaje.sinCupo(LIMITS.maxCharacters)}</p>}
+          </>
+        )}
+      </section>
+
+      <ul className={styles.grilla}>
+        {metas.map((meta) => (
+          <TarjetaCampana
+            key={meta.id}
+            meta={meta}
+            personaje={activo}
+            totalFinales={totales[meta.id]}
+            enCurso={enCursoEn(meta.id)}
+            onJugar={jugar}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}

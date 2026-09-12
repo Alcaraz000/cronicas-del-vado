@@ -1,0 +1,237 @@
+.pantalla {
+  display: grid;
+  gap: var(--esp-5);
+  align-content: start;
+  min-height: 100vh;
+  padding: var(--esp-5);
+}
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-3);
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fuente-juego);
+  font-size: 2rem;
+  color: var(--color-acento);
+}
+
+.subtitulo {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-texto-suave);
+}
+
+/* Personaje activo */
+
+.personaje {
+  display: grid;
+  gap: var(--esp-2);
+  justify-items: start;
+  padding: var(--esp-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.ficha {
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+}
+
+.atributos,
+.otros,
+.datos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.atributos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.atributo {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--color-superficie-alta);
+  font-size: var(--tam-ui-chico);
+}
+
+.otros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.suave {
+  color: var(--color-texto-suave);
+  font-size: var(--tam-ui-chico);
+}
+
+/* Grilla de campañas */
+
+.grilla {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--esp-4);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.tarjeta {
+  display: grid;
+  gap: var(--esp-2);
+  justify-items: start;
+  align-content: start;
+  padding: var(--esp-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+.tituloCampana {
+  margin: 0;
+  font-family: var(--fuente-juego);
+  font-size: 1.3rem;
+}
+
+.premisa {
+  font-family: var(--fuente-juego);
+  line-height: var(--interlineado-juego);
+  color: var(--color-texto);
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1) var(--esp-2);
+  font-size: var(--tam-ui-chico);
+  color: var(--color-texto-suave);
+}
+
+.datos li {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--color-superficie-alta);
+}
+
+/* Dificultad relativa: palabra + explicación + color. La palabra y el texto
+   siempre están, así que el color solo refuerza; nunca comunica solo. */
+
+.etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  align-items: baseline;
+  border-left: 3px solid currentcolor;
+  padding-left: var(--esp-2);
+  color: var(--color-texto-suave);
+}
+
+.palabra {
+  font-family: var(--fuente-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.etiquetaDetalle {
+  font-size: var(--tam-ui-chico);
+  color: var(--color-texto-suave);
+}
+
+.etiqueta[data-etiqueta='mortal'] {
+  color: var(--color-peligroso);
+}
+
+.etiqueta[data-etiqueta='exigente'] {
+  color: var(--color-arriesgado);
+}
+
+.etiqueta[data-etiqueta='pareja'] {
+  color: var(--color-seguro);
+}
+
+.etiqueta[data-etiqueta='tranquila'],
+.etiqueta[data-etiqueta='paseo'] {
+  color: var(--color-texto-suave);
+}
+
+.veterano {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--color-superficie-alta);
+  color: var(--color-aviso);
+  font-size: var(--tam-ui-chico);
+}
+
+.mortales {
+  font-size: var(--tam-ui-chico);
+  color: var(--color-texto-suave);
+}
+
+.mortales summary {
+  cursor: pointer;
+  color: var(--color-peligroso);
+}
+
+.mortales summary:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+.regla {
+  margin-top: var(--esp-1);
+  max-width: var(--ancho-columna-max);
+  color: var(--color-texto-suave);
+}
+
+.aviso {
+  font-size: var(--tam-ui-chico);
+  color: var(--color-aviso);
+}
+
+.motivo {
+  font-size: var(--tam-ui-chico);
+  font-style: italic;
+  color: var(--color-texto-suave);
+}
+
+/* Botones */
+
+.jugar,
+.secundario {
+  font-family: var(--fuente-ui);
+  padding: 0.6em 1.4em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie-alta);
+  color: var(--color-texto);
+}
+
+.jugar {
+  background: var(--color-acento);
+  border-color: var(--color-acento);
+  color: var(--color-fondo);
+}
+
+.jugar:disabled {
+  background: var(--color-superficie-alta);
+  border-color: var(--color-borde);
+  color: var(--color-texto-suave);
+}
+
+.secundario:disabled {
+  color: var(--color-texto-suave);
+}

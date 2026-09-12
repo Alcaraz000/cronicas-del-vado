@@ -32,6 +32,74 @@ export const S = {
     personajeActivo: (nombre: string, clase: string, nivel: number): string =>
       `${nombre} · ${clase} · nivel ${nivel}`,
   },
+  hub: {
+    titulo: 'Campañas',
+    volver: 'Volver al inicio',
+    personaje: {
+      titulo: 'Tu personaje',
+      sinPersonaje: 'Todavía no tenés un personaje activo. Creá uno para elegir campaña.',
+      ficha: (nombre: string, clase: string, nivel: number): string => `${nombre} · ${clase} · nivel ${nivel}`,
+      atributo: (nombre: string, valor: number): string => `${nombre} ${valor}`,
+      xp: (xp: number, falta: number): string => `${xp} XP · faltan ${falta} para el próximo nivel`,
+      nivelMaximo: (xp: number): string => `${xp} XP · nivel máximo`,
+      muerto: (nombre: string): string => `${nombre} murió y no vuelve a jugar. Creá otro personaje para seguir.`,
+      crear: 'Crear personaje',
+      crearOtro: 'Crear otro personaje',
+      sinCupo: (max: number): string => `Ya tenés ${max} personajes, que es el máximo. Borrá uno para crear otro.`,
+      cambiar: 'Cambiar de personaje',
+      enJuego: 'en juego',
+      elegir: (nombre: string, clase: string, nivel: number): string =>
+        `Jugar con ${nombre}, ${clase} de nivel ${nivel}`,
+    },
+    campana: {
+      portada: (cover: string): string => `Portada: ${cover}`,
+      nivelSugerido: (rango: readonly [number, number]): string =>
+        rango[0] === rango[1] ? `Nivel sugerido ${rango[0]}` : `Nivel sugerido ${rango[0]} a ${rango[1]}`,
+      duracion: (minutos: readonly [number, number]): string =>
+        minutos[0] === minutos[1] ? `${minutos[0]} min` : `${minutos[0]} a ${minutos[1]} min`,
+      tope: (nivel: number): string => `Te sube hasta nivel ${nivel}`,
+      topeAlcanzado: 'Ya no te da XP: le sacaste todo lo que tenía para tu nivel.',
+      mortales: (n: number): string =>
+        n === 0 ? 'Sin escenas mortales' : n === 1 ? '1 escena mortal' : `${n} escenas mortales`,
+      reglaMortal:
+        'En una escena mortal un Fallo aplica 2 Heridas: si estás Malherido morís para siempre, si estás Herido quedás fuera de la campaña y si estás sano quedás Malherido. Siempre hay una salida sin tirada, y se entra con una confirmación que te dice cómo estás.',
+      finales: (vistos: number, total: number): string => `${vistos} de ${total} finales`,
+      finalesSinTotal: (vistos: number): string => (vistos === 1 ? '1 final visto' : `${vistos} finales vistos`),
+      partidas: (n: number): string =>
+        n === 0 ? 'Nunca la jugaste' : n === 1 ? '1 partida jugada' : `${n} partidas jugadas`,
+      comenzar: 'Comenzar',
+      continuar: 'Continuar',
+      enCurso: 'Tenés una partida en curso acá.',
+      necesitaPersonaje: 'Creá un personaje para jugar esta campaña.',
+      personajeMuerto: 'Tu personaje murió. Creá otro para volver a jugar.',
+    },
+    etiqueta: {
+      mortal: 'Mortal',
+      exigente: 'Exigente',
+      pareja: 'Pareja',
+      tranquila: 'Tranquila',
+      paseo: 'Paseo',
+    },
+    etiquetaDetalle: {
+      mortal: 'Te lleva dos niveles o más de ventaja.',
+      exigente: 'Estás un nivel por debajo del mínimo.',
+      pareja: 'Estás dentro del rango de la campaña.',
+      tranquila: 'Estás por encima del rango.',
+      paseo: 'Estás muy por encima del rango.',
+    },
+    veterano: (modificador: number): string => `${modificador} Veterano del Vado`,
+    veteranoTitulo:
+      'La campaña te quedó chica: todas tus tiradas llevan esta penalización y la XP rinde menos.',
+    confirmar: {
+      mortal:
+        'Mortal: la campaña te lleva dos niveles o más de ventaja. Vas a fallar la mayoría de las tiradas y una escena mortal puede matar a tu personaje para siempre.',
+      exigente:
+        'Exigente: estás un nivel por debajo del mínimo. Las tiradas van a salir caras y las heridas se acumulan.',
+      seguir: '¿Empezar igual?',
+    },
+    confirmarPerderPartida: (titulo: string): string =>
+      `Tenés una partida en curso en «${titulo}». Empezar otra campaña la cierra como derrota: conservás la XP de los hitos, pero perdés el final y el canon.`,
+  },
   cargando: 'Cargando…',
   error: {
     titulo: 'Algo salió mal',
