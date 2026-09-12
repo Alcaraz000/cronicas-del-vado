@@ -45,7 +45,7 @@ describe('endRun · final', () => {
     expect(character.run).toBeNull();
     expect(character.dead).toBeUndefined();
     expect(world.fallen).toEqual([]);
-    expect(summary).toEqual({
+    expect(summary).toMatchObject({
       outcome: FINAL,
       canonFlags: ['char:tirada.entro', 'world:tirada.alarma'],
       discardedFlags: [],
@@ -97,7 +97,7 @@ describe('endRun · derrota', () => {
     expect(character.run).toBeNull();
     expect(character.dead).toBeUndefined();
     expect(world.fallen).toEqual([]);
-    expect(summary).toEqual({
+    expect(summary).toMatchObject({
       outcome: { kind: 'defeat' },
       canonFlags: [],
       discardedFlags: ['char:tirada.entro', 'world:tirada.alarma'],
@@ -135,7 +135,7 @@ describe('endRun · muerte', () => {
     });
     expect(world.fallen).toEqual([{ name: 'Prueba', classId: 'mago', level: 3, campaign: 'tirada', scene: 't_cripta' }]);
     expect(world.flags).toEqual(['world:tirada.viejo', 'world:otra.x', 'world:caido.tirada']);
-    expect(summary).toEqual({
+    expect(summary).toMatchObject({
       outcome: { kind: 'death' },
       canonFlags: [],
       discardedFlags: ['char:tirada.entro', 'world:tirada.alarma'],
@@ -259,5 +259,105 @@ describe('endRun · recompensa del final', () => {
   it('un final sin `reward` deja las reliquias como estaban', () => {
     const { character } = endRun(campaign, terminadaCon(FINAL, ['una']));
     expect(character.relics).toEqual(['una']);
+  });
+});
+
+/* ------------------------------------------------------------------ XP y subida de nivel */
+
+/**
+ * La campaña de prueba declara `levelRange: [1, 3]`, así que su tope es el nivel 4
+ * (180 XP acumulados) y un personaje de nivel 3 la juega en Pareja (bono 40).
+ * El personaje del fixture arranca con nivel 3 y 120 XP.
+ */
+describe('endRun · XP', () => {
+  it('la primera victoria cobra hitos nuevos, final nuevo y bono, y descarta lo que pasa el tope', () => {
+    const { character, summary } = endRun(campaign, terminada(FINAL));
+    // 1 hito nuevo (hito_z ya estaba) = 10, final nuevo = 30, primera victoria en Pareja = 40.
+    expect(summary.xp.ganancia).toMatchObject({ hitos: 10, finales: 30, bono: 40, total: 80 });
+    expect(summary.xp.ganancia.detalle).toHaveLength(3);
+    expect(summary.xp.otorgada).toBe(60);
+    expect(summary.xp.descartada).toBe(20);
+    expect(summary.xp.xpAntes).toBe(120);
+    expect(summary.xp.xpDespues).toBe(180);
+    expect(summary.xp.nivelAntes).toBe(3);
+    expect(summary.xp.nivelDespues).toBe(4);
+    expect(summary.xp.topeNivel).toBe(4);
+    expect(summary.xp.topeAlcanzado).toBe(true);
+    expect(summary.xp.premios).toEqual([{ kind: 'atributo' }]);
+    expect(character.xp).toBe(180);
+    expect(character.level).toBe(4);
+  });
+
+  it('el premio de nivel queda pendiente: el motor no toca atributos ni habilidades', () => {
+    const antes = terminada(FINAL);
+    const { character } = endRun(campaign, antes);
+    expect(character.attrs).toEqual(antes.character.attrs);
+    expect(character.skills).toEqual(antes.character.skills);
+  });
+
+  it('una victoria repetida no cobra bono ni final ya visto', () => {
+    const state = makeCtx(campaign, {
+      character: {
+        xp: 0,
+        level: 1,
+        campaignLog: { tirada: { runs: 1, wins: 1, endings: ['fin_prueba'], milestones: ['hito_z'], canonEnding: 'fin_prueba' } },
+      },
+      run: { milestones: ['hito_z'], outcome: FINAL },
+    }).state;
+    const { character, summary } = endRun(campaign, state);
+    expect(summary.xp.ganancia.total).toBe(0);
+    expect(summary.xp.otorgada).toBe(0);
+    expect(summary.xp.premios).toEqual([]);
+    expect(character.xp).toBe(0);
+    expect(character.level).toBe(1);
+  });
+
+  it('la derrota conserva la XP de los hitos nuevos, sin bono ni final', () => {
+    const { character, summary } = endRun(campaign, terminada({ kind: 'defeat' }));
+    expect(summary.xp.ganancia).toMatchObject({ hitos: 10, finales: 0, bono: 0, total: 10 });
+    expect(summary.xp.otorgada).toBe(10);
+    expect(character.xp).toBe(130);
+    expect(character.level).toBe(3);
+  });
+
+  it('la muerte no deja XP: el personaje no vuelve a jugar', () => {
+    const { character, summary } = endRun(campaign, terminada({ kind: 'death' }));
+    expect(summary.xp.ganancia.total).toBe(0);
+    expect(summary.xp.otorgada).toBe(0);
+    expect(character.xp).toBe(120);
+    expect(character.level).toBe(3);
+    expect(character.dead).toBeDefined();
+  });
+
+  it('el nivel 10 marca al personaje como leyenda y el flag lo escribe el motor', () => {
+    const alta: Campaign = { ...campaign, levelRange: [8, 9] };
+    const state = makeCtx(alta, {
+      character: { xp: 530, level: 9, flags: ['char:met.guardia'] },
+      run: { milestones: ['hito_prueba'], outcome: FINAL },
+    }).state;
+    const { character, summary } = endRun(alta, state);
+    expect(summary.xp.nivelDespues).toBe(10);
+    expect(summary.xp.premios).toEqual([{ kind: 'atributo' }, { kind: 'leyenda' }]);
+    expect(character.level).toBe(10);
+    expect(character.xp).toBe(540);
+    expect(character.flags).toContain('char:leyenda');
+  });
+
+  it('sin llegar al nivel 10 no hay flag de leyenda', () => {
+    const { character } = endRun(campaign, terminada(FINAL));
+    expect(character.flags).not.toContain('char:leyenda');
+  });
+
+  it('la dificultad relativa del bono se mide con el nivel con el que se jugó', () => {
+    const state = makeCtx(campaign, {
+      character: { xp: 0, level: 1, campaignLog: {} },
+      run: { milestones: [], outcome: FINAL },
+    }).state;
+    // campaignLabel([1, 3], 1) = 'pareja' → bono 40, más 30 del final nuevo.
+    const { summary } = endRun(campaign, state);
+    expect(summary.xp.ganancia.bono).toBe(40);
+    expect(summary.xp.otorgada).toBe(70);
+    expect(summary.xp.nivelDespues).toBe(2);
+    expect(summary.xp.premios).toEqual([{ kind: 'atributo' }]);
   });
 });

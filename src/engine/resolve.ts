@@ -5,7 +5,14 @@ import { classify, keepDice } from '@/engine/dice';
 import { applyEffects } from '@/engine/effects';
 import { buildPreview } from '@/engine/modifiers';
 import { deriveMemory } from '@/engine/memory';
-import { fortuneMax } from '@/engine/progression';
+import {
+  calcularXp,
+  campaignLabel,
+  fortuneMax,
+  otorgarXp,
+  topeDeNivel,
+  type ResumenXp,
+} from '@/engine/progression';
 import { rollDice } from '@/engine/rng';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
@@ -22,6 +29,7 @@ import type {
   RenderedScene,
   ResolvedParagraph,
   Run,
+  RunOutcome,
   WorldState,
 } from '@/engine/types';
 
@@ -537,6 +545,50 @@ function unionStrings(base: readonly string[], extra: readonly string[]): string
 }
 
 /**
+ * Flag del nivel 10. Es uno de los espacios compartidos que el validador le prohíbe al contenido
+ * (r07) justamente porque lo escribe el motor: acá, al cerrar la partida que hizo subir el nivel.
+ */
+const FLAG_LEYENDA = 'char:leyenda';
+
+/**
+ * XP de la partida que se cierra (spec §4, "Progresión por descubrimiento").
+ * Todo se cobra "la primera vez con este personaje", así que se compara contra `prev`, el registro
+ * de campaña ANTES de actualizarlo: hito ya conseguido o final ya visto valen 0.
+ * - ending: hitos nuevos + final no visto + bono solo si es la primera victoria.
+ * - defeat (Caído o abandono): se conservan los hitos nuevos, sin bono ni final.
+ * - death: nada. El personaje no vuelve a jugar y la pantalla de Caído no promete progreso
+ *   (spec §6: "Derrota: XP conservada"; la muerte no lo dice).
+ * La dificultad del bono se mide con el nivel con el que se jugó, que es el que se enfrentó.
+ */
+function resumenDeXp(
+  campaign: Campaign,
+  character: Character,
+  run: Run,
+  outcome: RunOutcome,
+  prev: CampaignLogEntry,
+): ResumenXp {
+  const esFinal = outcome.kind === 'ending';
+  const hitosNuevos = outcome.kind === 'death' ? 0 : run.milestones.filter((m) => !prev.milestones.includes(m)).length;
+  const ganancia = calcularXp({
+    hitosNuevos,
+    finalNuevo: esFinal && !prev.endings.includes(outcome.endingId),
+    primeraVictoria: esFinal && prev.wins === 0,
+    etiqueta: campaignLabel(campaign.levelRange, character.level),
+  });
+  return otorgarXp({
+    xp: character.xp,
+    nivel: character.level,
+    ganancia,
+    topeNivel: topeDeNivel(campaign.levelRange),
+  });
+}
+
+/** Agrega `char:leyenda` si el personaje llegó al último nivel. */
+function conLeyenda(flags: string[], nivel: number): string[] {
+  return nivel >= LIMITS.maxLevel ? unionStrings(flags, [FLAG_LEYENDA]) : flags;
+}
+
+/**
  * Cierra la partida y devuelve el mundo y el personaje nuevos más un resumen.
  * - ending: los `char:<campaña>.*` del personaje y los `world:<campaña>.*` del mundo se REEMPLAZAN por los
  *   apostados en run.stagedFlags (canon); los de otras campañas y los espacios compartidos se conservan.
@@ -545,6 +597,11 @@ function unionStrings(base: readonly string[], extra: readonly string[]): string
  * - defeat: runs+1, milestones ∪ run.milestones; lo apostado se descarta y no hay recompensa.
  * - death: como defeat, más character.dead, world.fallen y world:caido.<campaña>.
  * En todos los casos character.run = null.
+ *
+ * Además se otorga la XP por descubrimiento (ver `resumenDeXp`): el personaje sale con su `xp` y su
+ * `level` nuevos y con `char:leyenda` si llegó al último nivel, y `summary.xp` lleva el desglose, lo
+ * descartado por el tope de la campaña y los premios de nivel, que quedan PENDIENTES: los de
+ * elección (atributo, habilidad) los aplica el jugador desde la pantalla de fin, no el motor.
  */
 export function endRun(
   campaign: Campaign,
@@ -560,6 +617,8 @@ export function endRun(
   const worldPrefix = `world:${id}.`;
   const prev: CampaignLogEntry = character.campaignLog[id] ?? { runs: 0, wins: 0, endings: [], milestones: [] };
   const milestones = unionStrings(prev.milestones, run.milestones);
+  // Se calcula contra `prev`, antes de actualizar el registro: es lo que distingue nuevo de repetido.
+  const xp = resumenDeXp(campaign, character, run, outcome, prev);
 
   if (outcome.kind === 'ending') {
     const reward = applyReward(campaign, campaign.endings[outcome.endingId]?.reward ?? [], character.relics);
@@ -584,23 +643,27 @@ export function endRun(
       world: { ...world, flags: worldFlags, fallen: [...world.fallen] },
       character: {
         ...character,
-        flags: charFlags,
+        flags: conLeyenda(charFlags, xp.nivelDespues),
         relics: reward.relics,
+        xp: xp.xpDespues,
+        level: xp.nivelDespues,
         campaignLog: { ...character.campaignLog, [id]: entry },
         run: null,
       },
-      summary: { outcome, canonFlags: [...canonChar, ...canonWorld], discardedFlags: [] },
+      summary: { outcome, canonFlags: [...canonChar, ...canonWorld], discardedFlags: [], xp },
     };
   }
 
   const entry: CampaignLogEntry = { ...prev, runs: prev.runs + 1, milestones };
   const baseCharacter: Character = {
     ...character,
-    flags: [...character.flags],
+    flags: conLeyenda([...character.flags], xp.nivelDespues),
+    xp: xp.xpDespues,
+    level: xp.nivelDespues,
     campaignLog: { ...character.campaignLog, [id]: entry },
     run: null,
   };
-  const summary: EndSummary = { outcome, canonFlags: [], discardedFlags: [...run.stagedFlags] };
+  const summary: EndSummary = { outcome, canonFlags: [], discardedFlags: [...run.stagedFlags], xp };
 
   if (outcome.kind === 'defeat') {
     return {

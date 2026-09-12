@@ -1,5 +1,6 @@
 import type { Attr, ClassId, TraitId, SkillId, ConditionId, Difficulty } from '@/content/catalog';
 import type { Campaign, SceneKind } from '@/content/schema';
+import type { ResumenXp } from '@/engine/progression';
 
 /** Personaje muerto en una campaña; vive en el perfil (world.fallen). */
 export interface Fallen {
@@ -176,4 +177,6 @@ export interface EndSummary {
   outcome: RunOutcome;
   canonFlags: string[];
   discardedFlags: string[];
+  /** XP ganada, tope de la campaña y premios de nivel que quedan pendientes de elegir. */
+  xp: ResumenXp;
 }
