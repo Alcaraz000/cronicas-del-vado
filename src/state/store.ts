@@ -288,6 +288,9 @@ export function createAppStore(): AppStore {
               const st = get();
               const character = activeCharacter(st);
               if (!character) throw new Error('No hay personaje activo');
+              // El personaje muerto no vuelve (spec): endRun marca character.dead pero no cambia
+              // activeCharacterId, así que sin esto el muerto podía empezar otra partida.
+              if (character.dead) throw new Error(`${character.name} murió y no vuelve a jugar`);
               const run = newRun(campaign, character);
               const seen = st.seen[campaign.id] ?? {};
               const entered = engine.enter(campaign, { world: st.world, character, run, seen }, campaign.start);

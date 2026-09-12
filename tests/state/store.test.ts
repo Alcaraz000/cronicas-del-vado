@@ -35,6 +35,16 @@ function fakeRun(campaignId: string): Run {
   };
 }
 
+/** Marca al personaje activo como muerto, como deja endRun a quien cae en una escena mortal. */
+function matarAlActivo(store: AppStore): void {
+  const { characters, activeCharacterId } = store.getState();
+  store.setState({
+    characters: characters.map((c) =>
+      c.id === activeCharacterId ? { ...c, run: null, dead: { campaign: 'prueba', scene: 'p_cripta' } } : c,
+    ),
+  });
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
@@ -265,6 +275,19 @@ describe('store: ciclo de partida sin dados', () => {
     store.getState().retry();
     expect(store.getState().ui.screen).toBe('inicio');
     expect(store.getState().ui.error).toBeNull();
+  });
+
+  it('startRun rechaza un personaje muerto: el muerto no vuelve', async () => {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    matarAlActivo(store);
+
+    await store.getState().startRun('prueba');
+
+    expect(store.getState().ui.screen).toBe('error');
+    expect(store.getState().ui.error).toContain('murió');
+    expect(selectGameState(store.getState())).toBeNull();
+    expect(store.getState().characters[0]!.run).toBeNull();
   });
 
   it('startRun sin personaje activo va a error', async () => {

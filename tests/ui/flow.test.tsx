@@ -94,6 +94,28 @@ describe('flujo de la rebanada vertical', () => {
     expect(useStore.getState().ui.screen).toBe('escena');
   });
 
+  it('con el personaje activo muerto, "Nueva partida de prueba" juega con uno nuevo', async () => {
+    // El muerto no vuelve (spec): endRun marca character.dead pero no cambia activeCharacterId,
+    // así que el camino más corto desde 'fin' volvía a poner al muerto en la torre.
+    const id = useStore.getState().createTestCharacter();
+    useStore.setState({
+      characters: useStore.getState().characters.map((c) => ({ ...c, dead: { campaign: 'prueba', scene: 'p_cripta' } })),
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));
+
+    await screen.findByText(textoSeguro(escena('p_umbral')), undefined, { timeout: 5000 });
+    const s = useStore.getState();
+    expect(s.ui.screen).toBe('escena');
+    expect(s.activeCharacterId).not.toBe(id);
+    const activo = s.characters.find((c) => c.id === s.activeCharacterId);
+    expect(activo?.dead).toBeUndefined();
+    expect(activo?.run?.sceneId).toBe('p_umbral');
+    // El muerto queda en la lista, sin partida.
+    expect(s.characters.find((c) => c.id === id)?.run).toBeNull();
+  });
+
   it('una opción con tirada muestra el panel, persiste run.pending y Continuar consolida', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: S.inicio.nuevaPrueba }));

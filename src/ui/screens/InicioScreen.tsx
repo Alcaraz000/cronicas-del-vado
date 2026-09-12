@@ -13,8 +13,10 @@ export function InicioScreen() {
   const activo = characters.find((c) => c.id === activeCharacterId) ?? null;
   const puedeContinuar = activo !== null && activo.run !== null;
 
+  // Con el activo muerto hace falta uno nuevo: el muerto no vuelve y startRun lo rechaza.
+  // La pantalla de personajes de verdad es de una fase posterior.
   const nuevaPartida = (): void => {
-    if (activo === null) createTestCharacter();
+    if (activo === null || activo.dead !== undefined) createTestCharacter();
     void startRun('prueba');
   };
 
