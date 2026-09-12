@@ -95,6 +95,15 @@ export function topeDeNivel(levelRange: readonly [number, number]): number {
   return Math.min(LIMITS.maxLevel, levelRange[1] + 1);
 }
 
+/**
+ * Si una campaña ya no tiene XP para un personaje: su tope de nivel ya está pago.
+ * Es la misma cuenta que aplica `otorgarXp` al recortar, pero se puede hacer ANTES de jugar,
+ * que es lo que el hub necesita para avisarlo en la tarjeta.
+ */
+export function topeAgotado(xp: number, levelRange: readonly [number, number]): boolean {
+  return xp >= xpDelNivel(topeDeNivel(levelRange));
+}
+
 /** Desglose de la XP ganada en una partida, antes del tope por campaña. */
 export interface GananciaXp {
   hitos: number;

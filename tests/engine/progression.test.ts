@@ -7,6 +7,7 @@ import {
   nivelPorXp,
   otorgarXp,
   premiosPorSubir,
+  topeAgotado,
   topeDeNivel,
   veteranModifier,
   xpDelNivel,
@@ -142,6 +143,24 @@ describe('topeDeNivel', () => {
 
   it('nunca promete un nivel que no existe', () => {
     expect(topeDeNivel([8, 10])).toBe(LIMITS.maxLevel);
+  });
+});
+
+describe('topeAgotado', () => {
+  it('dice si la campaña ya no tiene XP para este personaje', () => {
+    // Aldamar, rango [1, 3]: el tope es el nivel 4, o sea 180 XP acumuladas.
+    expect(topeAgotado(0, [1, 3])).toBe(false);
+    expect(topeAgotado(179, [1, 3])).toBe(false);
+    expect(topeAgotado(180, [1, 3])).toBe(true);
+    expect(topeAgotado(600, [1, 3])).toBe(true);
+  });
+
+  it('es el mismo tope que aplica otorgarXp', () => {
+    const ganancia = calcularXp({ hitosNuevos: 1, finalNuevo: true, primeraVictoria: true, etiqueta: 'pareja' });
+    for (const xp of [0, 100, 179, 180, 240]) {
+      const resumen = otorgarXp({ xp, nivel: nivelPorXp(xp), ganancia, topeNivel: topeDeNivel([1, 3]) });
+      expect(topeAgotado(xp, [1, 3])).toBe(resumen.otorgada === 0);
+    }
   });
 });
 

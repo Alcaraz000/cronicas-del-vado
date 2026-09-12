@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { FinScreen } from '@/ui/screens/FinScreen';
@@ -198,6 +199,31 @@ describe('FinScreen', () => {
         'La puerta no se mueve; vos sí. Rebotás contra el marco, te doblás una muñeca y, cuando levantás la vista, hay alguien parado en el arco del patio, mirándote.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('cierra la partida una sola vez aunque StrictMode invoque el efecto dos veces', () => {
+    // En desarrollo la app corre bajo StrictMode (src/main.tsx) y React invoca los efectos
+    // dos veces al montar. Si `finishRun` no fuera idempotente, la XP se cobraría doble y la
+    // partida quedaría registrada dos veces en el campaignLog.
+    const character = personajeDePrueba();
+    const final = engine.enter(
+      campaign,
+      { world: { flags: [], fallen: [] }, character, run: runDePrueba(), seen: {} },
+      'p_fin_huida',
+    );
+    montarFinCon(final);
+
+    render(
+      <StrictMode>
+        <FinScreen />
+      </StrictMode>,
+    );
+
+    const s = useStore.getState();
+    // 30 del final nuevo + 40 del bono de primera victoria (nivel 3 en una campaña [3, 5]).
+    expect(s.characters[0]?.xp).toBe(190);
+    expect(s.characters[0]?.campaignLog.prueba).toMatchObject({ runs: 1, wins: 1 });
+    expect(s.ui.subidaPendiente).toEqual({ desde: 3, hasta: 4, premios: [{ kind: 'atributo' }] });
   });
 
   it('una muerte vuelve al inicio, no al hub', () => {

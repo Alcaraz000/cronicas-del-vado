@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { campaignTitle, CAMPAIGNS, listCampaigns } from '@/content/campaigns';
 import { ATTRS, ATTR_NAMES, CLASSES, LIMITS } from '@/content/catalog';
 import type { CampaignMeta } from '@/content/schema';
-import { campaignLabel, topeDeNivel, veteranModifier, xpDelNivel, type CampaignLabel } from '@/engine/progression';
+import {
+  campaignLabel,
+  topeAgotado,
+  topeDeNivel,
+  veteranModifier,
+  xpDelNivel,
+  type CampaignLabel,
+} from '@/engine/progression';
 import type { Character } from '@/engine/types';
 import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
@@ -76,7 +83,7 @@ function TarjetaCampana({ meta, personaje, totalFinales, enCurso, onJugar }: Tar
   const registro = personaje?.campaignLog[meta.id];
   const vistos = registro?.endings.length ?? 0;
   const tope = topeDeNivel(meta.levelRange);
-  const sinJugo = personaje !== null && personaje.xp >= xpDelNivel(tope);
+  const sinJugo = personaje !== null && topeAgotado(personaje.xp, meta.levelRange);
 
   const motivo = personaje === null
     ? S.hub.campana.necesitaPersonaje
