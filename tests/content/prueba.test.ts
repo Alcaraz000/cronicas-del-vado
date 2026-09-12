@@ -9,7 +9,7 @@ import { p_umbral, p_biblioteca, p_patio, p_patio_2, p_victoria, p_capilla } fro
 import { p_escalera, p_cripta, p_fin_tesoro, p_fin_huida } from '@/content/campaigns/prueba/scenes/acto2';
 import { campaign } from '@/content/campaigns/prueba/campaign';
 import { beginRoll, choose, commitRoll, enter, render } from '@/engine/resolve';
-import type { Band, PendingRoll } from '@/engine/types';
+import type { Band, GameState, PendingRoll } from '@/engine/types';
 import { makeState } from '../fixtures/state';
 
 describe('prueba: meta', () => {
@@ -422,5 +422,176 @@ describe('prueba: run:centinela_abatido solo si quedó efectivamente derribado (
     for (const frase of FRASES_DEL_FORCEJEO) {
       expect(texto).not.toMatch(frase);
     }
+  });
+});
+
+describe('prueba: la pelea y el abatido no se pueden desincronizar (ronda de arreglo 4)', () => {
+  const TEXTO_DEL_FORCEJEO = /tirado contra el aljibe/;
+  const TEXTO_PACIFICO = /Del centinela no hay rastro/;
+
+  /** Un bloque de efectos escribible del contenido, con una etiqueta legible para el mensaje de fallo. */
+  interface BloqueDeEfectos {
+    etiqueta: string;
+    effects: Effect[];
+  }
+
+  /** Efectos de cada desenlace de una opción: el outcome directo o los 3 a 5 de la tirada. */
+  function efectosDeLaOpcion(scene: Scene, choice: Choice): BloqueDeEfectos[] {
+    if (choice.outcome !== undefined) {
+      return [{ etiqueta: `${scene.id}/${choice.id}`, effects: choice.outcome.effects ?? [] }];
+    }
+    const outcomes = choice.roll?.outcomes;
+    if (outcomes === undefined) return [];
+    const bandas: [string, Outcome | undefined][] = [
+      ['success', outcomes.success],
+      ['partial', outcomes.partial],
+      ['failure', outcomes.failure],
+      ['crit', outcomes.crit],
+      ['fumble', outcomes.fumble],
+    ];
+    const salida: BloqueDeEfectos[] = [];
+    for (const [banda, outcome] of bandas) {
+      if (outcome === undefined) continue;
+      salida.push({ etiqueta: `${scene.id}/${choice.id}/${banda}`, effects: outcome.effects ?? [] });
+    }
+    return salida;
+  }
+
+  /** Todos los lugares de la campaña donde el contenido escribe efectos: los onEnter y todos los desenlaces. */
+  function todosLosBloques(): BloqueDeEfectos[] {
+    const salida: BloqueDeEfectos[] = [];
+    for (const scene of Object.values(campaign.scenes)) {
+      salida.push({ etiqueta: `${scene.id}/onEnter`, effects: scene.onEnter ?? [] });
+      for (const choice of scene.choices) salida.push(...efectosDeLaOpcion(scene, choice));
+    }
+    return salida;
+  }
+
+  function sumaAlRelojPelea(effects: Effect[]): boolean {
+    return effects.some((e) => 'clock' in e && e.clock === 'pelea' && e.delta > 0);
+  }
+  function fijaAbatido(effects: Effect[]): boolean {
+    return effects.some((e) => 'set' in e && e.set === 'run:centinela_abatido');
+  }
+  function limpiaAbatido(effects: Effect[]): boolean {
+    return effects.some((e) => 'clear' in e && e.clear === 'run:centinela_abatido');
+  }
+  function fijaVencido(effects: Effect[]): boolean {
+    return effects.some((e) => 'set' in e && e.set === 'run:centinela_vencido');
+  }
+
+  it('invariante A: todo desenlace que suma al reloj `pelea` fija run:centinela_abatido', () => {
+    const suman = todosLosBloques().filter((b) => sumaAlRelojPelea(b.effects));
+    // Hay golpes que conectan en las dos rondas del encuentro, no solo en p_patio_2.
+    expect(suman.length).toBeGreaterThanOrEqual(10);
+    for (const { etiqueta, effects } of suman) {
+      expect(fijaAbatido(effects), etiqueta).toBe(true);
+    }
+  });
+
+  it('invariante B: run:centinela_abatido solo se fija junto con un golpe que suma al reloj `pelea`', () => {
+    for (const { etiqueta, effects } of todosLosBloques()) {
+      if (!fijaAbatido(effects)) continue;
+      expect(sumaAlRelojPelea(effects), etiqueta).toBe(true);
+    }
+  });
+
+  it('invariante C: toda resolución pacífica que fija run:centinela_vencido limpia run:centinela_abatido', () => {
+    // Solo desenlaces de opciones: el único onEnter que fija `vencido` es el de p_victoria, que no es una
+    // resolución pacífica sino el cierre de la pelea (o el eco de una resolución pacífica anterior).
+    for (const scene of Object.values(campaign.scenes)) {
+      for (const choice of scene.choices) {
+        for (const { etiqueta, effects } of efectosDeLaOpcion(scene, choice)) {
+          if (!fijaVencido(effects)) continue;
+          expect(limpiaAbatido(effects), etiqueta).toBe(true);
+        }
+      }
+    }
+  });
+
+  /** Copia de un PendingRoll real con otra banda: fuerza el desenlace sin depender de los dados. */
+  function forzar(pending: PendingRoll, band: Band): PendingRoll {
+    return { ...pending, band };
+  }
+
+  /** Tirada real de punta a punta (beginRoll + commitRoll) con la banda forzada. */
+  function tirar(estado: GameState, choiceId: string, band: Band): GameState {
+    return commitRoll(campaign, estado, forzar(beginRoll(campaign, estado, choiceId), band));
+  }
+
+  /** Estado recién entrado a `sceneId`, arrancando en campaign.start. */
+  function estadoEnEscena(sceneId: string): GameState {
+    const inicial = makeState({
+      run: { campaignId: campaign.id, contentVersion: campaign.contentVersion, sceneId: campaign.start },
+    });
+    return enter(campaign, inicial, sceneId);
+  }
+
+  it('doble golpe en p_patio (con una rendida en el medio): llega a la victoria narrando la pelea', () => {
+    // Ronda 1 del encuentro: el golpe conecta, el reloj queda en 1 y el paso siguiente es p_patio_2.
+    const enPatio = estadoEnEscena('p_patio');
+    const trasGolpe1 = tirar(enPatio, 'golpear', 'success');
+    expect(trasGolpe1.run.clocks['pelea']).toBe(1);
+    expect(trasGolpe1.run.sceneId).toBe('p_patio_2');
+    expect(trasGolpe1.run.flags).toContain('run:centinela_abatido');
+
+    // Se rinde y vuelve al patio por la capilla: `vencido` sigue en false, así que p_patio no redirige.
+    const enCapilla = choose(campaign, trasGolpe1, 'rendirse');
+    expect(enCapilla.run.sceneId).toBe('p_capilla');
+    const deVuelta = choose(campaign, enCapilla, 'salir_al_patio');
+    expect(deVuelta.run.sceneId).toBe('p_patio');
+    expect(deVuelta.run.flags).not.toContain('run:centinela_vencido');
+
+    // Segundo golpe, otra vez en la ronda 1: el reloj llega a 2 y el redirect de p_patio_2 abre la victoria.
+    const trasGolpe2 = tirar(deVuelta, 'golpear', 'success');
+    expect(trasGolpe2.run.clocks['pelea']).toBe(2);
+    expect(trasGolpe2.run.sceneId).toBe('p_victoria');
+    expect(trasGolpe2.run.flags).toContain('run:centinela_vencido');
+    expect(trasGolpe2.run.flags).toContain('run:centinela_abatido');
+
+    const texto = render(campaign, trasGolpe2).paragraphs.map((p) => p.text).join(' \n ');
+    expect(texto).toMatch(TEXTO_DEL_FORCEJEO);
+    expect(texto).not.toMatch(TEXTO_PACIFICO);
+  });
+
+  it('doble engaño en p_patio (con una huida en el medio): también narra la pelea, no el patio vacío', () => {
+    const enPatio = estadoEnEscena('p_patio');
+    const trasEngano1 = tirar(enPatio, 'enganar', 'success');
+    expect(trasEngano1.run.clocks['pelea']).toBe(1);
+    expect(trasEngano1.run.sceneId).toBe('p_patio_2');
+    expect(trasEngano1.run.flags).toContain('run:centinela_abatido');
+
+    const enCapilla = tirar(trasEngano1, 'huir', 'success');
+    expect(enCapilla.run.sceneId).toBe('p_capilla');
+    const deVuelta = choose(campaign, enCapilla, 'salir_al_patio');
+    expect(deVuelta.run.sceneId).toBe('p_patio');
+
+    const trasEngano2 = tirar(deVuelta, 'enganar', 'partial');
+    expect(trasEngano2.run.clocks['pelea']).toBe(2);
+    expect(trasEngano2.run.sceneId).toBe('p_victoria');
+    expect(trasEngano2.run.flags).toContain('run:centinela_abatido');
+
+    const texto = render(campaign, trasEngano2).paragraphs.map((p) => p.text).join(' \n ');
+    expect(texto).toMatch(TEXTO_DEL_FORCEJEO);
+    expect(texto).not.toMatch(TEXTO_PACIFICO);
+  });
+
+  it('la vía pacífica sigue limpia: convencerlo después de un golpe en p_patio no narra la pelea', () => {
+    // El mismo golpe de p_patio que ahora fija `abatido`: la resolución pacífica posterior tiene que limpiarlo.
+    const enPatio = estadoEnEscena('p_patio');
+    const trasGolpe = tirar(enPatio, 'golpear', 'success');
+    expect(trasGolpe.run.flags).toContain('run:centinela_abatido');
+
+    const enCapilla = choose(campaign, trasGolpe, 'rendirse');
+    const enBiblioteca = choose(campaign, enCapilla, 'ir_biblioteca');
+    const trasHablar = tirar(enBiblioteca, 'hablar', 'success');
+    expect(trasHablar.run.flags).toContain('run:centinela_vencido');
+    expect(trasHablar.run.flags).not.toContain('run:centinela_abatido');
+
+    const vista = render(campaign, enter(campaign, trasHablar, 'p_patio'));
+    expect(vista.sceneId).toBe('p_victoria');
+    const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
+    expect(texto).not.toMatch(TEXTO_DEL_FORCEJEO);
+    expect(texto).toMatch(TEXTO_PACIFICO);
   });
 });

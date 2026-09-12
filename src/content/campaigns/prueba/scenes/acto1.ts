@@ -3,6 +3,16 @@ import type { Scene } from '@/content/schema';
 /**
  * Acto 1 de la campaña de humo: entrada a la torre, el centinela, el patio (dos rondas), la victoria y la capilla.
  * Convenciones de prosa: segunda persona, presente, voseo en diálogos; variantes de memoria solo en el narrador.
+ *
+ * Invariante del centinela (la lee `p_victoria` para elegir si narra la pelea o el patio vacío):
+ * 1. TODO desenlace que suma al reloj `pelea` fija además `run:centinela_abatido` — en las dos rondas
+ *    del encuentro (`p_patio` y `p_patio_2`), porque las dos comparten el reloj y se puede volver a la
+ *    ronda 1 desde la capilla y llenarlo ahí.
+ * 2. TODA resolución pacífica que fija `run:centinela_vencido` (`p_biblioteca.hablar.success` y
+ *    `p_patio_2.llave`) limpia `run:centinela_abatido`: los golpes previos dejan de contar.
+ * 3. `p_victoria.onEnter` solo reafirma `run:centinela_vencido` y nunca toca `run:centinela_abatido`.
+ * Al agregar o mover un desenlace de combate hay que respetar 1 y 2; `tests/content/prueba.test.ts` las
+ * comprueba sobre toda la campaña (describe "ronda de arreglo 4"), no escena por escena.
  */
 
 export const p_umbral = {
@@ -263,12 +273,12 @@ export const p_patio = {
         outcomes: {
           success: {
             text: ['Le entrás por debajo de la lanza y le cruzás la cara con el puño cerrado. Cae contra el aljibe y escupe un diente.'],
-            effects: [{ clock: 'pelea', delta: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }],
             next: 'p_patio_2',
           },
           partial: {
             text: ['Le das, y él también: la lanza te abre el brazo mientras tu golpe le parte la ceja.'],
-            effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }, { wound: 1 }],
             next: 'p_patio_2',
           },
           failure: {
@@ -289,12 +299,12 @@ export const p_patio = {
         outcomes: {
           success: {
             text: ['Levantás las manos. Se acerca a atarte y, cuando está a un paso, le metés la rodilla en el estómago. Se dobla sin aire.'],
-            effects: [{ clock: 'pelea', delta: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }],
             next: 'p_patio_2',
           },
           partial: {
             text: ['Baja la guardia lo justo: le pegás, pero el brillo de sus ojos cuando se recupera te hiela la sangre.'],
-            effects: [{ clock: 'pelea', delta: 1 }, { addCondition: 'asustado' }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }, { addCondition: 'asustado' }],
             next: 'p_patio_2',
           },
           failure: {
