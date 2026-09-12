@@ -1,0 +1,98 @@
+/* Tokens de diseño de Crónicas del Vado.
+   Tema oscuro único. Todo componente toma colores, fuentes y espaciados de acá;
+   ningún *.module.css escribe un color literal. */
+
+:root {
+  color-scheme: dark;
+
+  /* Colores de base */
+  --color-fondo: #14120f;
+  --color-superficie: #201c17;
+  --color-superficie-alta: #2b2620;
+  --color-borde: #3d362e;
+  --color-texto: #e8e0d1;
+  --color-texto-suave: #a89f8e;
+  --color-acento: #c9a24a;
+  --color-acento-suave: #8a6d2b;
+
+  /* Colores semánticos */
+  --color-peligro: #b5443a;
+  --color-exito: #5f9e5a;
+  --color-aviso: #d19a3a;
+
+  /* Etiquetas de riesgo de una tirada (Seguro / Arriesgado / Peligroso) */
+  --color-seguro: #5f9e5a;
+  --color-arriesgado: #d19a3a;
+  --color-peligroso: #b5443a;
+
+  /* Tipografía */
+  --fuente-juego: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --fuente-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --fuente-mono: ui-monospace, Consolas, 'Courier New', monospace;
+  --tam-texto-juego: 19px;
+  --tam-ui: 15px;
+  --tam-ui-chico: 13px;
+  --interlineado-juego: 1.6;
+  --escala-fuente: 1; /* prefs.fontScale: 1, 1.25 o 1.5 (la UI lo escribe en <html>) */
+
+  /* Espaciado y forma */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+  --esp-7: 48px;
+  --radio: 6px;
+  --ancho-columna-max: 720px;
+}
+
+/* Reset mínimo */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--fuente-juego);
+  font-weight: 600;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}

@@ -1,11 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { createElement } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, createElement } from 'react';
+import { render, screen, within } from '@testing-library/react';
 import { App } from '@/app/App';
 
 describe('App (humo)', () => {
   it('muestra un encabezado de nivel 1 con el texto "Hola"', () => {
     render(createElement(App));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hola');
+  });
+});
+
+describe('main.tsx (humo)', () => {
+  it('monta la aplicación dentro de #root', async () => {
+    const root = document.createElement('div');
+    root.id = 'root';
+    document.body.appendChild(root);
+
+    await act(async () => {
+      await import('@/main');
+    });
+
+    expect(within(root).getByRole('heading', { level: 1 })).toHaveTextContent('Hola');
+    root.remove();
   });
 });
