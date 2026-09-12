@@ -4,6 +4,13 @@ dist/
 .vite/
 *.tsbuildinfo
 
+# cobertura de tests
+coverage/
+
+# variables de entorno
+.env
+.env.*
+
 # registros
 npm-debug.log*
 *.log
