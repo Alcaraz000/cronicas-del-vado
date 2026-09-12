@@ -45,7 +45,6 @@ export const S = {
   },
   tirada: {
     titulo: 'Tirada',
-    objetivo: 'Objetivo',
     total: 'Total',
     continuar: 'Continuar',
     repetir: (numeroDado: number): string => `Fortuna: repetir dado ${numeroDado}`,
