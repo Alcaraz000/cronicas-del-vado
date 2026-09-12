@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "run-s test:run typecheck build:vite",
+    "build": "run-s validate test:run typecheck build:vite",
     "build:vite": "vite build",
     "preview": "vite preview",
     "test": "vitest",
