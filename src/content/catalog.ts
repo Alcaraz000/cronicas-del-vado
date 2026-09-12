@@ -207,3 +207,14 @@ export const LIMITS = {
 
 // Índice = cantidad de Heridas (0..maxWounds).
 export const WOUND_LABELS = ['Sano', 'Herido', 'Malherido', 'Caído'] as const;
+
+// Regla de identidad (spec, sección 4): no se puede elegir un rasgo ni una habilidad
+// cuyo tag coincida con la Debilidad de la clase. La UI de creación oculta los
+// incompatibles con el motivo; el motor no necesita lógica extra.
+export function isTraitAllowed(classId: ClassId, traitId: TraitId): boolean {
+  return TRAITS[traitId].tag !== CLASSES[classId].weakness;
+}
+
+export function isSkillAllowed(classId: ClassId, skillId: SkillId): boolean {
+  return SKILLS[skillId].tag !== CLASSES[classId].weakness;
+}

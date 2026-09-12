@@ -12,6 +12,8 @@ import {
   FUMBLE_DEFAULT_CONDITION,
   LIMITS,
   WOUND_LABELS,
+  isTraitAllowed,
+  isSkillAllowed,
   type Attr,
   type Tag,
   type Difficulty,
@@ -225,5 +227,59 @@ describe('catalog: rasgos, habilidades y condiciones', () => {
   it('la condición por defecto del Fallo grave es exhausto y existe en el catálogo', () => {
     expect(FUMBLE_DEFAULT_CONDITION).toBe('exhausto');
     expect(conditionIds).toContain(FUMBLE_DEFAULT_CONDITION);
+  });
+});
+
+describe('catalog: regla de identidad', () => {
+  const classIds = Object.keys(CLASSES) as ClassId[];
+  const traitIds = Object.keys(TRAITS) as TraitId[];
+  const skillIds = Object.keys(SKILLS) as SkillId[];
+
+  it('un rasgo cuyo tag es la Debilidad de la clase no está permitido', () => {
+    expect(isTraitAllowed('mago', 'desertor')).toBe(false); // desertor = fisico = Debilidad del Mago
+    expect(isTraitAllowed('guerrero', 'cazador_furtivo')).toBe(false); // sigilo
+    expect(isTraitAllowed('explorador', 'hijo_de_molinero')).toBe(false); // social
+    expect(isTraitAllowed('clerigo', 'contrabandista')).toBe(false); // engano
+  });
+
+  it('cualquier otro rasgo sí está permitido', () => {
+    expect(isTraitAllowed('guerrero', 'desertor')).toBe(true);
+    expect(isTraitAllowed('mago', 'aprendiz_de_escriba')).toBe(true);
+    expect(isTraitAllowed('mago', 'cazador_furtivo')).toBe(true);
+    expect(isTraitAllowed('clerigo', 'criado_en_el_templo')).toBe(true);
+  });
+
+  it('cada clase tiene exactamente 7 rasgos permitidos (8 rasgos, 8 tags distintos, 1 Debilidad)', () => {
+    for (const classId of classIds) {
+      const allowed = traitIds.filter((traitId) => isTraitAllowed(classId, traitId));
+      expect(allowed).toHaveLength(7);
+      for (const traitId of allowed) {
+        expect(TRAITS[traitId].tag).not.toBe(CLASSES[classId].weakness);
+      }
+    }
+  });
+
+  it('una habilidad cuyo tag es la Debilidad de la clase no está permitida', () => {
+    expect(isSkillAllowed('guerrero', 'manos_ligeras')).toBe(false); // sigilo
+    expect(isSkillAllowed('mago', 'veterano')).toBe(false); // fisico
+    expect(isSkillAllowed('explorador', 'intimidante')).toBe(false); // social
+    expect(isSkillAllowed('explorador', 'orador')).toBe(false); // social
+  });
+
+  it('cualquier otra habilidad sí está permitida', () => {
+    expect(isSkillAllowed('guerrero', 'veterano')).toBe(true);
+    expect(isSkillAllowed('mago', 'erudito_de_runas')).toBe(true);
+    expect(isSkillAllowed('explorador', 'escurridizo')).toBe(true);
+  });
+
+  it('las habilidades permitidas por clase son las 12 menos las que comparten tag con la Debilidad', () => {
+    const forbiddenCount = (classId: ClassId): number =>
+      skillIds.filter((skillId) => SKILLS[skillId].tag === CLASSES[classId].weakness).length;
+    for (const classId of classIds) {
+      const allowed = skillIds.filter((skillId) => isSkillAllowed(classId, skillId));
+      expect(allowed).toHaveLength(skillIds.length - forbiddenCount(classId));
+    }
+    // Ninguna habilidad de la v1 usa el tag engano: el Clérigo puede elegir las 12.
+    expect(skillIds.every((skillId) => isSkillAllowed('clerigo', skillId))).toBe(true);
   });
 });
