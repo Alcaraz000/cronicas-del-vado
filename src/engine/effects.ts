@@ -89,7 +89,12 @@ function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('clock' in effect) return applyClock(run, effect.clock, effect.delta, ctx);
   if ('milestone' in effect) return { ...run, milestones: addUnique(run.milestones, effect.milestone) };
   if ('fortune' in effect) return applyFortune(run, effect.fortune, ctx);
-  return applyLethal(run);
+  if ('lethal' in effect) return applyLethal(run);
+
+  // Si el tipo Effect gana una variante nueva, esta línea deja de compilar
+  // y obliga a implementarla acá (mismo patrón que conditions.ts).
+  const restante: never = effect;
+  return restante;
 }
 
 export function applyEffects(effects: Effect[] | undefined, ctx: EvalContext): GameState {

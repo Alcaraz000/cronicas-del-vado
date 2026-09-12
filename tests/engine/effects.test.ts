@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Campaign } from '@/content/schema';
+import type { Campaign, Effect } from '@/content/schema';
 import type { Character, EvalContext, Run } from '@/engine/types';
 import { applyEffects } from '@/engine/effects';
 import { makeState } from '../fixtures/state';
@@ -370,5 +370,16 @@ describe('applyEffects: lethal y desenlaces', () => {
     const ctx = contexto({ wounds: 3, outcome: { kind: 'ending', endingId: 'fin_huida' } });
     const result = applyEffects([{ set: 'run:x' }], ctx);
     expect(result.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
+  });
+
+  it('solo { lethal } aplica lethal: un efecto fuera del tipo Effect no hiere', () => {
+    // El catch-all de applyOne era `return applyLethal(run)`: cualquier efecto que
+    // no reconociera infligía 2 Heridas. Ahora lethal se comprueba explícitamente y
+    // el resto cae en la comprobación exhaustiva con `never`, que además deja de
+    // compilar cuando una fase futura agregue una variante a Effect.
+    const futuro = { teletransportar: 'p_cripta' } as unknown as Effect;
+    const result = applyEffects([futuro], contexto({ wounds: 0 }));
+    expect(result.run.wounds).not.toBe(2);
+    expect(result.run.outcome).toBeUndefined();
   });
 });
