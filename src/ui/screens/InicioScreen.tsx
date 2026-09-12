@@ -1,3 +1,4 @@
+import { listCampaigns } from '@/content/campaigns';
 import { CLASSES } from '@/content/catalog';
 import { useStore } from '@/state/store';
 import { S } from '@/ui/strings.es';
@@ -15,10 +16,14 @@ export function InicioScreen() {
 
   // Con el activo muerto hace falta uno nuevo: el muerto no vuelve y startRun lo rechaza.
   // La pantalla de personajes de verdad es de una fase posterior.
-  const nuevaPartida = (): void => {
+  const nuevaPartida = (campaignId: string): void => {
     if (activo === null || activo.dead !== undefined) createTestCharacter();
-    void startRun('prueba');
+    void startRun(campaignId);
   };
+
+  // Hasta que exista el hub de campañas (Fase C), la pantalla de inicio ofrece a mano las
+  // campañas visibles. `prueba` está oculta y se sigue arrancando con su propio botón.
+  const campanas = listCampaigns(false);
 
   return (
     <div className={styles.pantalla}>
@@ -34,7 +39,17 @@ export function InicioScreen() {
             {S.inicio.continuar}
           </button>
         )}
-        <button type="button" className={styles.secundario} onClick={nuevaPartida}>
+        {campanas.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={styles.primario}
+            onClick={() => nuevaPartida(c.id)}
+          >
+            {S.inicio.jugarCampana(c.title)}
+          </button>
+        ))}
+        <button type="button" className={styles.secundario} onClick={() => nuevaPartida('prueba')}>
           {S.inicio.nuevaPrueba}
         </button>
       </div>

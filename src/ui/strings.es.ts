@@ -7,7 +7,8 @@ export const S = {
   inicio: {
     continuar: 'Continuar',
     nuevaPrueba: 'Nueva partida de prueba',
-    sinPersonaje: 'Todavía no hay personaje. La partida de prueba crea uno (mago de nivel 3).',
+    jugarCampana: (titulo: string): string => `Jugar «${titulo}»`,
+    sinPersonaje: 'Todavía no hay personaje. Cualquiera de las dos opciones crea uno (mago de nivel 3).',
     personajeActivo: (nombre: string, clase: string, nivel: number): string =>
       `${nombre} · ${clase} · nivel ${nivel}`,
   },
