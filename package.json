@@ -15,7 +15,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "validate": "tsx tools/validate.ts"
+    "validate": "tsx tools/validate.ts",
+    "graph": "tsx tools/graph.ts"
   },
   "dependencies": {
     "react": "^19.3.0",
