@@ -4,8 +4,10 @@ import { npcs } from '@/content/campaigns/prueba/npcs';
 import { places } from '@/content/campaigns/prueba/places';
 import { items } from '@/content/campaigns/prueba/items';
 import { flags } from '@/content/campaigns/prueba/flags';
-import type { Paragraph, Scene } from '@/content/schema';
+import { parseCampaign, type Paragraph, type Scene, type Choice, type Outcome, type Effect } from '@/content/schema';
 import { p_umbral, p_biblioteca, p_patio, p_patio_2, p_victoria, p_capilla } from '@/content/campaigns/prueba/scenes/acto1';
+import { p_escalera, p_cripta, p_fin_tesoro, p_fin_huida } from '@/content/campaigns/prueba/scenes/acto2';
+import { campaign } from '@/content/campaigns/prueba/campaign';
 
 describe('prueba: meta', () => {
   it('es la campaña de humo oculta, perfil smoke, rango 3-5, una escena mortal', () => {
@@ -119,5 +121,162 @@ describe('prueba: escenas del acto 1', () => {
     const subir = capilla.choices.find((c) => c.id === 'subir');
     expect(subir?.requires).toEqual({ flag: 'run:centinela_vencido' });
     expect(subir?.lockedHint).toBe('El centinela sigue en el patio');
+  });
+});
+
+/** Todos los desenlaces de una opción: el outcome directo o los 3 a 5 outcomes de la tirada. */
+function desenlaces(choice: Choice): Outcome[] {
+  if (choice.outcome !== undefined) return [choice.outcome];
+  if (choice.roll !== undefined) {
+    const o = choice.roll.outcomes;
+    const lista: Outcome[] = [o.success, o.partial, o.failure];
+    if (o.crit !== undefined) lista.push(o.crit);
+    if (o.fumble !== undefined) lista.push(o.fumble);
+    return lista;
+  }
+  return [];
+}
+
+/** Ids de escena a los que apunta una escena: redirects y todos los next de todas sus opciones. */
+function destinos(scene: Scene): string[] {
+  const ids: string[] = [];
+  for (const r of scene.redirect ?? []) ids.push(r.to);
+  for (const c of scene.choices) for (const o of desenlaces(c)) ids.push(o.next);
+  return ids;
+}
+
+function tieneLethal(effects: Effect[] | undefined): boolean {
+  return (effects ?? []).some((e) => 'lethal' in e);
+}
+
+describe('prueba: escenas del acto 2', () => {
+  // Vistas tipadas: `satisfies Scene` conserva el tipo literal; asignar a Scene expone todas las propiedades opcionales.
+  const escalera: Scene = p_escalera;
+  const cripta: Scene = p_cripta;
+  const finTesoro: Scene = p_fin_tesoro;
+  const finHuida: Scene = p_fin_huida;
+
+  it('tiene los cuatro ids esperados', () => {
+    expect([p_escalera, p_cripta, p_fin_tesoro, p_fin_huida].map((s) => s.id)).toEqual(['p_escalera', 'p_cripta', 'p_fin_tesoro', 'p_fin_huida']);
+  });
+
+  it('la escalera anuncia la escena mortal y esconde la opción de las runas', () => {
+    const anuncia = escalera.text.some((p) => typeof p === 'string' && p.includes('Un fallo acá te puede matar'));
+    expect(anuncia).toBe(true);
+    const runas = escalera.choices.find((c) => c.id === 'estudiar_runas');
+    expect(runas?.requires).toEqual({ trait: 'aprendiz_de_escriba' });
+    expect(runas?.lockedHint).toBeUndefined();
+    expect(runas?.outcome?.effects).toEqual([{ set: 'char:prueba.vio_la_cripta' }]);
+    expect(runas?.outcome?.next).toBe('p_cripta');
+  });
+
+  it('la cripta es la escena mortal: lethal solo en fallos de cruzar y conjurar', () => {
+    expect(cripta.lethal).toBe(true);
+    const conLethal = cripta.choices.filter((c) => desenlaces(c).some((o) => tieneLethal(o.effects))).map((c) => c.id);
+    expect(conLethal.sort()).toEqual(['conjurar', 'cruzar']);
+    const tantear = cripta.choices.find((c) => c.id === 'tantear');
+    expect(tantear?.roll?.tags).toEqual(['percepcion']);
+    const retroceder = cripta.choices.find((c) => c.id === 'retroceder');
+    expect(retroceder?.outcome?.next).toBe('p_escalera');
+  });
+
+  it('los finales tienen ending y cero opciones', () => {
+    expect(finTesoro.kind).toBe('ending');
+    expect(finTesoro.ending?.id).toBe('fin_tesoro');
+    expect(finTesoro.choices).toEqual([]);
+    expect(finHuida.kind).toBe('ending');
+    expect(finHuida.ending?.id).toBe('fin_huida');
+    expect(finHuida.choices).toEqual([]);
+  });
+});
+
+describe('prueba: campaña completa', () => {
+  const escenas: Scene[] = Object.values(campaign.scenes);
+
+  it('pasa parseCampaign sin lanzar y conserva su id', () => {
+    const parsed = parseCampaign(campaign);
+    expect(parsed.id).toBe('prueba');
+    expect(Object.keys(parsed.scenes).length).toBe(10);
+  });
+
+  it('start existe en scenes y es el umbral', () => {
+    expect(campaign.start).toBe('p_umbral');
+    expect(campaign.scenes[campaign.start]).toBeDefined();
+  });
+
+  it('la clave de cada escena coincide con su id', () => {
+    for (const [clave, scene] of Object.entries(campaign.scenes)) {
+      expect(scene.id).toBe(clave);
+    }
+  });
+
+  it('toda escena no-ending tiene entre 4 y 9 opciones y al menos 4 sin requires; los endings tienen 0', () => {
+    for (const scene of escenas) {
+      if (scene.kind === 'ending') {
+        expect(scene.choices.length, scene.id).toBe(0);
+        expect(scene.ending, scene.id).toBeDefined();
+        expect(campaign.endings[scene.ending?.id ?? ''], scene.id).toBeDefined();
+      } else {
+        expect(scene.choices.length, scene.id).toBeGreaterThanOrEqual(4);
+        expect(scene.choices.length, scene.id).toBeLessThanOrEqual(9);
+        expect(sinRequires(scene), scene.id).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+
+  it('toda opción tiene exactamente uno de roll u outcome', () => {
+    for (const scene of escenas) {
+      for (const choice of scene.choices) {
+        const cuantos = (choice.roll !== undefined ? 1 : 0) + (choice.outcome !== undefined ? 1 : 0);
+        expect(cuantos, `${scene.id}/${choice.id}`).toBe(1);
+      }
+    }
+  });
+
+  it('hay exactamente una escena lethal y meta.lethalScenes es 1', () => {
+    const letales = escenas.filter((s) => s.lethal === true).map((s) => s.id);
+    expect(letales).toEqual(['p_cripta']);
+    expect(campaign.lethalScenes).toBe(1);
+  });
+
+  it('el efecto lethal solo aparece en outcomes de tirada de la escena lethal', () => {
+    for (const scene of escenas) {
+      for (const choice of scene.choices) {
+        if (choice.outcome !== undefined) {
+          expect(tieneLethal(choice.outcome.effects), `${scene.id}/${choice.id}`).toBe(false);
+        }
+        if (choice.roll !== undefined && scene.lethal !== true) {
+          for (const o of desenlaces(choice)) {
+            expect(tieneLethal(o.effects), `${scene.id}/${choice.id}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it('a la escena lethal solo se llega por outcome de opciones sin tirada', () => {
+    for (const scene of escenas) {
+      for (const r of scene.redirect ?? []) expect(r.to, `${scene.id} redirect`).not.toBe('p_cripta');
+      for (const choice of scene.choices) {
+        if (choice.roll !== undefined) {
+          for (const o of desenlaces(choice)) expect(o.next, `${scene.id}/${choice.id}`).not.toBe('p_cripta');
+        }
+      }
+    }
+  });
+
+  it('todo next y todo redirect.to apunta a una escena existente', () => {
+    for (const scene of escenas) {
+      for (const destino of destinos(scene)) {
+        expect(campaign.scenes[destino], `${scene.id} -> ${destino}`).toBeDefined();
+      }
+    }
+  });
+
+  it('declara reloj, hito y finales del contrato', () => {
+    expect(campaign.clocks['pelea']).toEqual({ max: 2, label: 'Pelea' });
+    expect(campaign.milestones['entrar_a_la_torre']?.label.length).toBeGreaterThan(0);
+    expect(campaign.endings['fin_tesoro']?.title).toBe('El tesoro de la torre');
+    expect(campaign.endings['fin_huida']?.title).toBe('Con vida');
   });
 });
