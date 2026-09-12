@@ -273,3 +273,41 @@ describe('applyEffects: condiciones', () => {
     expect(ctx.state.run.conditions).toEqual(['envenenado', 'asustado', 'exhausto']);
   });
 });
+
+describe('applyEffects: fortuna', () => {
+  it('fortune +1 con nivel 3 no supera 3', () => {
+    const ctx = contexto({ fortune: 3 }, { level: 3 });
+    const result = applyEffects([{ fortune: 1 }], ctx);
+    expect(result.run.fortune).toBe(3);
+  });
+
+  it('fortune +1 con nivel 5 llega a 4', () => {
+    const ctx = contexto({ fortune: 3 }, { level: 5 });
+    const result = applyEffects([{ fortune: 1 }], ctx);
+    expect(result.run.fortune).toBe(4);
+  });
+
+  it('fortune +10 con nivel 5 se recorta a 4', () => {
+    const ctx = contexto({ fortune: 2 }, { level: 5 });
+    const result = applyEffects([{ fortune: 10 }], ctx);
+    expect(result.run.fortune).toBe(4);
+  });
+
+  it('fortune +1 con nivel 1 y fortuna 2 llega a 3', () => {
+    const ctx = contexto({ fortune: 2 }, { level: 1 });
+    const result = applyEffects([{ fortune: 1 }], ctx);
+    expect(result.run.fortune).toBe(3);
+  });
+
+  it('fortune negativa no baja de 0', () => {
+    const ctx = contexto({ fortune: 1 }, { level: 3 });
+    const result = applyEffects([{ fortune: -5 }], ctx);
+    expect(result.run.fortune).toBe(0);
+  });
+
+  it('fortune -1 resta uno', () => {
+    const ctx = contexto({ fortune: 3 }, { level: 3 });
+    const result = applyEffects([{ fortune: -1 }], ctx);
+    expect(result.run.fortune).toBe(2);
+  });
+});

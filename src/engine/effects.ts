@@ -1,6 +1,7 @@
 import { LIMITS } from '@/content/catalog';
 import type { ConditionId } from '@/content/catalog';
 import type { Effect, FlagId } from '@/content/schema';
+import { fortuneMax } from '@/engine/progression';
 import type { EvalContext, GameState, Run } from '@/engine/types';
 
 type Wounds = Run['wounds'];
@@ -61,6 +62,11 @@ function applyClock(run: Run, name: string, delta: number, ctx: EvalContext): Ru
   return { ...run, clocks: { ...run.clocks, [name]: clamp(current + delta, 0, def.max) } };
 }
 
+function applyFortune(run: Run, delta: number, ctx: EvalContext): Run {
+  const max = fortuneMax(ctx.state.character.level);
+  return { ...run, fortune: clamp(run.fortune + delta, 0, max) };
+}
+
 function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('set' in effect) return setFlag(run, effect.set);
   if ('clear' in effect) return clearFlag(run, effect.clear);
@@ -72,6 +78,7 @@ function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('removeCondition' in effect) return removeCondition(run, effect.removeCondition);
   if ('clock' in effect) return applyClock(run, effect.clock, effect.delta, ctx);
   if ('milestone' in effect) return { ...run, milestones: addUnique(run.milestones, effect.milestone) };
+  if ('fortune' in effect) return applyFortune(run, effect.fortune, ctx);
   return run;
 }
 
