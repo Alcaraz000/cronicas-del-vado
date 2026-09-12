@@ -200,6 +200,8 @@ export const S = {
   ficha: {
     caido: (nombre: string, clase: string, nivel: number, campana: string): string =>
       `${nombre}, ${clase} de nivel ${nivel}, murió en ${campana}`,
+    caidoSinCampana: (nombre: string, clase: string, nivel: number): string =>
+      `${nombre}, ${clase} de nivel ${nivel}`,
   },
   /**
    * El modal de Opciones (spec §6), que por ahora es exportar e importar el guardado.

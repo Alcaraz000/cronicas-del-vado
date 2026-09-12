@@ -45,16 +45,23 @@ export function derivarRecuerdos(campaign: Campaign, state: GameState): Recuerdo
     lugares: porPrefijo('char:place.', (id) => campaign.places[id]?.name),
     hechos: canon(`char:${campaign.id}.`),
     mundo: canon(`world:${campaign.id}.`),
-    // flatMap y no filter+map: con noUncheckedIndexedAccess, el filter no estrecha el tipo
-    // y el map de después quedaría con item posiblemente undefined.
+    // flatMap y no filter+map: si el item no existe, la rama defensiva retorna []
+    // evitando incluir registros incompletos.
     reliquias: character.relics.flatMap((id) => {
       const item = campaign.items[id];
       return item === undefined ? [] : [{ id, texto: `${item.name}: ${item.description}` }];
     }),
-    caidos: world.fallen.map((f) => ({
-      id: `${f.name}-${f.campaign}`,
-      texto: S.ficha.caido(f.name, CLASSES[f.classId].name, f.level, f.campaign),
-    })),
+    caidos: world.fallen.flatMap((f) => {
+      const clase = CLASSES[f.classId];
+      if (clase === undefined) return [];
+      const nombre = f.name;
+      const nivel = f.level;
+      const texto =
+        f.campaign === campaign.id
+          ? S.ficha.caido(nombre, clase.name, nivel, campaign.title)
+          : S.ficha.caidoSinCampana(nombre, clase.name, nivel);
+      return [{ id: `${nombre}-${f.campaign}`, texto }];
+    }),
   };
 }
 

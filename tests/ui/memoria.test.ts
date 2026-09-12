@@ -71,6 +71,29 @@ describe('derivarRecuerdos', () => {
     expect(linea).toContain('Vera');
     expect(linea).toContain('2');
   });
+
+  it('muestra el título de la campaña para un Caído de la campaña cargada', () => {
+    const state = makeState({
+      world: makeWorld({
+        fallen: [{ name: 'Vera', classId: 'guerrero', level: 2, campaign: 'minimal', scene: 'm_risco' }],
+      }),
+    });
+    const linea = derivarRecuerdos(campana, state).caidos[0]?.texto ?? '';
+    expect(linea).toContain(campana.title);
+  });
+
+  it('omite el id de campaña para un Caído de otra campaña', () => {
+    const state = makeState({
+      world: makeWorld({
+        fallen: [{ name: 'Vera', classId: 'guerrero', level: 2, campaign: 'otra', scene: 'm_risco' }],
+      }),
+    });
+    const linea = derivarRecuerdos(campana, state).caidos[0]?.texto ?? '';
+    expect(linea).toContain('Vera');
+    expect(linea).toContain('Guerrero');
+    expect(linea).toContain('2');
+    expect(linea).not.toContain('otra'); // no muestra el id de otra campaña
+  });
 });
 
 describe('derivarCronica', () => {
