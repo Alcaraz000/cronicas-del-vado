@@ -4,7 +4,7 @@ import { CAMPAIGNS } from '@/content/campaigns/index';
 import { WORLD } from '@/content/world/index';
 import { validateCampaign } from './lib/validate/index';
 import { formatIssue, parseArgs, summaryLine } from './lib/validate/cli';
-import { archivosDeArte, comparar, lineasDeInforme, referencias, resumenDeAssets } from './lib/assets/index';
+import { archivosDeArte, comparar, lineasDeInforme, referencias, resumenDeAssets, rutaDe } from './lib/assets/index';
 import type { ValidationIssue } from './lib/validate/types';
 
 /** `src/assets/`, donde `post.py` deja los exportados (spec §7). */
@@ -17,7 +17,9 @@ async function main(argv: readonly string[]): Promise<number> {
   // El cruce de arte no es una regla del validador: no mira el grafo, mira el disco, y es
   // informativo salvo que lo pidan estricto. Por eso vive aparte y no entra en `todos`.
   const archivos = args.assets === true ? await archivosDeArte(ASSETS) : [];
-  let faltanAssets = 0;
+  // Por ruta y no por campaña: los PNJ y las reliquias de `world/` los referencian todas, y contar
+  // ocho veces el retrato de Orell convertiría la lista de compras en una lista de compras inflada.
+  const faltanAssets = new Set<string>();
   for (const id of ids) {
     const entry = CAMPAIGNS[id];
     if (entry === undefined) {
@@ -34,15 +36,16 @@ async function main(argv: readonly string[]): Promise<number> {
       const informe = comparar(referencias(campaign, WORLD), archivos);
       for (const linea of lineasDeInforme(id, informe)) console.log(linea);
       console.log(resumenDeAssets(id, informe));
-      faltanAssets += informe.faltantes.length;
+      for (const ref of informe.faltantes) faltanAssets.add(rutaDe(ref));
     }
   }
   console.log(summaryLine(todos));
   if (args.assets === true) {
-    console.log(`assets: ${String(faltanAssets)} archivos de arte faltantes en total${args.assetsStrict === true ? '' : ' (informativo; con --assets-strict falla)'}`);
+    const aviso = args.assetsStrict === true ? '' : ' (informativo; con --assets-strict falla)';
+    console.log(`assets: faltan ${String(faltanAssets.size)} archivos de arte distintos${aviso}`);
   }
   if (todos.some((i) => i.level === 'error')) return 1;
-  return args.assetsStrict === true && faltanAssets > 0 ? 1 : 0;
+  return args.assetsStrict === true && faltanAssets.size > 0 ? 1 : 0;
 }
 
 // Se fija process.exitCode en vez de cortar el proceso a mano: en Windows las escrituras a

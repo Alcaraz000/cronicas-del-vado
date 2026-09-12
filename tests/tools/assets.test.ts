@@ -110,6 +110,8 @@ describe('validate --assets (proceso)', () => {
     const { code, stdout } = await correrCli(['--campaign', 'vado', '--assets']);
     expect(stdout).toContain('assets');
     expect(stdout).toMatch(/falta .*npc\/berta\.png/);
+    // El retrato de un PNJ de `world/` lo referencian todas las campañas: el total cuenta archivos, no referencias.
+    expect(stdout).toMatch(/assets: faltan \d+ archivos de arte distintos \(informativo/);
     expect(code).toBe(0);
   }, 60000);
 
