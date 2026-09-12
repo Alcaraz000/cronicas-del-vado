@@ -7,6 +7,9 @@ import { rotaR02Aislada, rotaR02SoloMago } from '../fixtures/campaigns/broken/r0
 import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fixtures/campaigns/broken/r03';
 import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
 import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
+import { rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
+import { rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
+import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -129,5 +132,66 @@ describe('r05_lethal', () => {
     const issues = soloRegla(rotaR05SoloFisico, 'r05_lethal');
     expect(issues.map((i) => i.sceneId)).toEqual(['b_cripta']);
     expect(issues[0]?.message).toContain('fisico');
+  });
+});
+
+describe('r06_encounter', () => {
+  it('un solo atributo', () => {
+    const issues = soloRegla(rotaR06UnAtributo, 'r06_encounter');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_ronda1');
+    expect(issues[0]?.message).toContain('atributo');
+  });
+  it('sin tirada de huida', () => {
+    const issues = soloRegla(rotaR06SinHuida, 'r06_encounter');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('huida');
+  });
+  it('ronda posterior sin requires sobre el estado ni redirect', () => {
+    const issues = soloRegla(rotaR06RondaSinEstado, 'r06_encounter');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_ronda2');
+  });
+});
+
+describe('r07_ids', () => {
+  it('flag no declarado', () => {
+    const issues = soloRegla(rotaR07FlagNoDeclarado, 'r07_ids');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('run:b_inventado');
+  });
+  it('speaker fuera de npcs de la escena', () => {
+    const issues = soloRegla(rotaR07SpeakerFuera, 'r07_ids');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('b_guia');
+  });
+  it('relic en la campaña', () => {
+    expect(soloRegla(rotaR07Reliquia, 'r07_ids')[0]?.message).toContain('relic');
+  });
+  it('id de world redefinido', () => {
+    expect(soloRegla(rotaR07RedefineMundo, 'r07_ids')[0]?.message).toContain('viajero');
+  });
+  it('prefijo de campaña incorrecto', () => {
+    expect(soloRegla(rotaR07Prefijo, 'r07_ids')[0]?.message).toContain('char:otra.cosa');
+  });
+  it('acepta los espacios compartidos por prefijo', () => {
+    const conMet = { ...campanaBase, scenes: { ...campanaBase.scenes, b_inicio: { ...campanaBase.scenes.b_inicio!, onEnter: [{ set: 'char:met.viajero' as const }, { set: 'world:caido.base' as const }] } } };
+    expect(validateCampaign(conMet, ctx())).toEqual([]);
+  });
+});
+
+describe('r08_memory_frame', () => {
+  it('un PNJ de la campaña no puede recordar otra partida', () => {
+    const issues = soloRegla(rotaR08PnjRecuerda, 'r08_memory_frame');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('met');
+  });
+  it('un PNJ de world sí puede (la campaña base lo hace con viajero)', () => {
+    expect(validateCampaign(campanaBase, ctx())).toEqual([]);
+  });
+  it('todo párrafo termina en una variante sin when', () => {
+    const issues = soloRegla(rotaR08SinDefecto, 'r08_memory_frame');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
   });
 });
