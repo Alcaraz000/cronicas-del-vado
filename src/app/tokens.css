@@ -15,6 +15,7 @@
   --color-acento: #c9a24a;
   --color-acento-suave: #8a6d2b;
   --color-placeholder: #4a443c; /* gris de las cajas de arte provisorio (Placeholder) */
+  --color-velo: rgb(0 0 0 / 65%); /* fondo semitransparente detrás de un modal o panel */
 
   /* Colores semánticos */
   --color-peligro: #b5443a;

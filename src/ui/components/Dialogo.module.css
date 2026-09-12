@@ -5,7 +5,7 @@
   display: grid;
   place-items: center;
   padding: var(--esp-4);
-  background: rgb(0 0 0 / 65%);
+  background: var(--color-velo);
 }
 
 .caja {

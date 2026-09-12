@@ -52,4 +52,39 @@ describe('Dialogo', () => {
     render(<Dialogo {...p} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('Tab en el último elemento vuelve al primero', () => {
+    const p = props();
+    render(<Dialogo {...p} />);
+    const cancelarBtn = screen.getByRole('button', { name: p.cancelar });
+    const confirmarBtn = screen.getByRole('button', { name: p.confirmar });
+    confirmarBtn.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(cancelarBtn);
+  });
+
+  it('Shift+Tab en el primer elemento vuelve al último', () => {
+    const p = props();
+    render(<Dialogo {...p} />);
+    const cancelarBtn = screen.getByRole('button', { name: p.cancelar });
+    const confirmarBtn = screen.getByRole('button', { name: p.confirmar });
+    cancelarBtn.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(confirmarBtn);
+  });
+
+  it('al cerrarse devuelve el foco a quien lo abrió', () => {
+    const disparador = document.createElement('button');
+    document.body.appendChild(disparador);
+    disparador.focus();
+    expect(document.activeElement).toBe(disparador);
+
+    const p = props();
+    const { rerender } = render(<Dialogo {...p} />);
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+
+    rerender(<Dialogo {...p} abierto={false} />);
+    expect(document.activeElement).toBe(disparador);
+    disparador.remove();
+  });
 });

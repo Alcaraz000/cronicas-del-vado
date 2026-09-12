@@ -57,7 +57,7 @@ describe('Cajon', () => {
     disparador.remove();
   });
 
-  it('Tab no se escapa del cajón', () => {
+  it('Tab en el último elemento vuelve al primero', () => {
     render(
       <Cajon titulo="Ficha" abierto onCerrar={vi.fn()}>
         <button type="button">uno</button>
@@ -67,6 +67,19 @@ describe('Cajon', () => {
     const dentro = screen.getAllByRole('button');
     dentro[dentro.length - 1]?.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(dentro[0]);
+  });
+
+  it('Shift+Tab en el primer elemento vuelve al último', () => {
+    render(
+      <Cajon titulo="Ficha" abierto onCerrar={vi.fn()}>
+        <button type="button">uno</button>
+        <button type="button">dos</button>
+      </Cajon>,
+    );
+    const dentro = screen.getAllByRole('button');
+    dentro[0]?.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(dentro[dentro.length - 1]);
   });
 });

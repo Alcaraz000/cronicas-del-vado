@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
+import { useTrampaDeFoco } from '@/ui/hooks/useTrampaDeFoco';
 import styles from './Dialogo.module.css';
 
 export type DialogoTono = 'normal' | 'peligro';
@@ -15,12 +16,12 @@ export interface DialogoProps {
   tono?: DialogoTono;
 }
 
-const ENFOCABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 /**
- * Confirmación modal para decisiones que no se pueden deshacer. Misma mecánica de foco y
- * Esc que `Cajon`, con una diferencia deliberada: el foco arranca en cancelar, no en
- * confirmar. Si el jugador aprieta Enter sin leer, no pasa nada irreversible.
+ * Confirmación modal para decisiones que no se pueden deshacer. Comparte con `Cajon` la
+ * misma trampa de foco (`useTrampaDeFoco`, con Esc == cancelar). El botón cancelar se
+ * marca primero en el marcado a propósito: la trampa enfoca el primer elemento enfocable
+ * al abrirse, así que el foco arranca ahí y no en confirmar. Si el jugador aprieta Enter
+ * sin leer, no pasa nada irreversible.
  */
 export function Dialogo({
   titulo,
@@ -33,48 +34,9 @@ export function Dialogo({
   tono = 'normal',
 }: DialogoProps) {
   const panel = useRef<HTMLDivElement>(null);
-  const cancelarRef = useRef<HTMLButtonElement>(null);
-  const anterior = useRef<HTMLElement | null>(null);
   const tituloId = useId();
 
-  useEffect(() => {
-    if (!abierto) return;
-    anterior.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    cancelarRef.current?.focus();
-    return () => {
-      anterior.current?.focus();
-    };
-  }, [abierto]);
-
-  const onKeyDown = useCallback(
-    (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancelar();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const enfocables = [...(panel.current?.querySelectorAll<HTMLElement>(ENFOCABLE) ?? [])];
-      if (enfocables.length === 0) return;
-      const primero = enfocables[0]!;
-      const ultimo = enfocables[enfocables.length - 1]!;
-      const activo = document.activeElement;
-      if (event.shiftKey && (activo === primero || !panel.current?.contains(activo))) {
-        event.preventDefault();
-        ultimo.focus();
-      } else if (!event.shiftKey && (activo === ultimo || !panel.current?.contains(activo))) {
-        event.preventDefault();
-        primero.focus();
-      }
-    },
-    [onCancelar],
-  );
-
-  useEffect(() => {
-    if (!abierto) return;
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [abierto, onKeyDown]);
+  useTrampaDeFoco(panel, abierto, onCancelar);
 
   if (!abierto) return null;
 
@@ -94,7 +56,7 @@ export function Dialogo({
         </h2>
         <p className={styles.cuerpo}>{cuerpo}</p>
         <div className={styles.acciones}>
-          <button ref={cancelarRef} type="button" className={styles.cancelar} onClick={onCancelar}>
+          <button type="button" className={styles.cancelar} onClick={onCancelar}>
             {cancelar}
           </button>
           <button type="button" className={styles.confirmar} onClick={onConfirmar}>
