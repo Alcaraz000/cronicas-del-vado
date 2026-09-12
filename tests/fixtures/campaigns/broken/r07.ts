@@ -31,3 +31,21 @@ export const rotaR07EscribeCompartido: Campaign = conEscena(campanaBase, {
 
 // El reward de un final usa un flag no declarado (los rewards de endings también son efectos y r07 los valida igual que al resto).
 export const rotaR07RewardFlagNoDeclarado: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_a: { ...campanaBase.endings.fin_a!, reward: [{ set: 'run:reward_inventado' }] } } };
+
+// Una condición { visited: <id> } que apunta a una escena que no existe: la condición nunca se
+// cumple y la variante de texto que cuelga de ella es prosa muerta que nadie ve.
+export const rotaR07VisitedInexistente: Campaign = conEscena(campanaBase, {
+  ...b_inicio,
+  text: [
+    'Llegás a la plaza con la lluvia en la nuca.',
+    { variants: [
+      { when: { visited: 'b_plazza', min: 1 }, text: 'Otra vez la plaza.' },
+      { text: 'La plaza está vacía.' } ] },
+    { speaker: 'b_guia', variants: [
+      { when: { trait: 'desertor' }, text: '—Un soldado. Se nota en cómo parás.' },
+      { text: '—Bienvenido. No te quedes bajo el agua.' } ] },
+  ],
+});
+
+// scene.variant sobre un lugar que no declara esa variante: cuando llegue el arte, la imagen no existe.
+export const rotaR07VariantInexistente: Campaign = conEscena(campanaBase, { ...b_inicio, variant: 'tormenta' });

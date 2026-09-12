@@ -11,7 +11,7 @@ import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fi
 import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
 import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05RewardLethal, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
 import { rotaR06Autobucle, rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
-import { rotaR07EscribeCompartido, rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
+import { rotaR07EscribeCompartido, rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera, rotaR07VariantInexistente, rotaR07VisitedInexistente } from '../fixtures/campaigns/broken/r07';
 import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
@@ -226,6 +226,30 @@ describe('r07_ids', () => {
     expect(validateCampaign(conVinculo, { world: mundoConVinculo, profile: 'release' })).toEqual([]);
     // Sin ese espacio declarado en world.flags, el mismo flag se sigue rechazando.
     expect(reglas(validateCampaign(conVinculo, ctx()))).toEqual(['r07_ids']);
+  });
+  it('condición visited con una escena que no existe', () => {
+    const issues = soloRegla(rotaR07VisitedInexistente, 'r07_ids');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[0]?.message).toContain('b_plazza');
+    expect(issues[0]?.message).toContain('visited');
+  });
+  it('acepta visited cuando la escena existe (la campaña base lo hace en b_inicio)', () => {
+    expect(validateCampaign(campanaBase, ctx())).toEqual([]);
+  });
+  it('scene.variant sobre un lugar que no declara esa variante', () => {
+    const issues = soloRegla(rotaR07VariantInexistente, 'r07_ids');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[0]?.message).toContain('tormenta');
+    expect(issues[0]?.message).toContain('b_plaza');
+  });
+  it('acepta scene.variant cuando el lugar la declara', () => {
+    const conVariante = conEscena(
+      { ...campanaBase, places: { b_plaza: { ...campanaBase.places.b_plaza!, variants: { tormenta: 'b_plaza.tormenta' } } } },
+      { ...b_inicio, variant: 'tormenta' },
+    );
+    expect(validateCampaign(conVariante, ctx())).toEqual([]);
   });
   it('el reward de un final con un flag no declarado se valida igual que el resto de los efectos', () => {
     const issues = soloRegla(rotaR07RewardFlagNoDeclarado, 'r07_ids');

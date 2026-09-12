@@ -66,6 +66,14 @@ export const r07_ids: Rule = (campaign, ctx) => {
   for (const scene of Object.values(campaign.scenes)) {
     const sid = scene.id;
     if (!existe('places', scene.place)) push(`El lugar ${scene.place} no existe en la campaña ni en world`, sid);
+    // scene.variant nombra una clave de Place.variants: si el lugar no la declara, cuando llegue el
+    // arte la escena pide un fondo que no existe. Si el lugar directamente no existe ya se avisó arriba.
+    else if (scene.variant !== undefined) {
+      const place = campaign.places[scene.place] ?? world.places[scene.place];
+      if (place !== undefined && !has(place.variants ?? {}, scene.variant)) {
+        push(`La variante ${scene.variant} no está declarada en variants del lugar ${scene.place}`, sid);
+      }
+    }
     for (const npc of scene.npcs ?? []) if (!existe('npcs', npc)) push(`El PNJ ${npc} no existe en la campaña ni en world`, sid);
     if (scene.kind === 'ending') {
       if (!scene.ending) push(`La escena final ${sid} no declara ending`, sid);
@@ -90,6 +98,9 @@ export const r07_ids: Rule = (campaign, ctx) => {
       walkCondition(cond, (leaf) => {
         if ('flag' in leaf) flagOk(leaf.flag, sid);
         else if ('item' in leaf) { if (!existe('items', leaf.item)) push(`El objeto ${leaf.item} (condición item) no existe`, sid); }
+        // Un visited con un id que no es ninguna escena no falla: simplemente nunca se cumple, y la
+        // variante que cuelga de él es prosa que el jugador no ve nunca sin que nadie se entere.
+        else if ('visited' in leaf) { if (!has(campaign.scenes, leaf.visited)) push(`La escena ${leaf.visited} (condición visited) no existe en la campaña`, sid); }
         else if ('met' in leaf) { if (!existe('npcs', leaf.met)) push(`El PNJ ${leaf.met} (condición met) no existe`, sid); }
         else if ('knows' in leaf) { if (!existe('places', leaf.knows)) push(`El lugar ${leaf.knows} (condición knows) no existe`, sid); }
         else if ('clock' in leaf) { if (!has(campaign.clocks, leaf.clock)) push(`El reloj ${leaf.clock} (condición clock) no está declarado`, sid); }
