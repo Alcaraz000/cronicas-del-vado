@@ -16,3 +16,19 @@ export const rotaR06SinHuida: Campaign = conEscena(campanaBase, conOpcion(b_rond
 const { redirect: _redirect, ...ronda2SinRedirect } = b_ronda2;
 const { requires: _requires, lockedHint: _hint, ...rematarLibre } = opcion(b_ronda2, 'rematar');
 export const rotaR06RondaSinEstado: Campaign = conEscena(campanaBase, conOpcion(ronda2SinRedirect, rematarLibre));
+
+// Ronda 1 que se repite a sí misma (golpear vuelve a b_ronda1) sin redirect ni requires de estado:
+// el mismo bucle sin cambio de estado que la cláusula existe para prevenir, pero contra sí misma.
+const golpeOriginal = opcion(b_ronda1, 'golpear');
+const golpeEnBucle: Choice = {
+  ...golpeOriginal,
+  roll: {
+    ...golpeOriginal.roll!,
+    outcomes: {
+      success: { ...golpeOriginal.roll!.outcomes.success, next: 'b_ronda1' },
+      partial: { ...golpeOriginal.roll!.outcomes.partial, next: 'b_ronda1' },
+      failure: { ...golpeOriginal.roll!.outcomes.failure, next: 'b_ronda1' },
+    },
+  },
+};
+export const rotaR06Autobucle: Campaign = conEscena(campanaBase, conOpcion(b_ronda1, golpeEnBucle));

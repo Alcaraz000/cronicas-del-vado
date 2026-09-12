@@ -24,3 +24,6 @@ export const rotaR02SoloMago: Campaign = conEscena(
   conEscena(campanaBase, criptaSinFinB),
   conOpcion(b_descanso, { ...opcion(b_descanso, 'irse'), requires: { class: 'mago' }, lockedHint: 'Solo un mago conoce el camino' }),
 );
+
+// Un id de campaign.endings que ninguna escena produce (ni siquiera una inalcanzable): el final queda colgado.
+export const rotaR02FinalNoProducido: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_c: { title: 'Final C' } } };

@@ -1,6 +1,6 @@
 import { CLASSES, CONDITIONS, SKILLS, TAGS, TRAITS } from '@/content/catalog';
 import { error, type Rule, type ValidationIssue } from '../types';
-import { has, paragraphsOf, sceneConditions, sceneEffects, sceneTexts, walkCondition } from '../walk';
+import { endingRewards, has, paragraphsOf, sceneConditions, sceneEffects, sceneTexts, walkCondition } from '../walk';
 
 const RULE = 'r07_ids';
 const SHARED_PREFIXES = ['char:met.', 'char:place.', 'char:origen.', 'world:caido.'];
@@ -22,7 +22,7 @@ export const r07_ids: Rule = (campaign, ctx) => {
   const { world } = ctx;
   const push = (message: string, sceneId?: string): void => { issues.push(error(RULE, message, sceneId)); };
   const existe = (col: 'npcs' | 'places' | 'items', id: string): boolean => has(campaign[col], id) || has(world[col], id);
-  const flagOk = (flag: string, sceneId: string): void => {
+  const flagOk = (flag: string, sceneId?: string): void => {
     if (!(has(campaign.flags, flag) || has(world.flags, flag) || isSharedFlag(flag))) {
       push(`El flag ${flag} no está declarado en campaign.flags ni en world.flags`, sceneId);
     } else if (!prefijoCorrecto(flag, campaign.id)) {
@@ -81,6 +81,21 @@ export const r07_ids: Rule = (campaign, ctx) => {
       for (const tag of choice.roll?.tags ?? []) {
         if (!(TAGS as readonly string[]).includes(tag)) push(`El tag ${tag} de la opción ${choice.id} no existe en el catálogo`, sid);
       }
+    }
+  }
+
+  // El reward de un final no cuelga de ninguna escena; se valida aparte con los mismos chequeos de id.
+  for (const { endingId, effects } of endingRewards(campaign)) {
+    for (const effect of effects) {
+      const contexto = `reward del final ${endingId}`;
+      if ('set' in effect) flagOk(effect.set);
+      else if ('clear' in effect) flagOk(effect.clear);
+      else if ('give' in effect) { if (!existe('items', effect.give)) push(`El objeto ${effect.give} (give) no existe (${contexto})`); }
+      else if ('take' in effect) { if (!existe('items', effect.take)) push(`El objeto ${effect.take} (take) no existe (${contexto})`); }
+      else if ('addCondition' in effect) { if (!has(CONDITIONS, effect.addCondition)) push(`La condición ${effect.addCondition} no existe en el catálogo (${contexto})`); }
+      else if ('removeCondition' in effect) { if (effect.removeCondition !== 'all' && !has(CONDITIONS, effect.removeCondition)) push(`La condición ${effect.removeCondition} no existe en el catálogo (${contexto})`); }
+      else if ('clock' in effect) { if (!has(campaign.clocks, effect.clock)) push(`El reloj ${effect.clock} no está declarado en campaign.clocks (${contexto})`); }
+      else if ('milestone' in effect) { if (!has(campaign.milestones, effect.milestone)) push(`El hito ${effect.milestone} no está declarado en campaign.milestones (${contexto})`); }
     }
   }
   return issues;

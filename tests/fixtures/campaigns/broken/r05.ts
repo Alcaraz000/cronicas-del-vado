@@ -24,3 +24,6 @@ export const rotaR05SoloFisico: Campaign = conEscena(campanaBase, conOpcion(
   conOpcion(b_cripta, { ...opcion(b_cripta, 'conjurar'), roll: { ...opcion(b_cripta, 'conjurar').roll!, tags: ['fisico'] } }),
   { ...opcion(b_cripta, 'tantear'), roll: { ...opcion(b_cripta, 'tantear').roll!, tags: ['fisico'] } },
 ));
+
+// El reward de un final usa { lethal: true }: no tiene sentido fuera de un outcome de tirada de una escena lethal.
+export const rotaR05RewardLethal: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_b: { ...campanaBase.endings.fin_b!, reward: [{ lethal: true }] } } };

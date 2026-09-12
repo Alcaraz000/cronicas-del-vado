@@ -7,8 +7,10 @@ const RULE = 'r06_encounter';
 export const r06_encounter: Rule = (campaign) => {
   const issues: ValidationIssue[] = [];
   const encuentros = Object.values(campaign.scenes).filter((s) => s.kind === 'encounter');
+  // Incluye las aristas propias: un encuentro que vuelve a sí mismo (la ronda se repite hasta llenar
+  // el reloj) también necesita redirect o requires sobre el estado para poder salir del bucle.
   const rondasPosteriores = new Set<string>();
-  for (const s of encuentros) for (const e of sceneEdges(s)) if (e.to !== s.id) rondasPosteriores.add(e.to);
+  for (const s of encuentros) for (const e of sceneEdges(s)) rondasPosteriores.add(e.to);
 
   for (const scene of encuentros) {
     const rolls = scene.choices.flatMap((c) => (c.roll ? [c.roll] : []));

@@ -1,4 +1,4 @@
-import type { Choice, Condition, Effect, Outcome, Paragraph, Scene, Text } from '@/content/schema';
+import type { Campaign, Choice, Condition, Effect, Outcome, Paragraph, Scene, Text } from '@/content/schema';
 
 export function has(obj: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
@@ -29,6 +29,13 @@ export function sceneEffects(scene: Scene): Effect[] {
     for (const outcome of choiceOutcomes(choice)) list.push(...(outcome.effects ?? []));
   }
   return list;
+}
+
+// Los efectos de `endings[*].reward` no cuelgan de ninguna escena (viven en el mapa de la campaña,
+// aparte de la escena de ending que produce ese final), así que no los recorre sceneEffects: r05 y
+// r07 los recorren aparte con esta función para validarlos igual que al resto de los efectos.
+export function endingRewards(campaign: Campaign): { endingId: string; effects: Effect[] }[] {
+  return Object.entries(campaign.endings).map(([endingId, ending]) => ({ endingId, effects: ending.reward ?? [] }));
 }
 
 export function walkCondition(cond: Condition | undefined, visit: (leaf: Condition) => void): void {

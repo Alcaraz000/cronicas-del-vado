@@ -23,5 +23,14 @@ export const r02_reach: Rule = (campaign) => {
       }
     }
   }
+
+  // Todo final declarado en campaign.endings (incluidos los ocultos) tiene que ser producido por
+  // alguna escena alcanzable; si no, es un final colgado que ninguna escena de ending referencia.
+  const producidos = new Set(finales.map((s) => s.ending?.id).filter((id): id is string => id !== undefined));
+  for (const endingId of Object.keys(campaign.endings)) {
+    if (!producidos.has(endingId)) {
+      issues.push(error(RULE, `El final ${endingId} está declarado en campaign.endings pero ninguna escena alcanzable lo produce`));
+    }
+  }
   return issues;
 };

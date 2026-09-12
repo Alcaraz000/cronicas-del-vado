@@ -6,12 +6,12 @@ import { RULES, validateCampaign, type ValidateContext, type ValidationIssue } f
 import { minimal } from '../fixtures/campaigns/minimal';
 import { campanaBase, mundoDePrueba } from '../fixtures/campaigns/broken/base';
 import { rotaR01Ciclo, rotaR01Target } from '../fixtures/campaigns/broken/r01';
-import { rotaR02Aislada, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
+import { rotaR02Aislada, rotaR02FinalNoProducido, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
 import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fixtures/campaigns/broken/r03';
 import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
-import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
-import { rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
-import { rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
+import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05RewardLethal, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
+import { rotaR06Autobucle, rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
+import { rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
 import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
@@ -79,6 +79,12 @@ describe('r02_reach', () => {
     expect(texto).toContain('Clérigo');
     expect(texto).not.toContain('Mago');
   });
+  it('un final declarado en endings sin ninguna escena que lo produzca queda colgado', () => {
+    const issues = soloRegla(rotaR02FinalNoProducido, 'r02_reach');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBeUndefined();
+    expect(issues[0]?.message).toContain('fin_c');
+  });
 });
 
 describe('r03_choices', () => {
@@ -138,6 +144,12 @@ describe('r05_lethal', () => {
     expect(issues.map((i) => i.sceneId)).toEqual(['b_cripta']);
     expect(issues[0]?.message).toContain('fisico');
   });
+  it('reward de un final con lethal: no tiene escena ni outcome de tirada que lo justifique', () => {
+    const issues = soloRegla(rotaR05RewardLethal, 'r05_lethal');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBeUndefined();
+    expect(issues[0]?.message).toContain('fin_b');
+  });
 });
 
 describe('r06_encounter', () => {
@@ -156,6 +168,11 @@ describe('r06_encounter', () => {
     const issues = soloRegla(rotaR06RondaSinEstado, 'r06_encounter');
     expect(issues).toHaveLength(1);
     expect(issues[0]?.sceneId).toBe('b_ronda2');
+  });
+  it('un encuentro que se repite a sí mismo también necesita redirect o requires de estado', () => {
+    const issues = soloRegla(rotaR06Autobucle, 'r06_encounter');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_ronda1');
   });
 });
 
@@ -182,6 +199,12 @@ describe('r07_ids', () => {
   it('acepta los espacios compartidos por prefijo', () => {
     const conMet = { ...campanaBase, scenes: { ...campanaBase.scenes, b_inicio: { ...campanaBase.scenes.b_inicio!, onEnter: [{ set: 'char:met.viajero' as const }, { set: 'world:caido.base' as const }] } } };
     expect(validateCampaign(conMet, ctx())).toEqual([]);
+  });
+  it('el reward de un final con un flag no declarado se valida igual que el resto de los efectos', () => {
+    const issues = soloRegla(rotaR07RewardFlagNoDeclarado, 'r07_ids');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBeUndefined();
+    expect(issues[0]?.message).toContain('run:reward_inventado');
   });
 });
 
