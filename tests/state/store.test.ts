@@ -266,6 +266,47 @@ describe('store: ciclo de partida sin dados', () => {
     expect(seed1).not.toBe(seed2);
   });
 
+  it('startRun con una partida en curso la cierra como derrota antes de empezar la nueva', async () => {
+    // El motor asume que TODA partida termina por endRun: pisar character.run dejaba la partida
+    // sin contar en el registro, sin derrota y sin resumen.
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('prueba');
+    store.getState().choose('rodear_patio');
+    const semillaVieja = selectGameState(store.getState())!.run.rngSeed;
+
+    await store.getState().startRun('prueba');
+
+    const s = store.getState();
+    const registro = s.characters[0]!.campaignLog['prueba'];
+    expect(registro).toMatchObject({ runs: 1, wins: 0 });
+    expect(registro?.milestones).toContain('entrar_a_la_torre');
+    expect(s.ui.screen).toBe('escena');
+    expect(s.ui.endSummary).toBeNull();
+    const gs = selectGameState(s)!;
+    expect(gs.run.rngSeed).not.toBe(semillaVieja);
+    expect(gs.run.sceneId).toBe('p_umbral');
+    expect(gs.run.log).toHaveLength(1);
+  });
+
+  it('cierra la partida en curso aunque la campaña no esté cargada en ui (recarga sin continuar)', async () => {
+    const store1 = createAppStore();
+    store1.getState().createTestCharacter();
+    await store1.getState().startRun('prueba');
+
+    const store2 = createAppStore();
+    await store2.persist.rehydrate();
+    expect(store2.getState().ui.campaign).toBeNull();
+    expect(store2.getState().characters[0]!.run).not.toBeNull();
+
+    await store2.getState().startRun('prueba');
+
+    const s = store2.getState();
+    expect(s.characters[0]!.campaignLog['prueba']).toMatchObject({ runs: 1, wins: 0 });
+    expect(s.ui.screen).toBe('escena');
+    expect(selectGameState(s)!.run.log).toHaveLength(1);
+  });
+
   it('startRun con campaña desconocida va a error y retry vuelve a inicio si no hay run', async () => {
     const store = createAppStore();
     store.getState().createTestCharacter();

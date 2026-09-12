@@ -239,6 +239,29 @@ export function createAppStore(): AppStore {
           const gs = selectGameState(st);
           return st.ui.campaign && gs ? { campaign: st.ui.campaign, gs } : null;
         };
+        /** Marca la partida como derrota y la cierra con finishRun (camino común de abandonRun y startRun). */
+        const terminarComoDerrota = (campaign: Campaign, gs: GameState): void => {
+          const run: Run = { ...gs.run, outcome: { kind: 'defeat' } };
+          set((s) => ({
+            ...writeGameState(s, { ...gs, run }),
+            ui: { ...s.ui, campaign, pending: null, screen: 'fin' },
+          }));
+          get().finishRun();
+        };
+        /**
+         * Cierra como derrota la partida en curso del personaje activo, si la hay.
+         * El motor asume que TODA partida termina por endRun: pisar character.run la dejaría sin
+         * contar en el registro, sin derrota y sin resumen. La campaña de esa partida puede no ser
+         * la que está en ui (recarga sin continuar, o arranque de otra campaña): ahí se carga.
+         */
+        const cerrarPartidaEnCurso = async (): Promise<void> => {
+          const st = get();
+          const gs = selectGameState(st);
+          if (!gs) return;
+          const enUi = st.ui.campaign;
+          const campaign = enUi !== null && enUi.id === gs.run.campaignId ? enUi : await loadCampaign(gs.run.campaignId);
+          terminarComoDerrota(campaign, gs);
+        };
         /** Escribe un PendingRoll nuevo en ui.pending y su tupla mínima en run.pending. */
         const writePending = (gs: GameState, pending: PendingRoll): void => {
           const run: Run = { ...gs.run, pending: toPersisted(pending) };
@@ -285,18 +308,31 @@ export function createAppStore(): AppStore {
             setUi({ screen: 'cargando', error: null, pending: null, endSummary: null });
             try {
               const campaign = await loadCampaign(campaignId);
+              const actual = activeCharacter(get());
+              if (!actual) throw new Error('No hay personaje activo');
+              // El personaje muerto no vuelve (spec): endRun marca character.dead pero no cambia
+              // activeCharacterId, así que sin esto el muerto podía empezar otra partida.
+              if (actual.dead) throw new Error(`${actual.name} murió y no vuelve a jugar`);
+              await cerrarPartidaEnCurso();
+
+              // Se vuelve a leer el personaje: cerrar la partida anterior lo reemplaza (run en null
+              // y campaignLog actualizado), así que `actual` ya quedó viejo.
               const st = get();
               const character = activeCharacter(st);
               if (!character) throw new Error('No hay personaje activo');
-              // El personaje muerto no vuelve (spec): endRun marca character.dead pero no cambia
-              // activeCharacterId, así que sin esto el muerto podía empezar otra partida.
-              if (character.dead) throw new Error(`${character.name} murió y no vuelve a jugar`);
               const run = newRun(campaign, character);
               const seen = st.seen[campaign.id] ?? {};
               const entered = engine.enter(campaign, { world: st.world, character, run, seen }, campaign.start);
               set((s) => ({
                 ...writeGameState(s, entered),
-                ui: { ...s.ui, screen: entered.run.outcome ? 'fin' : 'escena', campaign, pending: null },
+                ui: {
+                  ...s.ui,
+                  screen: entered.run.outcome ? 'fin' : 'escena',
+                  campaign,
+                  pending: null,
+                  // El resumen de la partida que se acaba de cerrar no es de esta.
+                  endSummary: null,
+                },
               }));
             } catch (e) {
               fail(e);
@@ -382,12 +418,7 @@ export function createAppStore(): AppStore {
           abandonRun() {
             const ctx = playing();
             if (!ctx) return;
-            const run: Run = { ...ctx.gs.run, outcome: { kind: 'defeat' } };
-            set((s) => ({
-              ...writeGameState(s, { ...ctx.gs, run }),
-              ui: { ...s.ui, pending: null, screen: 'fin' },
-            }));
-            get().finishRun();
+            terminarComoDerrota(ctx.campaign, ctx.gs);
           },
 
           retry() {
