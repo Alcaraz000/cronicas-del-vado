@@ -3,6 +3,7 @@ import type { Campaign, Choice, Condition, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
 import { applyEffects } from '@/engine/effects';
 import { buildPreview } from '@/engine/modifiers';
+import { deriveMemory } from '@/engine/memory';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
   EvalContext,
@@ -184,4 +185,70 @@ export function render(campaign: Campaign, state: GameState): RenderedScene {
     choices: scene.choices.map((choice) => renderChoice(choice, ctx)),
     ...(ending !== undefined ? { ending } : {}),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Parte 2: elegir, tirar, consolidar y terminar
+// ---------------------------------------------------------------------------
+
+/** Busca una opción de la escena o lanza con el id y la escena en el mensaje. */
+function findChoiceOrThrow(scene: Scene, choiceId: string): Choice {
+  const choice = scene.choices.find((c) => c.id === choiceId);
+  if (choice === undefined) {
+    throw new Error(`Opción desconocida: ${choiceId} (escena ${scene.id})`);
+  }
+  return choice;
+}
+
+/**
+ * Hashes de los párrafos que el jugador vio en la escena actual: los del último
+ * LogEntry 'scene' con ese sceneId; si no hay (estado armado a mano), se resuelve el texto ahora.
+ */
+function hashesOfCurrentScene(campaign: Campaign, state: GameState): string[] {
+  const { run } = state;
+  for (let i = run.log.length - 1; i >= 0; i -= 1) {
+    const entry = run.log[i];
+    if (entry !== undefined && entry.kind === 'scene' && entry.sceneId === run.sceneId) {
+      return [...entry.hashes];
+    }
+  }
+  const scene = getScene(campaign, run.sceneId);
+  return resolveText(scene.text, { campaign, state }).map((p) => hashParagraph(p.text));
+}
+
+/** Agrega entradas al log y recorta a las últimas LIMITS.maxLog. */
+function appendLogEntries(state: GameState, entries: LogEntry[]): GameState {
+  const log = [...state.run.log, ...entries];
+  const trimmed = log.length > LIMITS.maxLog ? log.slice(log.length - LIMITS.maxLog) : log;
+  return { ...state, run: { ...state.run, log: trimmed } };
+}
+
+/**
+ * Elegir una opción SIN tirada.
+ * Orden fijo: deriveMemory(escena actual) → log 'choice' → applyEffects(outcome.effects)
+ * → log 'outcome' (si hay texto) → si la partida terminó (defeat/death) se devuelve sin entrar;
+ * si no, enter(outcome.next).
+ */
+export function choose(campaign: Campaign, state: GameState, choiceId: string): GameState {
+  const scene = getScene(campaign, state.run.sceneId);
+  const choice = findChoiceOrThrow(scene, choiceId);
+  if (choice.roll !== undefined) {
+    throw new Error(`La opción requiere una tirada: ${choiceId}`);
+  }
+  const outcome = choice.outcome;
+  if (outcome === undefined) {
+    throw new Error(`La opción no tiene desenlace: ${choiceId}`);
+  }
+  const hashes = hashesOfCurrentScene(campaign, state);
+  let next = deriveMemory({ campaign, state }, scene.id, hashes);
+  next = appendLogEntries(next, [{ kind: 'choice', sceneId: scene.id, choiceId: choice.id, label: choice.label }]);
+  next = applyEffects(outcome.effects, { campaign, state: next });
+  if (outcome.text !== undefined) {
+    const paragraphs = resolveText(outcome.text, { campaign, state: next });
+    next = appendLogEntries(next, [{ kind: 'outcome', paragraphs }]);
+  }
+  if (next.run.outcome !== undefined) {
+    return next;
+  }
+  return enter(campaign, next, outcome.next);
 }
