@@ -3,35 +3,45 @@ import { error, type Rule, type ValidationIssue } from '../types';
 import { endingRewards, has, paragraphsOf, sceneConditions, sceneEffects, sceneTexts, walkCondition } from '../walk';
 
 const RULE = 'r07_ids';
-const SHARED_PREFIXES = ['char:met.', 'char:place.', 'char:origen.', 'world:caido.'];
-const SHARED_EXACT = ['char:leyenda'];
 
-export function isSharedFlag(flag: string): boolean {
-  return SHARED_EXACT.includes(flag) || SHARED_PREFIXES.some((p) => flag.startsWith(p));
-}
-
-function prefijoCorrecto(flag: string, campaignId: string): boolean {
-  if (flag.startsWith('run:') || isSharedFlag(flag)) return true;
-  if (flag.startsWith('char:')) return flag.startsWith(`char:${campaignId}.`);
-  if (flag.startsWith('world:')) return flag.startsWith(`world:${campaignId}.`);
-  return false;
+/**
+ * Reconocedor de flags de espacios compartidos, derivado de `world.flags` (src/content/world/flags.ts):
+ * las claves terminadas en `.*` valen por prefijo (`char:met.*` acepta `char:met.orell`) y el resto
+ * son flags exactos (`char:leyenda`). Sale de ahí y no de una copia en esta regla para que agregar
+ * un espacio compartido nuevo en el contenido no obligue a tocar el validador.
+ */
+export function sharedFlagMatcher(worldFlags: Record<string, string>): (flag: string) => boolean {
+  const prefijos: string[] = [];
+  const exactos: string[] = [];
+  for (const clave of Object.keys(worldFlags)) {
+    if (clave.endsWith('.*')) prefijos.push(clave.slice(0, -1));
+    else exactos.push(clave);
+  }
+  return (flag) => exactos.includes(flag) || prefijos.some((p) => flag.startsWith(p));
 }
 
 export const r07_ids: Rule = (campaign, ctx) => {
   const issues: ValidationIssue[] = [];
   const { world } = ctx;
+  const esCompartido = sharedFlagMatcher(world.flags);
+  const prefijoCorrecto = (flag: string): boolean => {
+    if (flag.startsWith('run:') || esCompartido(flag)) return true;
+    if (flag.startsWith('char:')) return flag.startsWith(`char:${campaign.id}.`);
+    if (flag.startsWith('world:')) return flag.startsWith(`world:${campaign.id}.`);
+    return false;
+  };
   const push = (message: string, sceneId?: string): void => { issues.push(error(RULE, message, sceneId)); };
   const existe = (col: 'npcs' | 'places' | 'items', id: string): boolean => has(campaign[col], id) || has(world[col], id);
   const flagOk = (flag: string, sceneId?: string): void => {
-    if (!(has(campaign.flags, flag) || has(world.flags, flag) || isSharedFlag(flag))) {
+    if (!(has(campaign.flags, flag) || has(world.flags, flag) || esCompartido(flag))) {
       push(`El flag ${flag} no está declarado en campaign.flags ni en world.flags`, sceneId);
-    } else if (!prefijoCorrecto(flag, campaign.id)) {
+    } else if (!prefijoCorrecto(flag)) {
       push(`El flag ${flag} debe llevar el prefijo de la campaña (char:${campaign.id}. o world:${campaign.id}.)`, sceneId);
     }
   };
 
   for (const flag of Object.keys(campaign.flags)) {
-    if (!prefijoCorrecto(flag, campaign.id)) push(`El flag declarado ${flag} debe llevar el prefijo de la campaña (char:${campaign.id}. o world:${campaign.id}.)`);
+    if (!prefijoCorrecto(flag)) push(`El flag declarado ${flag} debe llevar el prefijo de la campaña (char:${campaign.id}. o world:${campaign.id}.)`);
   }
   for (const col of ['npcs', 'places', 'items'] as const) {
     for (const id of Object.keys(campaign[col])) if (has(world[col], id)) push(`El id ${id} de ${col} ya existe en world y la campaña no puede redefinirlo`);

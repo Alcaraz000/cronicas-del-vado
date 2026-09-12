@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPAIGNS } from '@/content/campaigns/index';
-import type { Campaign } from '@/content/schema';
+import type { Campaign, WorldContent } from '@/content/schema';
 import { WORLD } from '@/content/world/index';
 import { RULES, validateCampaign, type ValidateContext, type ValidationIssue } from '../../tools/lib/validate/index';
 import { minimal } from '../fixtures/campaigns/minimal';
-import { campanaBase, mundoDePrueba } from '../fixtures/campaigns/broken/base';
+import { b_inicio, campanaBase, conEscena, conOpcion, mundoDePrueba, opcion } from '../fixtures/campaigns/broken/base';
 import { rotaR01Ciclo, rotaR01Target } from '../fixtures/campaigns/broken/r01';
 import { rotaR02Aislada, rotaR02FinalNoProducido, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
 import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fixtures/campaigns/broken/r03';
@@ -199,6 +199,21 @@ describe('r07_ids', () => {
   it('acepta los espacios compartidos por prefijo', () => {
     const conMet = { ...campanaBase, scenes: { ...campanaBase.scenes, b_inicio: { ...campanaBase.scenes.b_inicio!, onEnter: [{ set: 'char:met.viajero' as const }, { set: 'world:caido.base' as const }] } } };
     expect(validateCampaign(conMet, ctx())).toEqual([]);
+  });
+  it('los espacios compartidos salen de world.flags: agregar uno nuevo no obliga a tocar la regla', () => {
+    // r07 no puede tener su propia copia de las claves de src/content/world/flags.ts:
+    // un espacio compartido nuevo tiene que valer en la regla sin editarla.
+    const mundoConVinculo: WorldContent = {
+      ...mundoDePrueba,
+      flags: { ...mundoDePrueba.flags, 'char:vinculo.*': 'Vínculo del personaje con un PNJ' },
+    };
+    const conVinculo = conEscena(
+      campanaBase,
+      conOpcion(b_inicio, { ...opcion(b_inicio, 'recordar'), requires: { flag: 'char:vinculo.b_guia' } }),
+    );
+    expect(validateCampaign(conVinculo, { world: mundoConVinculo, profile: 'release' })).toEqual([]);
+    // Sin ese espacio declarado en world.flags, el mismo flag se sigue rechazando.
+    expect(reglas(validateCampaign(conVinculo, ctx()))).toEqual(['r07_ids']);
   });
   it('el reward de un final con un flag no declarado se valida igual que el resto de los efectos', () => {
     const issues = soloRegla(rotaR07RewardFlagNoDeclarado, 'r07_ids');
