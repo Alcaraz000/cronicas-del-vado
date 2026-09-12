@@ -132,11 +132,14 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
 
           <fieldset className={styles.grupo}>
             <legend>{S.ajustes.preferencias.maquinaDeEscribir.leyenda}</legend>
+            {/* `cps` es `number` sin acotar en el guardado: cualquier valor que no sea 0
+                cuenta como "Normal", así un guardado importado con un cps intermedio
+                (p. ej. 20) no deja el grupo sin ninguna opción marcada. */}
             <label className={styles.opcion}>
               <input
                 type="radio"
                 name={grupoCps}
-                checked={prefs.cps === 40}
+                checked={prefs.cps !== 0}
                 onChange={() => setPrefs({ cps: 40 })}
               />
               {S.ajustes.preferencias.maquinaDeEscribir.normal}

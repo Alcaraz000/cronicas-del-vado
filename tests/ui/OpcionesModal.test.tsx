@@ -58,6 +58,16 @@ describe('OpcionesModal', () => {
     expect(useStore.getState().prefs.fontScale).toBe(1.25);
   });
 
+  it('un cps intermedio (guardado importado) deja marcado "Normal", no ningún radio', () => {
+    act(() => {
+      useStore.setState((s) => ({ prefs: { ...s.prefs, cps: 20 } }));
+    });
+    render(<OpcionesModal onCerrar={vi.fn()} />);
+
+    expect(screen.getByLabelText(S.ajustes.preferencias.maquinaDeEscribir.normal)).toBeChecked();
+    expect(screen.getByLabelText(S.ajustes.preferencias.maquinaDeEscribir.instantaneo)).not.toBeChecked();
+  });
+
   it('muestra el guardado entero para copiar y lo ofrece como archivo', () => {
     act(() => {
       useStore.setState({ characters: [makeCharacter({ name: 'Bruna' })], activeCharacterId: 'pj_prueba' });
