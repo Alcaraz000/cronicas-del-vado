@@ -1,14 +1,18 @@
-import { CLASSES, LIMITS, SKILLS, TRAITS } from '@/content/catalog';
-import type { Campaign, Choice, Condition, Scene } from '@/content/schema';
+import { CLASSES, LIMITS, SKILLS, TRAITS, type ClassId, type PowerScope, type Tag } from '@/content/catalog';
+import type { Campaign, Choice, Condition, Roll, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
+import { classify, keepDice } from '@/engine/dice';
 import { applyEffects } from '@/engine/effects';
 import { buildPreview } from '@/engine/modifiers';
 import { deriveMemory } from '@/engine/memory';
+import { rollDice } from '@/engine/rng';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
+  Band,
   EvalContext,
   GameState,
   LogEntry,
+  PendingRoll,
   RenderedChoice,
   RenderedScene,
   ResolvedParagraph,
@@ -251,4 +255,106 @@ export function choose(campaign: Campaign, state: GameState, choiceId: string): 
     return next;
   }
   return enter(campaign, next, outcome.next);
+}
+
+/** Devuelve la opción y su tirada; lanza si la opción no existe o no tiene tirada. */
+function rollOfChoice(campaign: Campaign, state: GameState, choiceId: string): { choice: Choice; roll: Roll } {
+  const scene = getScene(campaign, state.run.sceneId);
+  const choice = findChoiceOrThrow(scene, choiceId);
+  if (choice.roll === undefined) {
+    throw new Error(`La opción no tiene tirada: ${choiceId}`);
+  }
+  return { choice, roll: choice.roll };
+}
+
+/** ¿El Poder de la clase aplica a estos tags? tags: intersección no vacía; any: siempre; sheet: nunca. */
+function powerApplies(classId: ClassId, tags: readonly Tag[]): boolean {
+  const scope: PowerScope = CLASSES[classId].power.scope;
+  if (scope.kind === 'any') return true;
+  if (scope.kind === 'sheet') return false;
+  return scope.tags.some((t) => tags.includes(t));
+}
+
+/** Regla completa de canUsePower: una vez por partida, una vez por tirada, solo sobre failure/fumble. */
+function computeCanUsePower(state: GameState, roll: Roll, band: Band, powerUsed: boolean): boolean {
+  if (state.run.powerUsed || powerUsed) return false;
+  if (band !== 'failure' && band !== 'fumble') return false;
+  return powerApplies(state.character.classId, roll.tags);
+}
+
+/**
+ * kept (índices), total y banda a partir de los dados. Si el Poder ya se usó,
+ * la banda nunca vuelve a failure/fumble: queda en partial.
+ */
+function evaluateDice(
+  dice: number[],
+  mode: PendingRoll['preview']['mode'],
+  totalMod: number,
+  powerUsed: boolean,
+): { kept: number[]; total: number; band: Band } {
+  const kept = keepDice(dice, mode);
+  const valores = kept.map((i) => dice[i] ?? 0);
+  const total = valores.reduce((suma, v) => suma + v, 0) + totalMod;
+  const cruda = classify(valores, totalMod);
+  const band: Band = powerUsed && (cruda === 'failure' || cruda === 'fumble') ? 'partial' : cruda;
+  return { kept, total, band };
+}
+
+/**
+ * Primera fase de una tirada. Calcula preview, dados (hash determinista), kept, total y banda.
+ * NO toca el estado: el store persiste aparte `run.pending = { choiceId, rerolls: [], powerUsed: false }`.
+ */
+export function beginRoll(campaign: Campaign, state: GameState, choiceId: string): PendingRoll {
+  const { roll } = rollOfChoice(campaign, state, choiceId);
+  const ctx: EvalContext = { campaign, state };
+  const preview = buildPreview(roll, ctx);
+  const count = preview.mode === 'advantage' || preview.mode === 'disadvantage' ? 3 : 2;
+  const { run } = state;
+  const visits = run.visited[run.sceneId] ?? 0;
+  const dice = rollDice(run.rngSeed, run.sceneId, choiceId, visits, 0, count);
+  const { kept, total, band } = evaluateDice(dice, preview.mode, preview.totalMod, false);
+  return {
+    choiceId,
+    sceneId: run.sceneId,
+    preview,
+    dice,
+    kept,
+    total,
+    band,
+    rerolls: [],
+    powerUsed: false,
+    canReroll: run.fortune > 0,
+    canUsePower: computeCanUsePower(state, roll, band, false),
+  };
+}
+
+/**
+ * Repite un dado gastando 1 Fortuna (virtual: se descuenta en commitRoll).
+ * El dado nuevo sale del hash con attempt = rerolls.length + 1.
+ */
+export function rerollDie(campaign: Campaign, state: GameState, pending: PendingRoll, dieIndex: number): PendingRoll {
+  if (!pending.canReroll) {
+    throw new Error('No queda Fortuna para repetir un dado');
+  }
+  if (!Number.isInteger(dieIndex) || dieIndex < 0 || dieIndex >= pending.dice.length) {
+    throw new Error(`Índice de dado inválido: ${dieIndex}`);
+  }
+  const { roll } = rollOfChoice(campaign, state, pending.choiceId);
+  const { run } = state;
+  const visits = run.visited[run.sceneId] ?? 0;
+  const attempt = pending.rerolls.length + 1;
+  const nuevo = rollDice(run.rngSeed, run.sceneId, pending.choiceId, visits, attempt, 1)[0] ?? 1;
+  const dice = pending.dice.map((d, i) => (i === dieIndex ? nuevo : d));
+  const rerolls = [...pending.rerolls, dieIndex];
+  const { kept, total, band } = evaluateDice(dice, pending.preview.mode, pending.preview.totalMod, pending.powerUsed);
+  return {
+    ...pending,
+    dice,
+    kept,
+    total,
+    band,
+    rerolls,
+    canReroll: run.fortune - rerolls.length > 0,
+    canUsePower: computeCanUsePower(state, roll, band, pending.powerUsed),
+  };
 }
