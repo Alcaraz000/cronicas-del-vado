@@ -16,6 +16,8 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "validate": "tsx tools/validate.ts",
+    "lint:text": "tsx tools/lint-text.ts",
+    "simulate": "tsx tools/simulate.ts",
     "graph": "tsx tools/graph.ts"
   },
   "dependencies": {
