@@ -1,9 +1,17 @@
 import { LIMITS } from '@/content/catalog';
-import type { Campaign, Scene } from '@/content/schema';
+import type { Campaign, Choice, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
 import { applyEffects } from '@/engine/effects';
 import { hashParagraph, resolveText } from '@/engine/text';
-import type { EvalContext, GameState, LogEntry, Run } from '@/engine/types';
+import type {
+  EvalContext,
+  GameState,
+  LogEntry,
+  RenderedChoice,
+  RenderedScene,
+  ResolvedParagraph,
+  Run,
+} from '@/engine/types';
 
 // resolve.ts, parte 1 (Tarea 9): getScene, enter, render.
 // La Tarea 10 agrega en este mismo archivo: choose, beginRoll, rerollDie, usePower,
@@ -60,4 +68,66 @@ export function enter(campaign: Campaign, state: GameState, sceneId: string): Ga
     return { ...conEfectos, run: { ...run, outcome: { kind: 'ending', endingId: ending.id } } };
   }
   return { ...conEfectos, run };
+}
+
+type LogScene = Extract<LogEntry, { kind: 'scene' }>;
+
+function ultimaEntradaDeEscena(log: LogEntry[], sceneId: string): LogScene | undefined {
+  for (let i = log.length - 1; i >= 0; i -= 1) {
+    const entrada = log[i];
+    if (entrada !== undefined && entrada.kind === 'scene' && entrada.sceneId === sceneId) {
+      return entrada;
+    }
+  }
+  return undefined;
+}
+
+function ultimoHablante(paragraphs: ResolvedParagraph[]): string | undefined {
+  for (let i = paragraphs.length - 1; i >= 0; i -= 1) {
+    const speaker = paragraphs[i]?.speaker;
+    if (speaker !== undefined) {
+      return speaker;
+    }
+  }
+  return undefined;
+}
+
+function renderChoice(choice: Choice): RenderedChoice {
+  return {
+    id: choice.id,
+    label: choice.label,
+    visible: true,
+    enabled: true,
+    leadsToLethal: false,
+    alreadySeen: false,
+  };
+}
+
+export function render(campaign: Campaign, state: GameState): RenderedScene {
+  const scene = getScene(campaign, state.run.sceneId);
+  const ctx: EvalContext = { campaign, state };
+  const entrada = ultimaEntradaDeEscena(state.run.log, scene.id);
+  const paragraphs = entrada !== undefined ? entrada.paragraphs : resolveText(scene.text, ctx);
+  const portraitNpc = ultimoHablante(paragraphs) ?? scene.npcs?.[0];
+  const ending =
+    scene.kind === 'ending' && scene.ending !== undefined
+      ? {
+          id: scene.ending.id,
+          title: campaign.endings[scene.ending.id]?.title ?? scene.ending.id,
+          epilogue: resolveText(scene.ending.epilogue, ctx),
+        }
+      : undefined;
+
+  return {
+    sceneId: scene.id,
+    kind: scene.kind,
+    lethal: scene.lethal === true,
+    place: scene.place,
+    ...(scene.variant !== undefined ? { variant: scene.variant } : {}),
+    ...(scene.cg !== undefined ? { cg: scene.cg } : {}),
+    ...(portraitNpc !== undefined ? { portraitNpc } : {}),
+    paragraphs,
+    choices: scene.choices.map((choice) => renderChoice(choice)),
+    ...(ending !== undefined ? { ending } : {}),
+  };
 }
