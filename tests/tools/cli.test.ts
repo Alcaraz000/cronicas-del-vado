@@ -16,7 +16,11 @@ describe('parseArgs', () => {
   it('rechaza un perfil inválido y argumentos desconocidos', () => {
     expect(() => parseArgs(['--profile', 'rapido'])).toThrow('Perfil desconocido: rapido (se acepta smoke o release)');
     expect(() => parseArgs(['--profile'])).toThrow('Falta el valor de --profile');
-    expect(() => parseArgs(['--assets'])).toThrow('Argumento desconocido: --assets');
+    expect(() => parseArgs(['--arte'])).toThrow('Argumento desconocido: --arte');
+  });
+  it('acepta las banderas de arte, y la estricta implica la informativa', () => {
+    expect(parseArgs(['--assets'])).toEqual({ assets: true });
+    expect(parseArgs(['--assets-strict'])).toEqual({ assets: true, assetsStrict: true });
   });
 });
 

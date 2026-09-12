@@ -1,13 +1,23 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CAMPAIGNS } from '@/content/campaigns/index';
 import { WORLD } from '@/content/world/index';
 import { validateCampaign } from './lib/validate/index';
 import { formatIssue, parseArgs, summaryLine } from './lib/validate/cli';
+import { archivosDeArte, comparar, lineasDeInforme, referencias, resumenDeAssets } from './lib/assets/index';
 import type { ValidationIssue } from './lib/validate/types';
+
+/** `src/assets/`, donde `post.py` deja los exportados (spec §7). */
+const ASSETS = path.resolve(fileURLToPath(import.meta.url), '../../src/assets');
 
 async function main(argv: readonly string[]): Promise<number> {
   const args = parseArgs(argv);
   const ids = args.campaign !== undefined ? [args.campaign] : Object.keys(CAMPAIGNS);
   const todos: ValidationIssue[] = [];
+  // El cruce de arte no es una regla del validador: no mira el grafo, mira el disco, y es
+  // informativo salvo que lo pidan estricto. Por eso vive aparte y no entra en `todos`.
+  const archivos = args.assets === true ? await archivosDeArte(ASSETS) : [];
+  let faltanAssets = 0;
   for (const id of ids) {
     const entry = CAMPAIGNS[id];
     if (entry === undefined) {
@@ -20,9 +30,19 @@ async function main(argv: readonly string[]): Promise<number> {
     for (const issue of issues) console.log(formatIssue(id, issue));
     console.log(`${id}: ${summaryLine(issues)} (perfil ${profile})`);
     todos.push(...issues);
+    if (args.assets === true) {
+      const informe = comparar(referencias(campaign, WORLD), archivos);
+      for (const linea of lineasDeInforme(id, informe)) console.log(linea);
+      console.log(resumenDeAssets(id, informe));
+      faltanAssets += informe.faltantes.length;
+    }
   }
   console.log(summaryLine(todos));
-  return todos.some((i) => i.level === 'error') ? 1 : 0;
+  if (args.assets === true) {
+    console.log(`assets: ${String(faltanAssets)} archivos de arte faltantes en total${args.assetsStrict === true ? '' : ' (informativo; con --assets-strict falla)'}`);
+  }
+  if (todos.some((i) => i.level === 'error')) return 1;
+  return args.assetsStrict === true && faltanAssets > 0 ? 1 : 0;
 }
 
 // Se fija process.exitCode en vez de cortar el proceso a mano: en Windows las escrituras a
