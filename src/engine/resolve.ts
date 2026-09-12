@@ -1,10 +1,11 @@
-import { CLASSES, LIMITS, SKILLS, TRAITS, type ClassId, type PowerScope, type Tag } from '@/content/catalog';
-import type { Campaign, Choice, Condition, Roll, Scene } from '@/content/schema';
+import { CLASSES, FUMBLE_DEFAULT_CONDITION, LIMITS, SKILLS, TRAITS, type ClassId, type PowerScope, type Tag } from '@/content/catalog';
+import type { Campaign, Choice, Condition, Outcome, Roll, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
 import { classify, keepDice } from '@/engine/dice';
 import { applyEffects } from '@/engine/effects';
 import { buildPreview } from '@/engine/modifiers';
 import { deriveMemory } from '@/engine/memory';
+import { fortuneMax } from '@/engine/progression';
 import { rollDice } from '@/engine/rng';
 import { hashParagraph, resolveText } from '@/engine/text';
 import type {
@@ -408,4 +409,73 @@ export function restorePending(campaign: Campaign, state: GameState): PendingRol
     pending = pending.canUsePower ? usePower(campaign, state, pending) : markPowerUsed(pending);
   }
   return pending;
+}
+
+/** Desenlace según la banda: crit cae en success y fumble en failure si el autor no escribió el opcional. */
+function outcomeForBand(roll: Roll, band: Band): Outcome {
+  const o = roll.outcomes;
+  if (band === 'crit') return o.crit ?? o.success;
+  if (band === 'fumble') return o.fumble ?? o.failure;
+  return o[band];
+}
+
+/** Copia del run sin la clave `pending`. */
+function withoutPending(run: Run): Run {
+  const copia: Run = { ...run };
+  delete copia.pending;
+  return copia;
+}
+
+/**
+ * Segunda fase de una tirada. Orden fijo:
+ * deriveMemory → log 'choice' → log 'roll' → outcome por banda → applyEffects(outcome.effects)
+ * → crit: +1 Fortuna (tope fortuneMax) → fumble sin outcomes.fumble: addCondition FUMBLE_DEFAULT_CONDITION
+ * → Fortuna -= dados repetidos → Poder usado: run.powerUsed y Agotado si es mago
+ * → log 'outcome' si hay texto → limpiar run.pending → si la partida terminó, devolver; si no, enter(next).
+ */
+export function commitRoll(campaign: Campaign, state: GameState, pending: PendingRoll): GameState {
+  if (pending.sceneId !== state.run.sceneId) {
+    throw new Error(`La tirada pendiente es de otra escena: ${pending.sceneId}`);
+  }
+  const { choice, roll } = rollOfChoice(campaign, state, pending.choiceId);
+  const hashes = hashesOfCurrentScene(campaign, state);
+  let next = deriveMemory({ campaign, state }, state.run.sceneId, hashes);
+  next = appendLogEntries(next, [
+    { kind: 'choice', sceneId: pending.sceneId, choiceId: choice.id, label: choice.label },
+    {
+      kind: 'roll',
+      dice: [...pending.dice],
+      kept: [...pending.kept],
+      mode: pending.preview.mode,
+      total: pending.total,
+      band: pending.band,
+      fortuneSpent: pending.rerolls.length,
+      powerUsed: pending.powerUsed,
+    },
+  ]);
+  const outcome = outcomeForBand(roll, pending.band);
+  next = applyEffects(outcome.effects, { campaign, state: next });
+  if (pending.band === 'crit') {
+    const max = fortuneMax(next.character.level);
+    next = { ...next, run: { ...next.run, fortune: Math.min(max, next.run.fortune + 1) } };
+  }
+  if (pending.band === 'fumble' && roll.outcomes.fumble === undefined) {
+    next = applyEffects([{ addCondition: FUMBLE_DEFAULT_CONDITION }], { campaign, state: next });
+  }
+  next = { ...next, run: { ...next.run, fortune: Math.max(0, next.run.fortune - pending.rerolls.length) } };
+  if (pending.powerUsed) {
+    next = { ...next, run: { ...next.run, powerUsed: true } };
+    if (next.character.classId === 'mago') {
+      next = applyEffects([{ addCondition: 'agotado' }], { campaign, state: next });
+    }
+  }
+  if (outcome.text !== undefined) {
+    const paragraphs = resolveText(outcome.text, { campaign, state: next });
+    next = appendLogEntries(next, [{ kind: 'outcome', paragraphs }]);
+  }
+  next = { ...next, run: withoutPending(next.run) };
+  if (next.run.outcome !== undefined) {
+    return next;
+  }
+  return enter(campaign, next, outcome.next);
 }

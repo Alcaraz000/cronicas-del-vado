@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { FUMBLE_DEFAULT_CONDITION } from '@/content/catalog';
 import { classify, keepDice } from '@/engine/dice';
 import { rollDice } from '@/engine/rng';
 import { hashParagraph } from '@/engine/text';
-import { beginRoll, choose, enter, rerollDie, restorePending, usePlegaria, usePower } from '@/engine/resolve';
+import {
+  beginRoll,
+  choose,
+  commitRoll,
+  enter,
+  rerollDie,
+  restorePending,
+  usePlegaria,
+  usePower,
+} from '@/engine/resolve';
 import type { Band, GameState, LogEntry, PendingRoll } from '@/engine/types';
 import { makeCtx, type StateOverrides } from '../fixtures/state';
 import { findSeed, tirada as campaign, withSeed } from '../fixtures/campaigns/tirada';
@@ -374,5 +384,155 @@ describe('restorePending', () => {
     expect(restaurado?.powerUsed).toBe(true);
     expect(restaurado?.canUsePower).toBe(false);
     expect(restaurado?.dice).toEqual(construir(state).dice);
+  });
+});
+
+describe('commitRoll', () => {
+  it('aplica el desenlace de la banda, deriva memoria, registra el log y entra a next', () => {
+    const state = estadoEn('t_inicio');
+    const antes = JSON.stringify(state);
+    const p = forzar(beginRoll(campaign, state, 'saber'), 'success');
+
+    const next = commitRoll(campaign, state, p);
+
+    expect(JSON.stringify(state)).toBe(antes);
+    expect(next.run.flags).toEqual(['run:leyo']);
+    expect(next.run.sceneId).toBe('t_sala');
+    expect(next.run.visited).toEqual({ t_inicio: 1 });
+    expect(next.character.flags).toEqual(expect.arrayContaining(['char:met.guardia', 'char:place.plaza_de_prueba']));
+    expect(next.seen.t_inicio).toHaveLength(2);
+    expect(next.run.pending).toBeUndefined();
+    expect(next.run.fortune).toBe(3);
+    expect(next.run.powerUsed).toBe(false);
+    expect(kinds(next.run.log)).toEqual(['scene', 'choice', 'roll', 'outcome', 'scene']);
+    expect(next.run.log[1]).toEqual({ kind: 'choice', sceneId: 't_inicio', choiceId: 'saber', label: 'Leer la inscripción del dintel' });
+    expect(next.run.log[2]).toEqual({
+      kind: 'roll',
+      dice: p.dice,
+      kept: p.kept,
+      mode: 'advantage',
+      total: p.total,
+      band: 'success',
+      fortuneSpent: 0,
+      powerUsed: false,
+    });
+    expect(next.run.log[3]).toEqual({ kind: 'outcome', paragraphs: [{ text: 'La inscripción cede su sentido.' }] });
+    // La escena siguiente ya ve la memoria derivada.
+    const sala = sceneEntries(next.run.log)[1]!;
+    expect(textos(sala)[1]).toBe('El guardia te sigue con la mirada; ya lo conocés.');
+  });
+
+  it('sin texto de desenlace no agrega entrada outcome', () => {
+    const state = estadoEn('t_inicio');
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'mirar'), 'partial'));
+    expect(kinds(next.run.log)).toEqual(['scene', 'choice', 'roll', 'scene']);
+  });
+
+  it('crítico: usa outcomes.crit y suma 1 Fortuna con tope', () => {
+    const conUna = estadoEn('t_inicio', { run: { fortune: 1 } });
+    const n1 = commitRoll(campaign, conUna, forzar(beginRoll(campaign, conUna, 'saber'), 'crit'));
+    expect(n1.run.fortune).toBe(2);
+    expect(n1.run.items).toEqual(['llave']);
+    expect(n1.run.flags).toEqual([]); // no se aplicó success
+    const llena = estadoEn('t_inicio'); // fortuna 3 = fortuneMax(nivel 3)
+    const n2 = commitRoll(campaign, llena, forzar(beginRoll(campaign, llena, 'saber'), 'crit'));
+    expect(n2.run.fortune).toBe(3);
+  });
+
+  it('crítico sin outcomes.crit usa success y aun así suma Fortuna', () => {
+    const state = estadoEn('t_inicio', { run: { fortune: 2 } });
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'fuerza'), 'crit'));
+    expect(next.run.wounds).toBe(0);
+    expect(next.run.fortune).toBe(3);
+    expect(next.run.sceneId).toBe('t_sala');
+    expect(next.run.log[3]).toEqual({ kind: 'outcome', paragraphs: [{ text: 'La puerta cede.' }] });
+  });
+
+  it('fallo grave con outcomes.fumble no agrega la condición por defecto', () => {
+    const state = estadoEn('t_inicio');
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'saber'), 'fumble'));
+    expect(next.run.wounds).toBe(1);
+    expect(next.run.conditions).toEqual([]);
+  });
+
+  it('fallo grave sin outcomes.fumble usa failure y agrega FUMBLE_DEFAULT_CONDITION', () => {
+    const state = estadoEn('t_inicio');
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'fuerza'), 'fumble'));
+    expect(next.run.wounds).toBe(1);
+    expect(next.run.conditions).toEqual([FUMBLE_DEFAULT_CONDITION]);
+    expect(next.run.log[2]).toMatchObject({ kind: 'roll', band: 'fumble' });
+  });
+
+  it('descuenta de la Fortuna los dados repetidos y lo registra en el log', () => {
+    const state = estadoEn('t_inicio');
+    const p = rerollDie(campaign, state, rerollDie(campaign, state, beginRoll(campaign, state, 'mirar'), 0), 1);
+    const next = commitRoll(campaign, state, forzar(p, 'partial'));
+    expect(next.run.fortune).toBe(1);
+    expect(next.run.log[2]).toMatchObject({ kind: 'roll', fortuneSpent: 2, dice: p.dice });
+  });
+
+  it('crítico con un dado repetido: primero suma con tope, después descuenta', () => {
+    const state = estadoEn('t_inicio'); // fortuna 3
+    const p = rerollDie(campaign, state, beginRoll(campaign, state, 'saber'), 0);
+    const next = commitRoll(campaign, state, forzar(p, 'crit'));
+    expect(next.run.fortune).toBe(2);
+  });
+
+  it('con Poder usado marca run.powerUsed y deja Agotado al mago', () => {
+    const state = estadoEn('t_inicio');
+    const p = usePower(campaign, state, forzar(beginRoll(campaign, state, 'mirar'), 'failure'));
+    const next = commitRoll(campaign, state, p);
+    expect(next.run.powerUsed).toBe(true);
+    expect(next.run.conditions).toEqual(['agotado']);
+    expect(next.run.log[2]).toMatchObject({ kind: 'roll', band: 'partial', powerUsed: true });
+    expect(next.run.sceneId).toBe('t_sala');
+  });
+
+  it('el guerrero con Furia no queda Agotado', () => {
+    const state = estadoEn('t_inicio', GUERRERO);
+    const p = usePower(campaign, state, forzar(beginRoll(campaign, state, 'fuerza'), 'failure'));
+    const next = commitRoll(campaign, state, p);
+    expect(next.run.powerUsed).toBe(true);
+    expect(next.run.conditions).toEqual([]);
+    expect(next.run.wounds).toBe(1); // partial de 'fuerza'
+  });
+
+  it('si el desenlace deja Caído, no entra a next y run.outcome queda', () => {
+    const state = estadoEn('t_inicio', { run: { wounds: 2 } });
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'fuerza'), 'failure'));
+    expect(next.run.wounds).toBe(3);
+    expect(next.run.outcome).toEqual({ kind: 'defeat' });
+    expect(next.run.sceneId).toBe('t_inicio');
+    expect(kinds(next.run.log)).toEqual(['scene', 'choice', 'roll', 'outcome']);
+    expect(next.run.pending).toBeUndefined();
+  });
+
+  it('un golpe mortal sobre Malherido mata y no entra a next', () => {
+    const state = estadoEn('t_cripta', { run: { wounds: 2 } });
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'cruzar'), 'failure'));
+    expect(next.run.wounds).toBe(3);
+    expect(next.run.outcome).toEqual({ kind: 'death' });
+    expect(next.run.sceneId).toBe('t_cripta');
+  });
+
+  it('un golpe mortal sobre Sano deja Malherido y sigue', () => {
+    const state = estadoEn('t_cripta');
+    const next = commitRoll(campaign, state, forzar(beginRoll(campaign, state, 'cruzar'), 'failure'));
+    expect(next.run.wounds).toBe(2);
+    expect(next.run.outcome).toBeUndefined();
+    expect(next.run.sceneId).toBe('t_sala');
+  });
+
+  it('limpia run.pending persistido', () => {
+    const state = estadoEn('t_inicio', { run: { pending: { choiceId: 'mirar', rerolls: [], powerUsed: false } } });
+    const next = commitRoll(campaign, state, beginRoll(campaign, state, 'mirar'));
+    expect(next.run.pending).toBeUndefined();
+    expect('pending' in next.run).toBe(false);
+  });
+
+  it('lanza si la tirada pendiente es de otra escena', () => {
+    const p = beginRoll(campaign, estadoEn('t_inicio'), 'mirar');
+    const otra = estadoEn('t_sala');
+    expect(() => commitRoll(campaign, otra, p)).toThrow('La tirada pendiente es de otra escena: t_inicio');
   });
 });
