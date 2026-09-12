@@ -173,7 +173,7 @@ export const p_biblioteca = {
             text: [
               '—Está bien —dice, después de un silencio largo—. Pero yo no te vi. —Se hace a un lado y te señala la puerta de la escalera con el mentón.',
             ],
-            effects: [{ set: 'run:centinela_vencido' }],
+            effects: [{ set: 'run:centinela_vencido' }, { clear: 'run:centinela_abatido' }],
             next: 'p_escalera',
           },
           partial: {
@@ -412,7 +412,7 @@ export const p_patio_2 = {
         text: [
           'Retrocedés hasta la puerta de la escalera, entrás y girás la llave de hierro por dentro. Del otro lado el centinela golpea, putea y golpea. La puerta aguanta.',
         ],
-        effects: [{ set: 'run:centinela_vencido' }],
+        effects: [{ set: 'run:centinela_vencido' }, { clear: 'run:centinela_abatido' }],
         next: 'p_escalera',
       },
     },

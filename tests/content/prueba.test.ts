@@ -8,7 +8,8 @@ import { parseCampaign, type Paragraph, type Scene, type Choice, type Outcome, t
 import { p_umbral, p_biblioteca, p_patio, p_patio_2, p_victoria, p_capilla } from '@/content/campaigns/prueba/scenes/acto1';
 import { p_escalera, p_cripta, p_fin_tesoro, p_fin_huida } from '@/content/campaigns/prueba/scenes/acto2';
 import { campaign } from '@/content/campaigns/prueba/campaign';
-import { enter, render } from '@/engine/resolve';
+import { beginRoll, choose, commitRoll, enter, render } from '@/engine/resolve';
+import type { Band, PendingRoll } from '@/engine/types';
 import { makeState } from '../fixtures/state';
 
 describe('prueba: meta', () => {
@@ -358,6 +359,65 @@ describe('prueba: p_victoria no renarra un forcejeo que no ocurrió (ronda de ar
     });
     const vista = render(campaign, enter(campaign, estado, 'p_victoria'));
 
+    const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
+    for (const frase of FRASES_DEL_FORCEJEO) {
+      expect(texto).not.toMatch(frase);
+    }
+  });
+});
+
+describe('prueba: run:centinela_abatido solo si quedó efectivamente derribado (ronda de arreglo 3)', () => {
+  const FRASES_DEL_FORCEJEO = [/tirado contra el aljibe/, /respirando con un silbido/, /No lo mataste/];
+
+  /** Copia de un PendingRoll real con otra banda: fuerza el desenlace sin depender de los dados (mismo patrón que resolve.roll.test.ts). */
+  function forzar(pending: PendingRoll, band: Band): PendingRoll {
+    return { ...pending, band };
+  }
+
+  /** Estado recién entrado a `sceneId`, arrancando en campaign.start con los `items` de partida que hagan falta. */
+  function estadoEnEscena(sceneId: string, items: string[] = []) {
+    const inicial = makeState({
+      run: {
+        campaignId: campaign.id,
+        contentVersion: campaign.contentVersion,
+        sceneId: campaign.start,
+        items,
+      },
+    });
+    return enter(campaign, inicial, sceneId);
+  }
+
+  it('golpe parcial + llave: trabar la puerta limpia abatido y p_victoria no narra el forcejeo', () => {
+    const enPatio2 = estadoEnEscena('p_patio_2', ['llave_de_hierro']);
+    const trasElGolpe = commitRoll(campaign, enPatio2, forzar(beginRoll(campaign, enPatio2, 'golpear'), 'partial'));
+    expect(trasElGolpe.run.flags).toContain('run:centinela_abatido');
+    expect(trasElGolpe.run.sceneId).toBe('p_patio_2'); // el reloj llegó a 1, no a 2: no hay redirect a la victoria todavía.
+
+    const trasLaLlave = choose(campaign, trasElGolpe, 'llave');
+    expect(trasLaLlave.run.flags).toContain('run:centinela_vencido');
+    expect(trasLaLlave.run.flags).not.toContain('run:centinela_abatido');
+
+    const vista = render(campaign, enter(campaign, trasLaLlave, 'p_patio'));
+    expect(vista.sceneId).toBe('p_victoria');
+    const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
+    for (const frase of FRASES_DEL_FORCEJEO) {
+      expect(texto).not.toMatch(frase);
+    }
+  });
+
+  it('golpe parcial + huida + hablar con éxito: también limpia abatido y p_victoria no narra el forcejeo', () => {
+    const enPatio2 = estadoEnEscena('p_patio_2');
+    const trasElGolpe = commitRoll(campaign, enPatio2, forzar(beginRoll(campaign, enPatio2, 'golpear'), 'partial'));
+    expect(trasElGolpe.run.flags).toContain('run:centinela_abatido');
+
+    const enCapilla = enter(campaign, trasElGolpe, 'p_capilla');
+    const enBiblioteca = enter(campaign, enCapilla, 'p_biblioteca');
+    const trasHablar = commitRoll(campaign, enBiblioteca, forzar(beginRoll(campaign, enBiblioteca, 'hablar'), 'success'));
+    expect(trasHablar.run.flags).toContain('run:centinela_vencido');
+    expect(trasHablar.run.flags).not.toContain('run:centinela_abatido');
+
+    const vista = render(campaign, enter(campaign, trasHablar, 'p_patio'));
+    expect(vista.sceneId).toBe('p_victoria');
     const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
     for (const frase of FRASES_DEL_FORCEJEO) {
       expect(texto).not.toMatch(frase);
