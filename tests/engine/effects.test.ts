@@ -311,3 +311,64 @@ describe('applyEffects: fortuna', () => {
     expect(result.run.fortune).toBe(2);
   });
 });
+
+describe('applyEffects: lethal y desenlaces', () => {
+  it('lethal desde Sano (0) deja Malherido (2) sin outcome', () => {
+    const result = applyEffects([{ lethal: true }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(2);
+    expect(result.run.outcome).toBeUndefined();
+  });
+
+  it('lethal desde Herido (1) deja Caído (3) con outcome defeat', () => {
+    const result = applyEffects([{ lethal: true }], contexto({ wounds: 1 }));
+    expect(result.run.wounds).toBe(3);
+    expect(result.run.outcome).toEqual({ kind: 'defeat' });
+  });
+
+  it('lethal desde Malherido (2) deja Caído (3) con outcome death', () => {
+    const result = applyEffects([{ lethal: true }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(3);
+    expect(result.run.outcome).toEqual({ kind: 'death' });
+  });
+
+  it('wound normal hasta 3 marca defeat, nunca death', () => {
+    const result = applyEffects([{ wound: 1 }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(3);
+    expect(result.run.outcome).toEqual({ kind: 'defeat' });
+  });
+
+  it('wound 2 desde Malherido satura en 3 y marca defeat (solo lethal mata)', () => {
+    const result = applyEffects([{ wound: 2 }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(3);
+    expect(result.run.outcome).toEqual({ kind: 'defeat' });
+  });
+
+  it('tres wound 1 seguidos en la misma lista terminan en defeat', () => {
+    const result = applyEffects([{ wound: 1 }, { wound: 1 }, { wound: 1 }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(3);
+    expect(result.run.outcome).toEqual({ kind: 'defeat' });
+  });
+
+  it('wound seguido de heal en la misma lista no marca defeat si termina bajo 3', () => {
+    const result = applyEffects([{ wound: 1 }, { heal: 1 }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(2);
+    expect(result.run.outcome).toBeUndefined();
+  });
+
+  it('sin llegar a 3 Heridas no hay outcome', () => {
+    const result = applyEffects([{ wound: 1 }], contexto({ wounds: 0 }));
+    expect(result.run.outcome).toBeUndefined();
+  });
+
+  it('death no se pisa por la comprobación final de derrota', () => {
+    const result = applyEffects([{ lethal: true }, { set: 'run:cayo' }], contexto({ wounds: 2 }));
+    expect(result.run.outcome).toEqual({ kind: 'death' });
+    expect(result.run.flags).toEqual(['run:cayo']);
+  });
+
+  it('un outcome ya presente se conserva aunque haya 3 Heridas', () => {
+    const ctx = contexto({ wounds: 3, outcome: { kind: 'ending', endingId: 'fin_huida' } });
+    const result = applyEffects([{ set: 'run:x' }], ctx);
+    expect(result.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
+  });
+});

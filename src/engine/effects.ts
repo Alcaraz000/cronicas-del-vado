@@ -67,6 +67,16 @@ function applyFortune(run: Run, delta: number, ctx: EvalContext): Run {
   return { ...run, fortune: clamp(run.fortune + delta, 0, max) };
 }
 
+// Regla de dos pasos: lethal aplica 2 Heridas. Si el personaje ya estaba Malherido
+// (2 o más Heridas previas) muere de verdad; con menos, satura en 3 y la
+// comprobación final de applyEffects lo marca como derrota normal.
+function applyLethal(run: Run): Run {
+  const previas = run.wounds;
+  const herido: Run = { ...run, wounds: toWounds(previas + 2) };
+  if (previas >= 2) return { ...herido, outcome: { kind: 'death' } };
+  return herido;
+}
+
 function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('set' in effect) return setFlag(run, effect.set);
   if ('clear' in effect) return clearFlag(run, effect.clear);
@@ -79,11 +89,15 @@ function applyOne(run: Run, effect: Effect, ctx: EvalContext): Run {
   if ('clock' in effect) return applyClock(run, effect.clock, effect.delta, ctx);
   if ('milestone' in effect) return { ...run, milestones: addUnique(run.milestones, effect.milestone) };
   if ('fortune' in effect) return applyFortune(run, effect.fortune, ctx);
-  return run;
+  return applyLethal(run);
 }
 
 export function applyEffects(effects: Effect[] | undefined, ctx: EvalContext): GameState {
   if (effects === undefined || effects.length === 0) return ctx.state;
-  const run: Run = effects.reduce<Run>((acc, effect) => applyOne(acc, effect, ctx), ctx.state.run);
+  const aplicado: Run = effects.reduce<Run>((acc, effect) => applyOne(acc, effect, ctx), ctx.state.run);
+  const run: Run =
+    aplicado.wounds === LIMITS.maxWounds && aplicado.outcome === undefined
+      ? { ...aplicado, outcome: { kind: 'defeat' } }
+      : aplicado;
   return { ...ctx.state, run };
 }
