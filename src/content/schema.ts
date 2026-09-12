@@ -163,6 +163,13 @@ export interface Campaign extends CampaignMeta {
   places: Record<string, Place>;
   items: Record<string, Item>;
   flags: Record<string, string>;
+  /**
+   * Lo que el jugador lee de cada flag de canon en la Ficha y al terminar la partida.
+   * Una línea por flag `char:<campaña>.*` y `world:<campaña>.*`, en voz del narrador,
+   * segunda persona, pasado. Las descripciones de `flags` son para el autor y no sirven acá.
+   * La simetría la exige r12: ni flag sin línea, ni línea sin flag.
+   */
+  memories: Record<string, string>;
   milestones: Record<string, { label: string }>;
   clocks: Record<string, { max: number; label: string }>;
   endings: Record<string, { title: string; hidden?: true; reward?: Effect[] }>;
@@ -355,6 +362,7 @@ export const CampaignSchema = CampaignMetaSchema.extend({
   places: z.record(z.string(), PlaceSchema),
   items: z.record(z.string(), ItemSchema),
   flags: z.record(z.string(), z.string()),
+  memories: z.record(z.string(), z.string()),
   milestones: z.record(z.string(), z.object({ label: z.string().min(1) })),
   clocks: z.record(z.string(), z.object({ max: z.number().int().min(1), label: z.string().min(1) })),
   endings: z.record(

@@ -216,6 +216,10 @@ export const tirada: Campaign = {
     'char:tirada.entro': 'Entró a la sala',
     'world:tirada.alarma': 'Sonó la alarma',
   },
+  memories: {
+    'char:tirada.entro': 'Entraste sin que te vieran.',
+    'world:tirada.alarma': 'Sonó la alarma y el pueblo se enteró.',
+  },
   milestones: { hito_prueba: { label: 'Hito de prueba' } },
   clocks: {},
   endings: { fin_prueba: { title: 'Fin de la prueba' } },

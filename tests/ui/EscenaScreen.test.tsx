@@ -53,6 +53,7 @@ const conArte: Campaign = {
   },
   items: {},
   flags: {},
+  memories: {},
   milestones: {},
   clocks: {},
   endings: {},

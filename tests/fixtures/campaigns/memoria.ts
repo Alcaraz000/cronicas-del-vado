@@ -207,6 +207,9 @@ export const memoria: Campaign = {
     'run:tesoro_a_la_vista': 'Sabés dónde está el tesoro.',
     'char:memoria.vio_la_cripta': 'Este personaje vio la cripta de la torre vieja.',
   },
+  memories: {
+    'char:memoria.vio_la_cripta': 'Bajaste a la cripta de la torre vieja.',
+  },
   milestones: { llegar_a_la_puerta: { label: 'Llegar a la puerta de la torre' } },
   clocks: { ronda: { max: 3, label: 'Rondas en la sala' } },
   endings: {

@@ -10,7 +10,7 @@ const campana = (scenes: Scene[], start = 'inicio'): Campaign => ({
   id: 'reach', contentVersion: 1, title: 'Reach', premise: 'p', cover: 'c', levelRange: [1, 3], durationMin: [1, 2],
   lethalScenes: 0, lintProfile: 'smoke', start,
   scenes: Object.fromEntries(scenes.map((s) => [s.id, s])),
-  npcs: {}, places: {}, items: {}, flags: {}, milestones: {}, clocks: {}, endings: {},
+  npcs: {}, places: {}, items: {}, flags: {}, memories: {}, milestones: {}, clocks: {}, endings: {},
 });
 
 describe('sceneEdges', () => {

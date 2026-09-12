@@ -4,6 +4,7 @@ import { npcs } from '@/content/campaigns/vado/npcs';
 import { places } from '@/content/campaigns/vado/places';
 import { items } from '@/content/campaigns/vado/items';
 import { flags } from '@/content/campaigns/vado/flags';
+import { memories } from '@/content/campaigns/vado/memories';
 
 import * as prologo from '@/content/campaigns/vado/scenes/prologo';
 import * as acto1_pueblo from '@/content/campaigns/vado/scenes/acto1_pueblo';
@@ -54,6 +55,7 @@ export const campaign: Campaign = {
   places,
   items,
   flags,
+  memories,
   /** Los 10 hitos de la biblia §7.4. Una primera partida completa toca entre 8 y 10. */
   milestones: {
     llegar_al_puente: { label: 'Llegar al puente viejo' },

@@ -130,6 +130,9 @@ export const minimal: Campaign = {
     'run:partio': 'Elegiste partir sin descansar.',
     'char:minimal.trepo': 'Trepaste el risco alguna vez.',
   },
+  memories: {
+    'char:minimal.trepo': 'Trepaste el risco y llegaste arriba.',
+  },
   milestones: {
     m_llegar: { label: 'Llegar al claro' },
   },
