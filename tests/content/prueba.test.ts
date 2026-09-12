@@ -8,6 +8,8 @@ import { parseCampaign, type Paragraph, type Scene, type Choice, type Outcome, t
 import { p_umbral, p_biblioteca, p_patio, p_patio_2, p_victoria, p_capilla } from '@/content/campaigns/prueba/scenes/acto1';
 import { p_escalera, p_cripta, p_fin_tesoro, p_fin_huida } from '@/content/campaigns/prueba/scenes/acto2';
 import { campaign } from '@/content/campaigns/prueba/campaign';
+import { enter, render } from '@/engine/resolve';
+import { makeState } from '../fixtures/state';
 
 describe('prueba: meta', () => {
   it('es la campaña de humo oculta, perfil smoke, rango 3-5, una escena mortal', () => {
@@ -278,5 +280,39 @@ describe('prueba: campaña completa', () => {
     expect(campaign.milestones['entrar_a_la_torre']?.label.length).toBeGreaterThan(0);
     expect(campaign.endings['fin_tesoro']?.title).toBe('El tesoro de la torre');
     expect(campaign.endings['fin_huida']?.title).toBe('Con vida');
+  });
+});
+
+describe('prueba: continuidad tras vencer al centinela (ronda de arreglo 1)', () => {
+  /** Estado recién armado en el umbral, con `flags` de partida a gusto (`run:centinela_vencido`, típicamente). */
+  function estadoConFlags(flagsDePartida: string[]) {
+    return makeState({
+      run: {
+        campaignId: campaign.id,
+        contentVersion: campaign.contentVersion,
+        sceneId: campaign.start,
+        flags: flagsDePartida,
+      },
+    });
+  }
+
+  it('con el centinela vencido, la biblioteca muestra un texto distinto y no lo describe bloqueando', () => {
+    const primeraVez = render(campaign, enter(campaign, estadoConFlags([]), 'p_biblioteca'));
+    const vencido = render(campaign, enter(campaign, estadoConFlags(['run:centinela_vencido']), 'p_biblioteca'));
+
+    expect(vencido.paragraphs).not.toEqual(primeraVez.paragraphs);
+    const textoVencido = vencido.paragraphs.map((p) => p.text).join(' \n ');
+    expect(textoVencido).not.toMatch(/Nadie sube/);
+    expect(textoVencido).not.toMatch(/pasar por encima/);
+    expect(textoVencido).not.toMatch(/Date la vuelta/);
+  });
+
+  it('con el centinela vencido, entrar al patio no deja al jugador en una ronda de combate', () => {
+    const vista = render(campaign, enter(campaign, estadoConFlags(['run:centinela_vencido']), 'p_patio'));
+
+    // El redirect de p_patio saltea el encuentro entero: la escena resuelta ya no es el patio en combate.
+    expect(vista.sceneId).toBe('p_victoria');
+    expect(vista.kind).not.toBe('encounter');
+    expect(vista.choices.some((c) => c.id === 'golpear')).toBe(false);
   });
 });

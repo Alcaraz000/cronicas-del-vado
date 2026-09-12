@@ -131,6 +131,10 @@ export const p_biblioteca = {
     {
       variants: [
         {
+          when: { flag: 'run:centinela_vencido' },
+          text: 'Del fondo no sale nadie a cortarte el paso esta vez. El centinela ya no tiene nada que reclamarte, y vos nada que temer de este rincón.',
+        },
+        {
           when: { flag: 'run:tiene_pista' },
           text: 'Sabés, por la inscripción, que la llave que llevás abre la puerta de la escalera. Lo que no sabías es que la escalera tiene dueño: del fondo sale un hombre con una lanza corta y una cota que le queda grande.',
         },
@@ -142,6 +146,10 @@ export const p_biblioteca = {
     {
       speaker: 'centinela',
       variants: [
+        {
+          when: { flag: 'run:centinela_vencido' },
+          text: '—Ya está, ¿no? Andá. No tengo nada más para decirte.',
+        },
         {
           when: { class: 'mago' },
           text: '—Otro de túnica. Los de túnica siempre quieren subir. Nadie sube, y menos de noche. Date la vuelta.',
@@ -235,6 +243,7 @@ export const p_patio = {
   place: 'torre_abandonada',
   variant: 'noche',
   npcs: ['centinela'],
+  redirect: [{ when: { flag: 'run:centinela_vencido' }, to: 'p_victoria' }],
   text: [
     'El patio es un cuadrado de losas rotas con un aljibe seco en el medio. El centinela te sigue hasta acá, o ya estaba: la lanza baja, la cota suena.',
     {
