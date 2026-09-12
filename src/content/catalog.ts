@@ -36,6 +36,67 @@ export const DIFFICULTY_NAMES: Record<Difficulty, string> = {
   extrema: 'Extrema',
 };
 
+// Alcance del Poder de clase:
+// - tags: convierte un Fallo en Éxito con costo si la tirada comparte algún tag.
+// - any: lo mismo en cualquier tirada.
+// - sheet: no actúa sobre tiradas; se usa desde la ficha (Plegaria).
+export type PowerScope = { kind: 'tags'; tags: readonly Tag[] } | { kind: 'any' } | { kind: 'sheet' };
+
+export interface ClassDef {
+  name: string;
+  attr: Attr;
+  weakness: Tag;
+  power: { id: string; name: string; description: string; scope: PowerScope };
+}
+
+export const CLASSES = {
+  guerrero: {
+    name: 'Guerrero',
+    attr: 'vigor',
+    weakness: 'sigilo',
+    power: {
+      id: 'furia',
+      name: 'Furia',
+      description: 'Convierte un Fallo en Éxito con costo en una tirada física.',
+      scope: { kind: 'tags', tags: ['fisico'] },
+    },
+  },
+  explorador: {
+    name: 'Explorador',
+    attr: 'astucia',
+    weakness: 'social',
+    power: {
+      id: 'sombra',
+      name: 'Sombra',
+      description: 'Convierte un Fallo en Éxito con costo en sigilo, huida o supervivencia.',
+      scope: { kind: 'tags', tags: ['sigilo', 'huida', 'supervivencia'] },
+    },
+  },
+  mago: {
+    name: 'Mago',
+    attr: 'saber',
+    weakness: 'fisico',
+    power: {
+      id: 'conjuro',
+      name: 'Conjuro',
+      description: 'Convierte un Fallo en Éxito con costo en cualquier tirada; quedás Agotado.',
+      scope: { kind: 'any' },
+    },
+  },
+  clerigo: {
+    name: 'Clérigo',
+    attr: 'presencia',
+    weakness: 'engano',
+    power: {
+      id: 'plegaria',
+      name: 'Plegaria',
+      description: 'Cura 1 Herida y limpia todas las condiciones. Se usa desde la ficha.',
+      scope: { kind: 'sheet' },
+    },
+  },
+} as const satisfies Record<string, ClassDef>;
+export type ClassId = keyof typeof CLASSES;
+
 export const LIMITS = {
   maxItems: 6,          // ranuras de objetos por partida
   maxConditions: 3,     // condiciones simultáneas; la cuarta reemplaza a la más antigua
