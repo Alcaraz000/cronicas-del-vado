@@ -19,6 +19,7 @@ El diseño aprobado está en `docs/superpowers/specs/2026-09-10-juegorol-design.
 | `npm run test:run` | corre todos los tests una vez |
 | `npm run typecheck` | `tsc --noEmit` sobre `src`, `tests` y `tools` |
 | `npm run validate` | valida el contenido de las campañas (`tools/validate.ts`) |
+| `npm run simulate` | simula carreras de partidas y escribe `design/sim-report.md` (`tools/simulate.ts`) |
 | `npm run build` | tests + tipos + `vite build` a `dist/` |
 | `npm run preview` | sirve `dist/` en local |
 
