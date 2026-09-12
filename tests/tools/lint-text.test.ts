@@ -110,6 +110,19 @@ describe('leerPresupuestoOutline', () => {
     const issues = chequearPresupuesto(c, ctx());
     expect(mensajes(issues, 'bandas').some((m) => m.includes('fuera de la banda 60-160'))).toBe(true);
   });
+
+  it('mide la banda de un desenlace sobre el outcome entero, no párrafo por párrafo', () => {
+    const c = campana([escena('inicio', {
+      text: ['Palabra '.repeat(80).trim()],
+      choices: [{
+        id: 'irse',
+        label: 'Irse',
+        // Dos párrafos de 15 palabras: por separado los dos caen bajo el piso de 20, juntos no.
+        outcome: { text: ['palabra '.repeat(15).trim(), 'otra '.repeat(15).trim()], next: 'inicio' },
+      }],
+    })]);
+    expect(mensajes(chequearPresupuesto(c, ctx()), 'bandas').filter((m) => m.includes('el desenlace'))).toHaveLength(0);
+  });
 });
 
 // --- repeticiones ---------------------------------------------------------

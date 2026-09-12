@@ -1,4 +1,4 @@
-import type { Scene } from '@/content/schema';
+import type { Choice, Outcome, Scene } from '@/content/schema';
 import { aviso, error, info, type LintCheck, type LintIssue } from './types';
 import { contar, palabrasEscritas, palabrasEtiquetas, palabrasPistas, textoBase, variantes, textosDe } from './texto';
 
@@ -81,6 +81,21 @@ export function leerPresupuestoOutline(markdown: string): Map<string, CeldaPresu
   return salida;
 }
 
+/** Los desenlaces de una opción, con el nombre de la banda cuando la opción es una tirada. */
+function desenlacesDe(choice: Choice): { etiqueta: string; outcome: Outcome }[] {
+  if (choice.outcome !== undefined) return [{ etiqueta: '', outcome: choice.outcome }];
+  const o = choice.roll?.outcomes;
+  if (o === undefined) return [];
+  const lista = [
+    { etiqueta: ' · éxito', outcome: o.success },
+    { etiqueta: ' · con costo', outcome: o.partial },
+    { etiqueta: ' · fallo', outcome: o.failure },
+  ];
+  if (o.crit) lista.push({ etiqueta: ' · crítico', outcome: o.crit });
+  if (o.fumble) lista.push({ etiqueta: ' · fallo grave', outcome: o.fumble });
+  return lista;
+}
+
 function bandaEscena(scene: Scene): readonly [number, number] {
   if (scene.kind === 'encounter') return BANDAS_BIBLIA.rondaEncuentro;
   return BANDAS_BIBLIA.escena;
@@ -141,14 +156,15 @@ export const chequearPresupuesto: LintCheck = (campaign, ctx) => {
         issues.push(aviso(BANDAS, `la etiqueta de \`${choice.id}\` mide ${choice.label.length} caracteres (tope ${BANDAS_BIBLIA.etiquetaCaracteres})`, scene.id));
       }
     }
-    for (const text of textosDe(scene)) {
-      if (text === scene.text) continue;
-      if (scene.ending && text === scene.ending.epilogue) continue;
-      for (const v of variantes(text)) {
-        const n = contar(v.text);
+    // La banda de la biblia §2.3 mide **un desenlace**, o sea lo que se lee al elegir esa opción:
+    // el `outcome.text` entero en su versión base, no cada párrafo por separado.
+    for (const choice of scene.choices) {
+      for (const { etiqueta, outcome } of desenlacesDe(choice)) {
+        if (outcome.text === undefined) continue;
+        const n = contar(textoBase(outcome.text));
         const [dmin, dmax] = BANDAS_BIBLIA.desenlace;
         if (n > 0 && (n < dmin || n > dmax)) {
-          issues.push(aviso(BANDAS, `un desenlace mide ${n} palabras, fuera de la banda ${dmin}-${dmax}: «${recorte(v.text)}»`, scene.id));
+          issues.push(aviso(BANDAS, `el desenlace \`${choice.id}\`${etiqueta} mide ${n} palabras, fuera de la banda ${dmin}-${dmax}: «${recorte(textoBase(outcome.text))}»`, scene.id));
         }
       }
     }
