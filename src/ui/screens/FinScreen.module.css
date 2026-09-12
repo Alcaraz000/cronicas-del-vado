@@ -1,0 +1,42 @@
+.pantalla {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--esp-4);
+  min-height: 100vh;
+  padding: var(--esp-6);
+}
+
+.etiqueta {
+  margin: 0;
+  font-family: var(--fuente-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-texto-suave);
+}
+
+.titulo {
+  margin: 0;
+  text-align: center;
+  color: var(--color-acento);
+}
+
+.pantalla[data-outcome='death'] .titulo {
+  color: var(--color-peligroso);
+}
+
+.epilogo {
+  max-width: var(--ancho-columna-max);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+  line-height: var(--interlineado-juego);
+}
+
+.boton {
+  font-family: var(--fuente-ui);
+  padding: 0.6em 1.4em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-acento);
+  background: var(--color-acento);
+  color: var(--color-fondo);
+}

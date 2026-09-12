@@ -1,0 +1,30 @@
+.pantalla {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--esp-4);
+  min-height: 100vh;
+  padding: var(--esp-6);
+  font-family: var(--fuente-ui);
+  text-align: center;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-peligroso);
+}
+
+.mensaje {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--color-texto-suave);
+  white-space: pre-wrap;
+}
+
+.boton {
+  padding: 0.5em 1.2em;
+  border: 1px solid var(--color-acento);
+  border-radius: var(--radio);
+  background: var(--color-acento);
+  color: var(--color-fondo);
+}

@@ -1,5 +1,12 @@
-import type { Character, GameState } from '@/engine/types';
+import type { Character, GameState, SeenMap } from '@/engine/types';
 import type { PersistedSlice, Store } from '@/state/store';
+
+/**
+ * "Sin párrafos vistos" con referencia estable. `selectGameState` se usa con
+ * `useShallow` en la UI: si acá devolviéramos un `{}` nuevo por llamada,
+ * cada render vería un `seen` distinto y React entraría en bucle.
+ */
+const EMPTY_SEEN: SeenMap = {};
 
 /** Arma el GameState del personaje activo, o null si no hay personaje activo o no tiene partida en curso. */
 export function selectGameState(s: Store): GameState | null {
@@ -9,7 +16,7 @@ export function selectGameState(s: Store): GameState | null {
     world: s.world,
     character,
     run: character.run,
-    seen: s.seen[character.run.campaignId] ?? {},
+    seen: s.seen[character.run.campaignId] ?? EMPTY_SEEN,
   };
 }
 

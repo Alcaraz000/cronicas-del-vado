@@ -14,6 +14,7 @@
   --color-texto-suave: #a89f8e;
   --color-acento: #c9a24a;
   --color-acento-suave: #8a6d2b;
+  --color-placeholder: #4a443c; /* gris de las cajas de arte provisorio (Placeholder) */
 
   /* Colores semánticos */
   --color-peligro: #b5443a;

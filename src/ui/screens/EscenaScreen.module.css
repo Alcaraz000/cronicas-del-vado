@@ -1,0 +1,36 @@
+.pantalla {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: var(--esp-4);
+  padding: var(--esp-4);
+}
+
+.visual {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-4);
+}
+
+.columna {
+  min-width: 0;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding-right: var(--esp-2);
+}
+
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .columna {
+    max-height: none;
+  }
+}
