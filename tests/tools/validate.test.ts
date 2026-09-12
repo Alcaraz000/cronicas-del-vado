@@ -9,12 +9,13 @@ import { rotaR01Ciclo, rotaR01Target } from '../fixtures/campaigns/broken/r01';
 import { rotaR02Aislada, rotaR02FinalNoProducido, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
 import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fixtures/campaigns/broken/r03';
 import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
-import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05RewardLethal, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
+import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
 import { rotaR06Autobucle, rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
 import { rotaR07EscribeCompartido, rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07RewardFlagNoDeclarado, rotaR07SpeakerFuera, rotaR07VariantInexistente, rotaR07VisitedInexistente } from '../fixtures/campaigns/broken/r07';
 import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
+import { conReward, rewardValido, rotaR11RewardEfectoSinSemantica, rotaR11RewardFlagRun, rotaR11RewardLethal, rotaR11RewardObjetoNormal } from '../fixtures/campaigns/broken/r11';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -36,8 +37,8 @@ describe('validateCampaign: esquema y campaña base', () => {
     expect(issues[0]?.level).toBe('error');
     expect(issues[0]?.message).toContain('levelRange');
   });
-  it('RULES expone las diez reglas en orden', () => {
-    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo']);
+  it('RULES expone las once reglas en orden', () => {
+    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo', 'r11_reward']);
   });
   it('no muta la campaña', () => {
     const antes = JSON.stringify(campanaBase);
@@ -144,12 +145,6 @@ describe('r05_lethal', () => {
     expect(issues.map((i) => i.sceneId)).toEqual(['b_cripta']);
     expect(issues[0]?.message).toContain('fisico');
   });
-  it('reward de un final con lethal: no tiene escena ni outcome de tirada que lo justifique', () => {
-    const issues = soloRegla(rotaR05RewardLethal, 'r05_lethal');
-    expect(issues).toHaveLength(1);
-    expect(issues[0]?.sceneId).toBeUndefined();
-    expect(issues[0]?.message).toContain('fin_b');
-  });
 });
 
 describe('r06_encounter', () => {
@@ -255,7 +250,7 @@ describe('r07_ids', () => {
     const issues = soloRegla(rotaR07RewardFlagNoDeclarado, 'r07_ids');
     expect(issues).toHaveLength(1);
     expect(issues[0]?.sceneId).toBeUndefined();
-    expect(issues[0]?.message).toContain('run:reward_inventado');
+    expect(issues[0]?.message).toContain('char:base.inventado');
   });
 });
 
@@ -307,6 +302,39 @@ describe('r10_todo', () => {
     };
     const issues = soloRegla(conTodos, 'r10_todo', 'release');
     expect(issues.map((i) => i.sceneId).sort()).toEqual(['b_descanso', 'b_descanso', 'b_fin_a']);
+  });
+});
+
+describe('r11_reward', () => {
+  it('acepta give de una reliquia y set de un flag char: de la campaña', () => {
+    expect(validateCampaign(rewardValido, ctx())).toEqual([]);
+  });
+  it('lethal en un reward', () => {
+    const issues = soloRegla(rotaR11RewardLethal, 'r11_reward');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBeUndefined();
+    expect(issues[0]?.message).toContain('fin_b');
+    expect(issues[0]?.message).toContain('lethal');
+  });
+  it('un efecto cualquiera sin semántica con la partida terminada', () => {
+    const issues = soloRegla(rotaR11RewardEfectoSinSemantica, 'r11_reward');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('heal');
+  });
+  it('give de un objeto que no es reliquia', () => {
+    const issues = soloRegla(rotaR11RewardObjetoNormal, 'r11_reward');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('b_llave');
+    expect(issues[0]?.message).toContain('reliquia');
+  });
+  it('set de un flag run:, que se borra al terminar la partida', () => {
+    const issues = soloRegla(rotaR11RewardFlagRun, 'r11_reward');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('run:b_hablo');
+  });
+  it('un give de un objeto inexistente lo reporta r07, no r11 (r11 no puede saber si era reliquia)', () => {
+    const issues = soloRegla(conReward([{ give: 'b_no_existe' }]), 'r07_ids');
+    expect(issues).toHaveLength(1);
   });
 });
 

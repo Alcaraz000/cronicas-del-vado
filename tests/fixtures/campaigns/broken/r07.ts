@@ -30,7 +30,7 @@ export const rotaR07EscribeCompartido: Campaign = conEscena(campanaBase, {
 });
 
 // El reward de un final usa un flag no declarado (los rewards de endings también son efectos y r07 los valida igual que al resto).
-export const rotaR07RewardFlagNoDeclarado: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_a: { ...campanaBase.endings.fin_a!, reward: [{ set: 'run:reward_inventado' }] } } };
+export const rotaR07RewardFlagNoDeclarado: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_a: { ...campanaBase.endings.fin_a!, reward: [{ set: 'char:base.inventado' }] } } };
 
 // Una condición { visited: <id> } que apunta a una escena que no existe: la condición nunca se
 // cumple y la variante de texto que cuelga de ella es prosa muerta que nadie ve.

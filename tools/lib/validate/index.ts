@@ -10,6 +10,7 @@ import { r07_ids } from './rules/r07_ids';
 import { r08_memory_frame } from './rules/r08_memory_frame';
 import { r09_extreme } from './rules/r09_extreme';
 import { r10_todo } from './rules/r10_todo';
+import { r11_reward } from './rules/r11_reward';
 import type { Rule, ValidateContext, ValidationIssue } from './types';
 
 export type { Rule, ValidateContext, ValidationIssue } from './types';
@@ -25,6 +26,7 @@ export const RULES: Record<string, Rule> = {
   r08_memory_frame,
   r09_extreme,
   r10_todo,
+  r11_reward,
 };
 
 export function validateCampaign(campaign: Campaign, ctx: ValidateContext): ValidationIssue[] {

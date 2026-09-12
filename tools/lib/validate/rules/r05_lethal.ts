@@ -1,6 +1,6 @@
 import { sceneEdges } from '../reach';
 import { error, type Rule, type ValidationIssue } from '../types';
-import { choiceOutcomes, endingRewards, has, outcomeHasLethal, rollOutcomes } from '../walk';
+import { choiceOutcomes, has, outcomeHasLethal, rollOutcomes } from '../walk';
 
 const RULE = 'r05_lethal';
 
@@ -43,12 +43,7 @@ export const r05_lethal: Rule = (campaign) => {
     issues.push(error(RULE, `meta.lethalScenes es ${campaign.lethalScenes} pero hay ${mortales.size} escenas lethal`));
   }
 
-  // El reward de un final no cuelga de ninguna escena ni de una tirada: { lethal: true } ahí nunca
-  // tiene sentido, sin importar si la campaña tiene o no escenas lethal.
-  for (const { endingId, effects } of endingRewards(campaign)) {
-    if (effects.some((e) => 'lethal' in e)) {
-      issues.push(error(RULE, `El reward del final ${endingId} usa { lethal: true }; solo va en outcomes de tirada de escenas lethal`));
-    }
-  }
+  // { lethal: true } dentro de endings[*].reward lo rechaza r11_reward, que es la regla que decide
+  // qué efectos tienen semántica ahí. r05 se ocupa de lethal dentro de las escenas.
   return issues;
 };
