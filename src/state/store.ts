@@ -3,7 +3,16 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 import { LIMITS, type Attr, type ClassId, type TraitId } from '@/content/catalog';
 import type { Campaign } from '@/content/schema';
 import { CAMPAIGNS } from '@/content/campaigns/index';
-import type { Character, EndSummary, GameState, PendingRoll, Run, SeenMap, WorldState } from '@/engine/types';
+import type {
+  Character,
+  EndSummary,
+  GameState,
+  PendingPersisted,
+  PendingRoll,
+  Run,
+  SeenMap,
+  WorldState,
+} from '@/engine/types';
 import * as engine from '@/engine/resolve';
 import { fortuneMax } from '@/engine/progression';
 import { newSeed } from '@/engine/rng';
@@ -44,13 +53,29 @@ export interface CreateCharacterInput {
 }
 
 export interface Actions {
+  /** Crea un personaje de nivel 1 y lo activa. Devuelve su id. Lanza si ya hay LIMITS.maxCharacters. */
   createCharacter(input: CreateCharacterInput): string;
+  /** Fase A: 'Prueba', mago de nivel 3 con Saber 2 / Astucia 1 / Presencia 1 / Vigor 0. Lo activa. */
   createTestCharacter(): string;
+  /** 'cargando' → carga la campaña → run nuevo → enter(start) → 'escena'. Si falla: ui.error y 'error'. */
   startRun(campaignId: string): Promise<void>;
+  /** Carga la campaña del run del personaje activo y reconstruye ui.pending con restorePending. */
   continueRun(): Promise<void>;
+  /** Opción sin tirada. Si el run termina (outcome), pasa a 'fin'. */
   choose(choiceId: string): void;
+  /** Fase 1 de la tirada: ui.pending completo y run.pending mínimo persistido. */
+  beginRoll(choiceId: string): void;
+  /** Gasta 1 Fortuna para repetir un dado; actualiza ui.pending y run.pending.rerolls. */
+  rerollDie(dieIndex: number): void;
+  /** Usa el Poder de clase si aplica; actualiza ui.pending y run.pending.powerUsed. */
+  usePower(): void;
+  /** Fase 2 de la tirada: consolida, limpia pending y avanza; si el run termina, 'fin'. */
+  commitRoll(): void;
+  /** Desde 'fin': endRun → escribe world y personaje (run = null), ui.endSummary → 'inicio'. */
   finishRun(): void;
+  /** Marca el run como derrota y lo termina con finishRun. */
   abandonRun(): void;
+  /** Desde 'error': si hay run en curso, continueRun; si no, 'inicio'. */
   retry(): void;
   setPrefs(p: Partial<Prefs>): void;
 }
@@ -161,6 +186,11 @@ function newRun(campaign: Campaign, character: Character): Run {
   };
 }
 
+/** Tupla mínima que se persiste para poder reconstruir el PendingRoll al recargar. */
+function toPersisted(pending: PendingRoll): PendingPersisted {
+  return { choiceId: pending.choiceId, rerolls: [...pending.rerolls], powerUsed: pending.powerUsed };
+}
+
 function partialize(s: Store): PersistedSlice {
   return {
     characters: s.characters,
@@ -189,6 +219,14 @@ export function createAppStore(): AppStore {
           const st = get();
           const gs = selectGameState(st);
           return st.ui.campaign && gs ? { campaign: st.ui.campaign, gs } : null;
+        };
+        /** Escribe un PendingRoll nuevo en ui.pending y su tupla mínima en run.pending. */
+        const writePending = (gs: GameState, pending: PendingRoll): void => {
+          const run: Run = { ...gs.run, pending: toPersisted(pending) };
+          set((s) => ({
+            ...writeGameState(s, { ...gs, run }),
+            ui: { ...s.ui, pending },
+          }));
         };
 
         return {
@@ -254,7 +292,8 @@ export function createAppStore(): AppStore {
               const campaign = await loadCampaign(character.run.campaignId);
               const gs = selectGameState(get());
               if (!gs) throw new Error('La partida ya no existe');
-              setUi({ screen: gs.run.outcome ? 'fin' : 'escena', campaign, pending: null });
+              const pending = engine.restorePending(campaign, gs);
+              setUi({ screen: gs.run.outcome ? 'fin' : 'escena', campaign, pending });
             } catch (e) {
               fail(e);
             }
@@ -267,6 +306,40 @@ export function createAppStore(): AppStore {
             set((s) => ({
               ...writeGameState(s, next),
               ui: { ...s.ui, screen: next.run.outcome ? 'fin' : 'escena' },
+            }));
+          },
+
+          beginRoll(choiceId) {
+            const ctx = playing();
+            if (!ctx) return;
+            const pending = engine.beginRoll(ctx.campaign, ctx.gs, choiceId);
+            writePending(ctx.gs, pending);
+          },
+
+          rerollDie(dieIndex) {
+            const ctx = playing();
+            const current = get().ui.pending;
+            if (!ctx || !current || !current.canReroll) return;
+            const pending = engine.rerollDie(ctx.campaign, ctx.gs, current, dieIndex);
+            writePending(ctx.gs, pending);
+          },
+
+          usePower() {
+            const ctx = playing();
+            const current = get().ui.pending;
+            if (!ctx || !current || !current.canUsePower) return;
+            const pending = engine.usePower(ctx.campaign, ctx.gs, current);
+            writePending(ctx.gs, pending);
+          },
+
+          commitRoll() {
+            const ctx = playing();
+            const current = get().ui.pending;
+            if (!ctx || !current) return;
+            const next = engine.commitRoll(ctx.campaign, ctx.gs, current);
+            set((s) => ({
+              ...writeGameState(s, next),
+              ui: { ...s.ui, pending: null, screen: next.run.outcome ? 'fin' : 'escena' },
             }));
           },
 

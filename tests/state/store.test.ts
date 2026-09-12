@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAppStore, DEFAULT_PREFS, STORAGE_KEY, type PersistedSlice } from '@/state/store';
+import { createAppStore, DEFAULT_PREFS, STORAGE_KEY, type AppStore, type PersistedSlice } from '@/state/store';
 import { selectGameState, writeGameState } from '@/state/selectors';
 import type { GameState, Run } from '@/engine/types';
 
@@ -332,5 +332,139 @@ describe('store: ciclo de partida sin dados', () => {
     expect(s.characters[0]!.campaignLog.prueba?.milestones).toContain('entrar_a_la_torre');
     expect(selectGameState(s)).toBeNull();
     expect(readSaved().state.characters[0]!.run).toBeNull();
+  });
+});
+
+describe('store: tirada en dos fases y recarga', () => {
+  async function enUmbral(): Promise<AppStore> {
+    const store = createAppStore();
+    store.getState().createTestCharacter();
+    await store.getState().startRun('prueba');
+    return store;
+  }
+
+  it('beginRoll deja ui.pending completo y run.pending mínimo persistido', async () => {
+    const store = await enUmbral();
+    store.getState().beginRoll('leer_inscripcion');
+
+    const s = store.getState();
+    expect(s.ui.screen).toBe('escena');
+    const pending = s.ui.pending;
+    expect(pending).not.toBeNull();
+    expect(pending!.choiceId).toBe('leer_inscripcion');
+    expect(pending!.sceneId).toBe('p_umbral');
+    expect(pending!.preview.attr).toBe('saber');
+    expect(pending!.preview.mode).toBe('advantage');
+    expect(pending!.dice).toHaveLength(3);
+    expect(pending!.kept).toHaveLength(2);
+    expect(pending!.rerolls).toEqual([]);
+    expect(pending!.powerUsed).toBe(false);
+    expect(pending!.canReroll).toBe(true);
+
+    const esperado = { choiceId: 'leer_inscripcion', rerolls: [], powerUsed: false };
+    expect(selectGameState(s)!.run.pending).toEqual(esperado);
+    expect(selectGameState(s)!.run.sceneId).toBe('p_umbral');
+    expect(readSaved().state.characters[0]!.run?.pending).toEqual(esperado);
+  });
+
+  it('rerollDie repite solo ese dado y registra el índice en run.pending.rerolls', async () => {
+    const store = await enUmbral();
+    store.getState().beginRoll('leer_inscripcion');
+    const antes = store.getState().ui.pending!;
+    store.getState().rerollDie(1);
+
+    const s = store.getState();
+    const despues = s.ui.pending!;
+    expect(despues.rerolls).toEqual([1]);
+    expect(despues.dice[0]).toBe(antes.dice[0]);
+    expect(despues.dice[2]).toBe(antes.dice[2]);
+    expect(despues.canReroll).toBe(true);
+    expect(selectGameState(s)!.run.pending).toEqual({ choiceId: 'leer_inscripcion', rerolls: [1], powerUsed: false });
+    expect(selectGameState(s)!.run.fortune).toBe(3);
+    expect(readSaved().state.characters[0]!.run?.pending?.rerolls).toEqual([1]);
+
+    store.getState().rerollDie(0);
+    expect(store.getState().ui.pending!.rerolls).toEqual([1, 0]);
+    expect(selectGameState(store.getState())!.run.pending?.rerolls).toEqual([1, 0]);
+  });
+
+  it('usePower actualiza ui.pending y run.pending.powerUsed solo cuando aplica', async () => {
+    const store = await enUmbral();
+    store.getState().beginRoll('leer_inscripcion');
+    const antes = store.getState().ui.pending!;
+    store.getState().usePower();
+    const despues = store.getState().ui.pending!;
+    if (antes.canUsePower) {
+      expect(despues.band).toBe('partial');
+      expect(despues.powerUsed).toBe(true);
+      expect(despues.canUsePower).toBe(false);
+      expect(selectGameState(store.getState())!.run.pending?.powerUsed).toBe(true);
+    } else {
+      expect(despues).toEqual(antes);
+      expect(selectGameState(store.getState())!.run.pending?.powerUsed).toBe(false);
+    }
+  });
+
+  it('tras recargar, continueRun reconstruye el mismo pending (mismos dados y repeticiones)', async () => {
+    const store1 = await enUmbral();
+    store1.getState().beginRoll('leer_inscripcion');
+    store1.getState().rerollDie(2);
+    store1.getState().rerollDie(0);
+    const antes = store1.getState().ui.pending!;
+    expect(antes.rerolls).toEqual([2, 0]);
+
+    const saved = readSaved();
+    expect(saved.version).toBe(1);
+    expect(saved.state.characters[0]!.run?.pending).toEqual({ choiceId: 'leer_inscripcion', rerolls: [2, 0], powerUsed: false });
+
+    const store2 = createAppStore();
+    await store2.persist.rehydrate();
+    expect(store2.getState().ui.pending).toBeNull();
+    await store2.getState().continueRun();
+
+    const s = store2.getState();
+    expect(s.ui.screen).toBe('escena');
+    const despues = s.ui.pending;
+    expect(despues).not.toBeNull();
+    expect(despues!.choiceId).toBe('leer_inscripcion');
+    expect(despues!.dice).toEqual(antes.dice);
+    expect(despues!.kept).toEqual(antes.kept);
+    expect(despues!.total).toBe(antes.total);
+    expect(despues!.band).toBe(antes.band);
+    expect(despues!.rerolls).toEqual([2, 0]);
+    expect(despues!.canReroll).toBe(true);
+    expect(despues!.preview).toEqual(antes.preview);
+  });
+
+  it('commitRoll limpia pending, gasta la Fortuna usada, registra la tirada y avanza', async () => {
+    const store = await enUmbral();
+    store.getState().beginRoll('leer_inscripcion');
+    store.getState().rerollDie(0);
+    store.getState().commitRoll();
+
+    const s = store.getState();
+    expect(s.ui.pending).toBeNull();
+    expect(s.ui.screen).toBe('escena');
+    const gs = selectGameState(s)!;
+    expect(gs.run.pending).toBeUndefined();
+    expect(gs.run.sceneId).toBe('p_biblioteca');
+    expect(gs.run.fortune).toBe(2);
+    const tirada = gs.run.log.find((e) => e.kind === 'roll');
+    expect(tirada).toBeDefined();
+    expect(tirada).toMatchObject({ kind: 'roll', fortuneSpent: 1 });
+    expect(gs.run.log.some((e) => e.kind === 'choice' && e.choiceId === 'leer_inscripcion')).toBe(true);
+    expect(gs.run.log[gs.run.log.length - 1]).toMatchObject({ kind: 'scene', sceneId: 'p_biblioteca' });
+    expect(readSaved().state.characters[0]!.run?.pending).toBeUndefined();
+    expect(readSaved().state.characters[0]!.run?.sceneId).toBe('p_biblioteca');
+  });
+
+  it('rerollDie, usePower y commitRoll no hacen nada sin pending', async () => {
+    const store = await enUmbral();
+    const antes = selectGameState(store.getState())!;
+    store.getState().rerollDie(0);
+    store.getState().usePower();
+    store.getState().commitRoll();
+    expect(store.getState().ui.pending).toBeNull();
+    expect(selectGameState(store.getState())).toEqual(antes);
   });
 });
