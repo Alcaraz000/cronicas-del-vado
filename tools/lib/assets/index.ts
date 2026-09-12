@@ -7,7 +7,12 @@ import { conMundo } from '../mundo';
 /**
  * Cruce contenido ↔ archivos de arte (spec §7 y §10).
  *
- * Convención de nombres de la spec §7: `<tipo>/<id>[.<variante>].png`, con el **mismo id que el
+ * Convención REAL del pipeline (`art/manifest.mts` → `art/post.mts` → `src/ui/assets`), que es la
+ * que manda porque es la que produce el arte y la que carga la UI. La spec §7 escribía los tipos en
+ * inglés (`npc/`, `place/`) antes de que existiera el pipeline; la implementación convergió en los
+ * mismos nombres que usa todo el resto del proyecto, en español, y en WebP en vez de PNG.
+ *
+ * Convención de nombres: `<tipo>/<id>[.<variante>].webp`, con el **mismo id que el
  * contenido** (`npc/orell.png`, `place/puente_viejo.amanecer.png`). Los exportados viven bajo
  * `src/assets/`, normalmente con una carpeta de alcance adelante (`src/assets/vado/npc/berta.png`,
  * `src/assets/world/npc/orell.png`), así que el cruce compara **los dos últimos tramos** de la ruta
@@ -20,7 +25,7 @@ import { conMundo } from '../mundo';
  * Todo lo de acá es puro menos `archivosDeArte`, que es el único que toca el disco.
  */
 
-export type AssetKind = 'npc' | 'place' | 'item' | 'cover' | 'cg';
+export type AssetKind = 'retrato' | 'fondo' | 'objeto' | 'portada' | 'cg';
 
 export interface AssetRef {
   kind: AssetKind;
@@ -44,7 +49,7 @@ const EXTENSIONES: readonly string[] = ['.png', '.webp', '.avif'];
 
 /** Ruta esperada de una referencia, relativa a `src/assets/`. La spec exige PNG como exportado. */
 export function rutaDe(ref: AssetRef): string {
-  return `${ref.kind}/${ref.name}.png`;
+  return `${ref.kind}/${ref.name}.webp`;
 }
 
 /** Clave de comparación: los dos últimos tramos, sin extensión. `vado/npc/berta.png` → `npc/berta`. */
@@ -61,18 +66,18 @@ export function claveDe(ruta: string): string {
  */
 export function referencias(campaign: Campaign, world: WorldContent): AssetRef[] {
   const completa = conMundo(campaign, world);
-  const refs: AssetRef[] = [{ kind: 'cover', name: completa.cover, origen: 'meta.cover' }];
+  const refs: AssetRef[] = [{ kind: 'portada', name: `portada_${completa.id}`, origen: 'meta.cover' }];
   for (const [id, npc] of Object.entries(completa.npcs)) {
-    refs.push({ kind: 'npc', name: npc.portrait, origen: `npcs.${id}.portrait` });
+    refs.push({ kind: 'retrato', name: npc.portrait, origen: `npcs.${id}.portrait` });
   }
   for (const [id, place] of Object.entries(completa.places)) {
-    refs.push({ kind: 'place', name: place.background, origen: `places.${id}.background` });
+    refs.push({ kind: 'fondo', name: place.background, origen: `places.${id}.background` });
     for (const [variante, nombre] of Object.entries(place.variants ?? {})) {
-      refs.push({ kind: 'place', name: nombre, origen: `places.${id}.variants.${variante}` });
+      refs.push({ kind: 'fondo', name: nombre, origen: `places.${id}.variants.${variante}` });
     }
   }
   for (const [id, item] of Object.entries(completa.items)) {
-    refs.push({ kind: 'item', name: item.icon, origen: `items.${id}.icon` });
+    refs.push({ kind: 'objeto', name: item.icon, origen: `items.${id}.icon` });
   }
   // Las CG de escena todavía no existen en el contenido (ninguna escena declara `cg`), pero la spec
   // §7 les reserva 6 imágenes: si alguna aparece, entra al cruce sin tocar nada.
@@ -82,14 +87,21 @@ export function referencias(campaign: Campaign, world: WorldContent): AssetRef[]
   return refs;
 }
 
-const TIPOS: readonly AssetKind[] = ['npc', 'place', 'item', 'cover', 'cg'];
+const TIPOS: readonly AssetKind[] = ['retrato', 'fondo', 'objeto', 'portada', 'cg'];
+
+/**
+ * Los 12 retratos de jugador (`guerrero_01`…`clerigo_03`) no los referencia ninguna campaña: los
+ * ofrece la creación de personaje, que no es contenido. Sin esta excepción el cruce los reporta
+ * como huérfanos en cada corrida, y una herramienta que avisa de lo que está bien deja de leerse.
+ */
+const RETRATO_DE_JUGADOR = /^retrato\/(guerrero|explorador|mago|clerigo)_0\d$/;
 
 /** Cruza referencias contra archivos (rutas relativas a `src/assets/`, con barras normales). */
 export function comparar(refs: readonly AssetRef[], archivos: readonly string[]): AssetReport {
   const presentes = new Set(archivos.map(claveDe));
   const referenciadas = new Set(refs.map((r) => `${r.kind}/${r.name}`));
   const faltantes = refs.filter((r) => !presentes.has(`${r.kind}/${r.name}`));
-  const huerfanos = archivos.filter((a) => !referenciadas.has(claveDe(a)));
+  const huerfanos = archivos.filter((a) => !referenciadas.has(claveDe(a)) && !RETRATO_DE_JUGADOR.test(claveDe(a)));
   const porTipo = Object.fromEntries(TIPOS.map((tipo): [AssetKind, ConteoTipo] => [tipo, {
     total: refs.filter((r) => r.kind === tipo).length,
     faltan: faltantes.filter((r) => r.kind === tipo).length,

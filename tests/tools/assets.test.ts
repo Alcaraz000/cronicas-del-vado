@@ -33,19 +33,19 @@ describe('referencias', () => {
 
   it('saca retratos, fondos, variantes, iconos y portada, con el mundo fusionado', () => {
     expect(refs.map(rutaDe).sort()).toEqual([
-      'cover/portada_assets.png',
-      'item/llave_de_hierro.png',
-      'item/sello_del_vado.png',
-      'npc/centinela.png',
-      'npc/orell.png',
-      'place/torre.noche.png',
-      'place/torre.png',
+      'fondo/torre.noche.webp',
+      'fondo/torre.webp',
+      'objeto/llave_de_hierro.webp',
+      'objeto/sello_del_vado.webp',
+      'portada/portada_assets.webp',
+      'retrato/centinela.webp',
+      'retrato/orell.webp',
     ]);
   });
 
   it('dice de dónde sale cada referencia', () => {
     const variante = refs.find((r) => r.name === 'torre.noche');
-    expect(variante).toMatchObject({ kind: 'place', origen: 'places.torre.variants.noche' });
+    expect(variante).toMatchObject({ kind: 'fondo', origen: 'places.torre.variants.noche' });
   });
 });
 
@@ -56,19 +56,19 @@ describe('comparar', () => {
     const informe = comparar(refs, []);
     expect(informe.faltantes.map(rutaDe)).toHaveLength(refs.length);
     expect(informe.huerfanos).toEqual([]);
-    expect(informe.porTipo.npc).toEqual({ total: 2, faltan: 2 });
+    expect(informe.porTipo.retrato).toEqual({ total: 2, faltan: 2 });
   });
 
   it('acepta el archivo con o sin la carpeta de campaña adelante', () => {
-    const informe = comparar(refs, ['vado/npc/orell.png', 'npc/centinela.png']);
-    expect(informe.faltantes.map(rutaDe)).not.toContain('npc/orell.png');
-    expect(informe.faltantes.map(rutaDe)).not.toContain('npc/centinela.png');
+    const informe = comparar(refs, ['vado/retrato/orell.webp', 'retrato/centinela.webp']);
+    expect(informe.faltantes.map(rutaDe)).not.toContain('retrato/orell.webp');
+    expect(informe.faltantes.map(rutaDe)).not.toContain('retrato/centinela.webp');
     expect(informe.huerfanos).toEqual([]);
   });
 
   it('lista los archivos que nadie referencia', () => {
-    const informe = comparar(refs, ['npc/centinela.png', 'npc/fantasma.png', 'place/otra/torre.png']);
-    expect(informe.huerfanos).toEqual(['npc/fantasma.png', 'place/otra/torre.png']);
+    const informe = comparar(refs, ['retrato/centinela.webp', 'retrato/fantasma.webp', 'fondo/otra/torre.webp']);
+    expect(informe.huerfanos).toEqual(['retrato/fantasma.webp', 'fondo/otra/torre.webp']);
   });
 });
 
@@ -79,10 +79,10 @@ describe('archivosDeArte', () => {
 
   it('recorre subcarpetas, normaliza a barras y deja fuera lo que no es imagen', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'assets-'));
-    await mkdir(path.join(dir, 'vado', 'npc'), { recursive: true });
-    await writeFile(path.join(dir, 'vado', 'npc', 'berta.png'), 'x');
-    await writeFile(path.join(dir, 'vado', 'npc', 'notas.txt'), 'x');
-    expect(await archivosDeArte(dir)).toEqual(['vado/npc/berta.png']);
+    await mkdir(path.join(dir, 'vado', 'retrato'), { recursive: true });
+    await writeFile(path.join(dir, 'vado', 'retrato', 'berta.webp'), 'x');
+    await writeFile(path.join(dir, 'vado', 'retrato', 'notas.txt'), 'x');
+    expect(await archivosDeArte(dir)).toEqual(['vado/retrato/berta.webp']);
   });
 });
 
@@ -106,18 +106,21 @@ describe('validate --assets (proceso)', () => {
     expect(stdout).not.toContain('assets');
   }, 60000);
 
-  it('con --assets informa lo que falta pero sale con 0', async () => {
+  it('con --assets informa el cruce y sale con 0', async () => {
     const { code, stdout } = await correrCli(['--campaign', 'vado', '--assets']);
     expect(stdout).toContain('assets');
-    expect(stdout).toMatch(/falta .*npc\/berta\.png/);
-    // El retrato de un PNJ de `world/` lo referencian todas las campañas: el total cuenta archivos, no referencias.
-    expect(stdout).toMatch(/assets: faltan \d+ archivos de arte distintos \(informativo/);
+    // El Vado ya tiene su arte generado: no falta nada y tampoco sobra.
+    expect(stdout).toMatch(/vado: assets, faltan 0 de \d+/);
     expect(code).toBe(0);
   }, 60000);
 
-  it('con --assets-strict sale con 1 mientras falte arte', async () => {
-    const { code, stdout } = await correrCli(['--campaign', 'vado', '--assets', '--assets-strict']);
-    expect(stdout).toContain('assets');
-    expect(code).toBe(1);
+  it('informa lo que falta en una campaña sin arte, y --assets-strict la hace fallar', async () => {
+    // `prueba` es la campaña de humo y nunca va a tener arte: es el caso de "falta todo".
+    const informativo = await correrCli(['--campaign', 'prueba', '--assets']);
+    expect(informativo.stdout).toMatch(/falta /);
+    expect(informativo.code).toBe(0);
+
+    const estricto = await correrCli(['--campaign', 'prueba', '--assets', '--assets-strict']);
+    expect(estricto.code).toBe(1);
   }, 60000);
 });
