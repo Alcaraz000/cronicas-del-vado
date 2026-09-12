@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hash32, mulberry32 } from '@/engine/rng';
+import { hash32, mulberry32, newSeed, rollDice } from '@/engine/rng';
 
 describe('hash32', () => {
   it('es FNV-1a de 32 bits: hash32("a") = 0xe40c292c', () => {
@@ -61,5 +61,90 @@ describe('mulberry32', () => {
     const seq1 = Array.from({ length: 5 }, mulberry32(5));
     const seq2 = Array.from({ length: 5 }, mulberry32(2 ** 32 + 5));
     expect(seq1).toEqual(seq2);
+  });
+});
+
+describe('rollDice', () => {
+  const seed = 3826002220;
+
+  it('devuelve `count` enteros entre 1 y 6', () => {
+    for (const count of [1, 2, 3, 20]) {
+      const dice = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, count);
+      expect(dice).toHaveLength(count);
+      for (const d of dice) {
+        expect(Number.isInteger(d)).toBe(true);
+        expect(d).toBeGreaterThanOrEqual(1);
+        expect(d).toBeLessThanOrEqual(6);
+      }
+    }
+  });
+
+  it('count 0 devuelve un array vacío', () => {
+    expect(rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 0)).toEqual([]);
+  });
+
+  it('los mismos argumentos dan los mismos dados (recargar y repetir = mismos dados)', () => {
+    const a = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 3);
+    const b = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 3);
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+  });
+
+  it('el primer dado no depende de count (base de la repetición con Fortuna)', () => {
+    const uno = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 1, 1);
+    const dos = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 1, 2);
+    expect(uno[0]).toBe(dos[0]);
+  });
+
+  it('cambiar attempt cambia los dados', () => {
+    const intento0 = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 20);
+    const intento1 = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 1, 20);
+    expect(intento0).not.toEqual(intento1);
+  });
+
+  it('cambiar visits cambia los dados', () => {
+    const visita0 = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 20);
+    const visita1 = rollDice(seed, 'p_umbral', 'leer_inscripcion', 1, 0, 20);
+    expect(visita0).not.toEqual(visita1);
+  });
+
+  it('cambiar la semilla, la escena o la opción cambia los dados', () => {
+    const base = rollDice(seed, 'p_umbral', 'leer_inscripcion', 0, 0, 20);
+    expect(rollDice(seed + 1, 'p_umbral', 'leer_inscripcion', 0, 0, 20)).not.toEqual(base);
+    expect(rollDice(seed, 'p_biblioteca', 'leer_inscripcion', 0, 0, 20)).not.toEqual(base);
+    expect(rollDice(seed, 'p_umbral', 'forzar_puerta', 0, 0, 20)).not.toEqual(base);
+  });
+
+  it('usa mulberry32(hash32(seed, sceneId, choiceId, visits, attempt))', () => {
+    const next = mulberry32(hash32(seed, 'p_umbral', 'leer_inscripcion', 2, 1));
+    const esperado = [Math.floor(next() * 6) + 1, Math.floor(next() * 6) + 1];
+    expect(rollDice(seed, 'p_umbral', 'leer_inscripcion', 2, 1, 2)).toEqual(esperado);
+  });
+
+  it('a lo largo de muchas semillas salen las seis caras', () => {
+    const caras = new Set<number>();
+    for (let s = 0; s < 200; s += 1) {
+      for (const d of rollDice(s, 'p_umbral', 'leer_inscripcion', 0, 0, 3)) caras.add(d);
+    }
+    expect([...caras].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe('newSeed', () => {
+  it('es hash32 de la entropía', () => {
+    expect(newSeed('a')).toBe(3826002220);
+    expect(newSeed('1700000000000|0.123')).toBe(hash32('1700000000000|0.123'));
+  });
+
+  it('entropías distintas dan semillas distintas', () => {
+    expect(newSeed('1700000000000|0.123')).not.toBe(newSeed('1700000000000|0.124'));
+    expect(newSeed('1700000000000|0.123')).not.toBe(newSeed('1700000000001|0.123'));
+  });
+
+  it('devuelve un entero sin signo de 32 bits', () => {
+    const s = newSeed('cualquier cosa');
+    expect(Number.isInteger(s)).toBe(true);
+    expect(s).toBeGreaterThanOrEqual(0);
+    expect(s).toBeLessThan(2 ** 32);
   });
 });

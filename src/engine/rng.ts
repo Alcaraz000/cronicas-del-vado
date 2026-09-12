@@ -26,3 +26,24 @@ export function mulberry32(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+/**
+ * Dados deterministas: mulberry32(hash32(seed, sceneId, choiceId, visits, attempt)) → `count` enteros 1-6.
+ * attempt 0 es la tirada inicial; cada repetición con Fortuna usa attempt + 1 y count 1.
+ */
+export function rollDice(
+  seed: number,
+  sceneId: string,
+  choiceId: string,
+  visits: number,
+  attempt: number,
+  count: number,
+): number[] {
+  const next = mulberry32(hash32(seed, sceneId, choiceId, visits, attempt));
+  return Array.from({ length: count }, () => Math.floor(next() * 6) + 1);
+}
+
+/** Semilla de una partida nueva; el store pasa `${Date.now()}|${Math.random()}`. */
+export function newSeed(entropy: string): number {
+  return hash32(entropy);
+}
