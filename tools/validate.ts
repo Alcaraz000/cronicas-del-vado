@@ -25,10 +25,14 @@ async function main(argv: readonly string[]): Promise<number> {
   return todos.some((i) => i.level === 'error') ? 1 : 0;
 }
 
+// Se fija process.exitCode en vez de cortar el proceso a mano: en Windows las escrituras a
+// stdout son asíncronas también por tubería (que es como corre bajo `npm run build`), y una
+// salida inmediata no las espera, así que se puede llevar puesta la línea de resumen, justo la
+// que hace falta cuando hay errores. Dejando que el proceso termine solo, la salida sale entera.
 main(process.argv.slice(2)).then(
-  (code) => { process.exit(code); },
+  (code) => { process.exitCode = code; },
   (err: unknown) => {
     console.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
+    process.exitCode = 1;
   },
 );
