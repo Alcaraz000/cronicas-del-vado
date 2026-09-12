@@ -3,12 +3,25 @@ import { WORLD } from '@/content/world/index';
 import { CAMPAIGNS, listCampaigns } from '@/content/campaigns/index';
 import { pruebaMeta } from '@/content/campaigns/prueba/meta';
 import { campaign } from '@/content/campaigns/prueba/campaign';
+import { meta as vadoMeta } from '@/content/campaigns/vado/meta';
+import { campaign as vado } from '@/content/campaigns/vado/campaign';
 
-describe('WORLD (contenido compartido, Fase A)', () => {
-  it('no declara PNJ, lugares ni objetos todavía', () => {
-    expect(Object.keys(WORLD.npcs)).toEqual([]);
+describe('WORLD (contenido compartido)', () => {
+  it('declara los tres PNJ compartidos del Vado y ningún lugar', () => {
+    // Orell, Ilse y Halvar viven acá porque los reutiliza la segunda campaña y porque r07 rechaza
+    // que "El vado de Aldamar" los redeclare en su propio `npcs`.
+    expect(Object.keys(WORLD.npcs).sort()).toEqual(['halvar', 'ilse', 'orell']);
+    for (const [id, npc] of Object.entries(WORLD.npcs)) {
+      expect(npc.id, id).toBe(id);
+      expect(npc.name.trim().length, id).toBeGreaterThan(0);
+    }
     expect(Object.keys(WORLD.places)).toEqual([]);
-    expect(Object.keys(WORLD.items)).toEqual([]);
+  });
+
+  it('declara la única reliquia, que por ser relic no puede vivir dentro de una campaña', () => {
+    expect(Object.keys(WORLD.items)).toEqual(['sello_del_vado']);
+    expect(WORLD.items['sello_del_vado']?.id).toBe('sello_del_vado');
+    expect(WORLD.items['sello_del_vado']?.relic).toBe(true);
   });
 
   it('declara exactamente los cinco espacios de flags compartidos, con descripción', () => {
@@ -57,5 +70,22 @@ describe('CAMPAIGNS (registro de campañas)', () => {
     expect(loaded.id).toBe('prueba');
     expect(loaded.start).toBe('p_umbral');
     expect(loaded).toEqual(campaign);
+  });
+
+  it('registra "El vado de Aldamar" y su load() trae las 46 escenas', async () => {
+    const entry = CAMPAIGNS['vado'];
+    expect(entry).toBeDefined();
+    expect(entry?.meta).toBe(vadoMeta);
+    // Oculta mientras el texto sea `TODO` (esqueleto de la Fase C): se ofrece al jugador recién
+    // cuando la prosa esté escrita y el perfil pase a 'release'.
+    expect(entry?.meta.hidden).toBe(true);
+    expect(listCampaigns(false).map((m) => m.id)).not.toContain('vado');
+    expect(listCampaigns(true).map((m) => m.id)).toContain('vado');
+
+    const loaded = await entry!.load();
+    expect(loaded.id).toBe('vado');
+    expect(loaded.start).toBe('p_camino');
+    expect(Object.keys(loaded.scenes)).toHaveLength(46);
+    expect(loaded).toEqual(vado);
   });
 });

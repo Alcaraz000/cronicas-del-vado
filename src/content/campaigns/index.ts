@@ -1,5 +1,6 @@
 import type { Campaign, CampaignMeta } from '@/content/schema';
 import { pruebaMeta } from '@/content/campaigns/prueba/meta';
+import { meta as vadoMeta } from '@/content/campaigns/vado/meta';
 
 /** Entrada del registro: la meta se importa estáticamente; la campaña completa se carga con `import()` dinámico (un chunk por campaña). */
 export interface CampaignEntry {
@@ -15,6 +16,10 @@ export const CAMPAIGNS: Record<string, CampaignEntry> = {
   prueba: {
     meta: pruebaMeta,
     load: () => import('@/content/campaigns/prueba/campaign').then((m) => m.campaign),
+  },
+  vado: {
+    meta: vadoMeta,
+    load: () => import('@/content/campaigns/vado/campaign').then((m) => m.campaign),
   },
 };
 
