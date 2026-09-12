@@ -427,7 +427,8 @@ describe('prueba: run:centinela_abatido solo si quedó efectivamente derribado (
 
 describe('prueba: la pelea y el abatido no se pueden desincronizar (ronda de arreglo 4)', () => {
   const TEXTO_DEL_FORCEJEO = /tirado contra el aljibe/;
-  const TEXTO_PACIFICO = /Del centinela no hay rastro/;
+  // Frase propia de la variante pacífica de p_victoria (reescrita en la ronda 5 para no darlo por ausente).
+  const TEXTO_PACIFICO = /sentado en el brocal del aljibe/;
 
   /** Un bloque de efectos escribible del contenido, con una etiqueta legible para el mensaje de fallo. */
   interface BloqueDeEfectos {
@@ -593,5 +594,42 @@ describe('prueba: la pelea y el abatido no se pueden desincronizar (ronda de arr
     const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
     expect(texto).not.toMatch(TEXTO_DEL_FORCEJEO);
     expect(texto).toMatch(TEXTO_PACIFICO);
+  });
+});
+
+describe('prueba: p_victoria no da al centinela por ausente mientras el centinela habla (ronda de arreglo 5)', () => {
+  /** Frases con las que el narrador afirmaría que en el patio no hay nadie. */
+  const AFIRMACIONES_DE_AUSENCIA = [/ni un alma/i, /no hay rastro/i, /no hay nadie/i, /vac[íi]o/i, /sin nadie/i, /no queda nadie/i];
+
+  /** Los tres estados que eligen las tres variantes de los párrafos de p_victoria, en orden de prioridad. */
+  const ESTADOS: { nombre: string; flagsDePartida: string[]; visited: Record<string, number> }[] = [
+    { nombre: 'revisita', flagsDePartida: ['run:centinela_vencido', 'run:centinela_abatido'], visited: { p_victoria: 1 } },
+    { nombre: 'abatido', flagsDePartida: ['run:centinela_vencido', 'run:centinela_abatido'], visited: {} },
+    { nombre: 'pacifico', flagsDePartida: ['run:centinela_vencido'], visited: {} },
+  ];
+
+  it.each(ESTADOS)('en el estado $nombre el narrador no contradice al párrafo del centinela', ({ nombre, flagsDePartida, visited }) => {
+    const estado = makeState({
+      run: {
+        campaignId: campaign.id,
+        contentVersion: campaign.contentVersion,
+        sceneId: campaign.start,
+        flags: flagsDePartida,
+        visited,
+      },
+    });
+    const vista = render(campaign, enter(campaign, estado, 'p_victoria'));
+
+    // El párrafo con speaker no se puede omitir (r08 exige que toda Paragraph termine en una variante
+    // sin `when`), así que el centinela habla en los tres estados y el narrador no puede darlo por ausente.
+    expect(vista.paragraphs.some((p) => p.speaker === 'centinela'), nombre).toBe(true);
+
+    const narrador = vista.paragraphs
+      .filter((p) => p.speaker === undefined)
+      .map((p) => p.text)
+      .join(' \n ');
+    for (const frase of AFIRMACIONES_DE_AUSENCIA) {
+      expect(narrador, `${nombre} / ${String(frase)}`).not.toMatch(frase);
+    }
   });
 });

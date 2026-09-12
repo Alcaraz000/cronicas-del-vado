@@ -527,14 +527,14 @@ export const p_victoria = {
       variants: [
         {
           when: { visited: 'p_victoria', min: 1 },
-          text: 'El patio sigue como lo dejaste: el aljibe seco, las losas frías, ni un alma. Ya no hay nada acá que valga la pena mirar dos veces.',
+          text: 'El patio sigue igual: el aljibe seco, las losas frías y el centinela donde lo dejaste. Ya no hay nada acá que valga la pena mirar dos veces.',
         },
         {
           when: { flag: 'run:centinela_abatido' },
           text: 'El centinela queda tirado contra el aljibe, respirando con un silbido. No lo mataste. Le sacás la lanza de la mano y la tirás dentro del aljibe seco: cae sin ruido.',
         },
         {
-          text: 'El patio está tranquilo, casi vacío. Del centinela no hay rastro: como haya sido, ya no tiene nada que reclamarte.',
+          text: 'El patio está quieto: no se oye más que el viento colándose por el arco. El centinela está sentado en el brocal del aljibe, con la lanza cruzada sobre las rodillas y la mirada en otro lado. Como haya sido, ya no tiene nada que reclamarte.',
         },
       ],
     },
