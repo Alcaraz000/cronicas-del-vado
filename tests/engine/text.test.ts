@@ -136,3 +136,99 @@ describe('resolveText: narrador y speaker', () => {
     expect(resolveText([], makeCtx())).toStrictEqual([]);
   });
 });
+
+describe('resolveText: variantes condicionadas', () => {
+  /** La más específica va arriba; la última no tiene `when` y es la de siempre. */
+  const parrafoHub: Text = [
+    {
+      variants: [
+        { when: { all: [{ flag: 'run:a' }, { flag: 'run:b' }] }, text: 'Tenés las dos pistas.' },
+        { when: { flag: 'run:a' }, text: 'Tenés la pista A.' },
+        { when: { flag: 'run:b' }, text: 'Tenés la pista B.' },
+        { text: 'No sabés nada todavía.' },
+      ],
+    },
+  ];
+
+  it('gana la primera variante cuyo when se cumple, en orden de escritura', () => {
+    expect(resolveText(parrafoHub, makeCtx({ runFlags: ['run:a', 'run:b'] }))).toStrictEqual([
+      { text: 'Tenés las dos pistas.' },
+    ]);
+    expect(resolveText(parrafoHub, makeCtx({ runFlags: ['run:a'] }))).toStrictEqual([{ text: 'Tenés la pista A.' }]);
+    expect(resolveText(parrafoHub, makeCtx({ runFlags: ['run:b'] }))).toStrictEqual([{ text: 'Tenés la pista B.' }]);
+  });
+
+  it('sin ningún when cumplido cae en la variante sin when', () => {
+    expect(resolveText(parrafoHub, makeCtx())).toStrictEqual([{ text: 'No sabés nada todavía.' }]);
+  });
+
+  it('una variante sin when siempre gana aunque haya otras después', () => {
+    const texto: Text = [
+      { variants: [{ text: 'Siempre.' }, { when: { flag: 'run:a' }, text: 'Nunca se muestra.' }] },
+    ];
+    expect(resolveText(texto, makeCtx({ runFlags: ['run:a'] }))).toStrictEqual([{ text: 'Siempre.' }]);
+  });
+
+  it('un párrafo sin variante válida se omite y no deja hueco', () => {
+    const texto: Text = [
+      'Antes.',
+      { variants: [{ when: { flag: 'run:no_existe' }, text: 'Oculto.' }] },
+      { variants: [] },
+      'Después.',
+    ];
+    expect(resolveText(texto, makeCtx())).toStrictEqual([{ text: 'Antes.' }, { text: 'Después.' }]);
+  });
+
+  it('conserva el speaker de la variante que gana', () => {
+    const texto: Text = [
+      {
+        speaker: 'orell',
+        variants: [
+          { when: { trait: 'desertor' }, text: '—Un desertor. Se te nota en cómo parás.' },
+          { text: '—Nadie cruza hasta que amanezca.' },
+        ],
+      },
+    ];
+    expect(resolveText(texto, makeCtx())).toStrictEqual([
+      { speaker: 'orell', text: '—Nadie cruza hasta que amanezca.' },
+    ]);
+  });
+
+  it('las variantes de memoria (met, knows) leen los flags del personaje', () => {
+    const texto: Text = [
+      {
+        variants: [
+          { when: { met: 'orell' }, text: 'Lo conocés de otra crónica.' },
+          { text: 'Un sargento de barba gris te apunta con la ballesta.' },
+        ],
+      },
+      {
+        variants: [
+          { when: { knows: 'puente_viejo' }, text: 'El puente viejo, otra vez.' },
+          { text: 'El puente viejo está cerrado con tablones.' },
+        ],
+      },
+    ];
+    expect(resolveText(texto, makeCtx())).toStrictEqual([
+      { text: 'Un sargento de barba gris te apunta con la ballesta.' },
+      { text: 'El puente viejo está cerrado con tablones.' },
+    ]);
+    expect(
+      resolveText(texto, makeCtx({ characterFlags: ['char:met.orell', 'char:place.puente_viejo'] })),
+    ).toStrictEqual([{ text: 'Lo conocés de otra crónica.' }, { text: 'El puente viejo, otra vez.' }]);
+  });
+
+  it('evalúa condiciones que no son flags (item, trait) con el mismo contexto', () => {
+    const texto: Text = [
+      {
+        variants: [
+          { when: { item: 'carta_lacrada' }, text: 'Mostrás la carta.' },
+          { when: { trait: 'aprendiz_de_escriba' }, text: 'Leés el lacre desde lejos.' },
+          { text: 'No tenés nada que mostrar.' },
+        ],
+      },
+    ];
+    expect(resolveText(texto, makeCtx({ items: ['carta_lacrada'] }))).toStrictEqual([{ text: 'Mostrás la carta.' }]);
+    expect(resolveText(texto, makeCtx())).toStrictEqual([{ text: 'Leés el lacre desde lejos.' }]);
+  });
+});
