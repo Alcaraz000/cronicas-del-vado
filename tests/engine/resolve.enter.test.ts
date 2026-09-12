@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { LIMITS } from '@/content/catalog';
+import type { Campaign, Scene } from '@/content/schema';
 import { enter, getScene } from '@/engine/resolve';
 import { hashParagraph } from '@/engine/text';
 import type { GameState, LogEntry } from '@/engine/types';
@@ -65,5 +67,117 @@ describe('enter: escena sin redirect', () => {
     const antes = JSON.stringify(estado);
     enter(memoria, estado, 'm_sala');
     expect(JSON.stringify(estado)).toBe(antes);
+  });
+});
+
+function campanaConCadena(largo: number): Campaign {
+  const escenas: Record<string, Scene> = {};
+  for (let i = 0; i < largo; i += 1) {
+    const id = `m_cadena_${i}`;
+    const base: Scene = { id, kind: 'normal', place: 'torre_vieja', text: [`Eslabón ${i}.`], choices: [] };
+    escenas[id] =
+      i < largo - 1
+        ? { ...base, redirect: [{ when: { not: { flag: 'run:nunca' } }, to: `m_cadena_${i + 1}` }] }
+        : base;
+  }
+  return { ...memoria, scenes: { ...memoria.scenes, ...escenas } };
+}
+
+describe('enter: redirects', () => {
+  it('sigue redirects en cadena y no registra las escenas atravesadas', () => {
+    const estado = crearEstadoMemoria({ run: { flags: ['run:puerta_abierta', 'run:tesoro_a_la_vista'] } });
+    const resultado = enter(memoria, estado, 'm_puerta');
+
+    expect(resultado.run.sceneId).toBe('m_fin_tesoro');
+    expect(resultado.run.log.map((e) => (e.kind === 'scene' ? e.sceneId : e.kind))).toEqual(['m_fin_tesoro']);
+    expect(resultado.run.visited).toEqual({});
+    // Los onEnter de m_puerta (hito) y m_sala (reloj) NO se aplican: solo cuenta la escena final.
+    expect(resultado.run.milestones).toEqual([]);
+    expect(resultado.run.clocks).toEqual({});
+  });
+
+  it('ignora un redirect cuya condición no se cumple', () => {
+    const resultado = enter(memoria, crearEstadoMemoria(), 'm_puerta');
+    expect(resultado.run.sceneId).toBe('m_puerta');
+    expect(resultado.run.milestones).toEqual(['llegar_a_la_puerta']);
+  });
+
+  it('evalúa los redirects contra el estado de entrada, antes de cualquier onEnter', () => {
+    const estado = crearEstadoMemoria({ run: { flags: ['run:puerta_abierta'] } });
+    const resultado = enter(memoria, estado, 'm_puerta');
+    expect(resultado.run.sceneId).toBe('m_sala');
+    expect(resultado.run.clocks.ronda).toBe(1);
+    expect(resultado.run.milestones).toEqual([]);
+  });
+
+  it('permite exactamente LIMITS.maxRedirects saltos', () => {
+    const campana = campanaConCadena(LIMITS.maxRedirects + 1);
+    const resultado = enter(campana, crearEstadoMemoria(), 'm_cadena_0');
+    expect(resultado.run.sceneId).toBe(`m_cadena_${LIMITS.maxRedirects}`);
+  });
+
+  it('lanza al superar LIMITS.maxRedirects saltos', () => {
+    const campana = campanaConCadena(LIMITS.maxRedirects + 2);
+    expect(() => enter(campana, crearEstadoMemoria(), 'm_cadena_0')).toThrow(/Demasiados redirects/);
+  });
+
+  it('lanza ante dos escenas que se redirigen mutuamente sin condición', () => {
+    const bucle: Campaign = {
+      ...memoria,
+      scenes: {
+        ...memoria.scenes,
+        m_bucle_a: {
+          id: 'm_bucle_a',
+          kind: 'normal',
+          place: 'torre_vieja',
+          redirect: [{ when: { not: { flag: 'run:nunca' } }, to: 'm_bucle_b' }],
+          text: ['Bucle A.'],
+          choices: [],
+        },
+        m_bucle_b: {
+          id: 'm_bucle_b',
+          kind: 'normal',
+          place: 'torre_vieja',
+          redirect: [{ when: { not: { flag: 'run:nunca' } }, to: 'm_bucle_a' }],
+          text: ['Bucle B.'],
+          choices: [],
+        },
+      },
+    };
+    expect(() => enter(bucle, crearEstadoMemoria(), 'm_bucle_a')).toThrow(/Demasiados redirects/);
+  });
+});
+
+describe('enter: final y recorte del log', () => {
+  it('una escena ending marca run.outcome y agrega el epílogo después del texto', () => {
+    const resultado = enter(memoria, crearEstadoMemoria(), 'm_fin_huida');
+
+    expect(resultado.run.outcome).toEqual({ kind: 'ending', endingId: 'fin_huida' });
+    const entrada = ultimaEscenaDelLog(resultado);
+    expect(entrada.paragraphs.map((p) => p.text)).toEqual([
+      'Bajás la cuesta sin mirar atrás. La torre queda donde estaba.',
+      'Con vida y sin tesoro. Hay peores maneras de terminar una noche.',
+    ]);
+    expect(entrada.hashes).toHaveLength(2);
+  });
+
+  it('una escena que no es ending no fija outcome', () => {
+    const resultado = enter(memoria, crearEstadoMemoria(), 'm_sala');
+    expect(resultado.run.outcome).toBeUndefined();
+  });
+
+  it('recorta el log a LIMITS.maxLog entradas conservando las últimas', () => {
+    const relleno: LogEntry[] = Array.from({ length: LIMITS.maxLog }, (_, i): LogEntry => ({
+      kind: 'choice',
+      sceneId: 'm_puerta',
+      choiceId: `c${i}`,
+      label: `Opción ${i}`,
+    }));
+    const estado = crearEstadoMemoria({ run: { log: relleno } });
+    const resultado = enter(memoria, estado, 'm_puerta');
+
+    expect(resultado.run.log).toHaveLength(LIMITS.maxLog);
+    expect(resultado.run.log[0]).toEqual(relleno[1]);
+    expect(resultado.run.log[LIMITS.maxLog - 1]?.kind).toBe('scene');
   });
 });
