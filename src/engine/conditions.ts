@@ -1,4 +1,5 @@
-import type { GameState } from '@/engine/types';
+import type { Condition } from '@/content/schema';
+import type { EvalContext, GameState } from '@/engine/types';
 
 /**
  * Busca un flag según su prefijo (alcance):
@@ -18,5 +19,31 @@ export function hasFlag(state: GameState, flag: string): boolean {
   if (flag.startsWith('world:')) {
     return world.flags.includes(flag) || run.stagedFlags.includes(flag);
   }
+  return false;
+}
+
+/**
+ * Evalúa una condición de contenido contra el estado. Pura: no muta nada.
+ * `undefined` significa "sin condición" y siempre es true.
+ */
+export function evaluate(cond: Condition | undefined, ctx: EvalContext): boolean {
+  if (cond === undefined) {
+    return true;
+  }
+  const { state } = ctx;
+
+  if ('flag' in cond) {
+    return hasFlag(state, cond.flag);
+  }
+  if ('not' in cond) {
+    return !evaluate(cond.not, ctx);
+  }
+  if ('all' in cond) {
+    return cond.all.every((c) => evaluate(c, ctx));
+  }
+  if ('any' in cond) {
+    return cond.any.some((c) => evaluate(c, ctx));
+  }
+  // Las demás variantes se implementan en los ciclos siguientes.
   return false;
 }
