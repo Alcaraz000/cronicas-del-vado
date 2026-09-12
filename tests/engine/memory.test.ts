@@ -147,3 +147,78 @@ describe('deriveMemory: PNJ conocidos y lugar', () => {
     expect(() => deriveMemory(makeCtx(), 'no_existe', [])).toThrow('Escena desconocida: no_existe');
   });
 });
+
+describe('deriveMemory: visitas y párrafos vistos', () => {
+  it('la primera visita completa pone run.visited[sceneId] en 1', () => {
+    const resultado = deriveMemory(makeCtx(), 'plaza', []);
+    expect(resultado.run.visited).toStrictEqual({ plaza: 1 });
+  });
+
+  it('cada derivación incrementa el contador de esa escena y respeta las otras', () => {
+    const resultado = deriveMemory(makeCtx({ visited: { plaza: 2, callejon: 1 } }), 'plaza', []);
+    expect(resultado.run.visited).toStrictEqual({ plaza: 3, callejon: 1 });
+  });
+
+  it('crea seen[sceneId] con los hashes cuando la escena no estaba', () => {
+    const resultado = deriveMemory(makeCtx(), 'plaza', ['h1', 'h2']);
+    expect(resultado.seen).toStrictEqual({ plaza: ['h1', 'h2'] });
+  });
+
+  it('une los hashes con los ya vistos sin duplicar y conserva las otras escenas', () => {
+    const ctx = makeCtx({ seen: { plaza: ['h1'], callejon: ['h9'] } });
+    const resultado = deriveMemory(ctx, 'plaza', ['h1', 'h2', 'h2']);
+    expect(resultado.seen).toStrictEqual({ plaza: ['h1', 'h2'], callejon: ['h9'] });
+  });
+
+  it('con hashes vacíos deja seen[sceneId] como lista vacía si no existía', () => {
+    const resultado = deriveMemory(makeCtx(), 'callejon', []);
+    expect(resultado.seen).toStrictEqual({ callejon: [] });
+  });
+});
+
+/** Congela recursivamente: si la implementación mutara la entrada, lanzaría TypeError (los módulos ES corren en modo estricto). */
+function congelar<T>(valor: T): T {
+  if (valor !== null && typeof valor === 'object' && !Object.isFrozen(valor)) {
+    Object.freeze(valor);
+    for (const clave of Object.keys(valor as Record<string, unknown>)) {
+      congelar((valor as Record<string, unknown>)[clave]);
+    }
+  }
+  return valor;
+}
+
+describe('deriveMemory: pureza y encadenado', () => {
+  it('no muta el estado de entrada (congelado) y devuelve objetos nuevos', () => {
+    const ctx = makeCtx({ characterFlags: ['char:met.orell'], visited: { plaza: 1 }, seen: { plaza: ['h1'] } });
+    congelar(ctx);
+    const foto = JSON.stringify(ctx.state);
+    const resultado = deriveMemory(ctx, 'plaza', ['h2']);
+    expect(JSON.stringify(ctx.state)).toBe(foto);
+    expect(resultado).not.toBe(ctx.state);
+    expect(resultado.character).not.toBe(ctx.state.character);
+    expect(resultado.character.flags).not.toBe(ctx.state.character.flags);
+    expect(resultado.run).not.toBe(ctx.state.run);
+    expect(resultado.run.visited).not.toBe(ctx.state.run.visited);
+    expect(resultado.seen).not.toBe(ctx.state.seen);
+    expect(resultado.seen['plaza']).not.toBe(ctx.state.seen['plaza']);
+  });
+
+  it('no muta la lista de hashes que recibe', () => {
+    const hashes = ['h1', 'h1'];
+    deriveMemory(makeCtx(), 'plaza', hashes);
+    expect(hashes).toStrictEqual(['h1', 'h1']);
+  });
+
+  it('el resultado sirve como entrada de otra derivación (encadenable)', () => {
+    const primera = deriveMemory(makeCtx(), 'plaza', ['h1']);
+    const segunda = deriveMemory({ campaign: campania, state: primera }, 'callejon', ['h5']);
+    expect(segunda.run.visited).toStrictEqual({ plaza: 1, callejon: 1 });
+    expect(segunda.seen).toStrictEqual({ plaza: ['h1'], callejon: ['h5'] });
+    expect(segunda.character.flags).toStrictEqual([
+      'char:met.orell',
+      'char:met.ilse',
+      'char:place.plaza_mayor',
+      'char:place.callejon_oscuro',
+    ]);
+  });
+});
