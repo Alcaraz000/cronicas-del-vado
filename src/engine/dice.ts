@@ -47,3 +47,37 @@ export function classify(kept: number[], totalMod: number): Band {
   if (total >= 7) return 'partial';
   return 'failure';
 }
+
+const FACES: readonly number[] = [1, 2, 3, 4, 5, 6];
+
+/** Todas las combinaciones ordenadas de `count` dados: 36 para 2, 216 para 3. */
+function allCombos(count: number): number[][] {
+  if (count === 0) return [[]];
+  const shorter = allCombos(count - 1);
+  return FACES.flatMap((face) => shorter.map((rest) => [face, ...rest]));
+}
+
+/** Enumeración exhaustiva: cuenta en qué banda cae cada combinación posible. */
+export function bandOdds(totalMod: number, mode: RollMode): BandOdds {
+  const count = mode === 'advantage' || mode === 'disadvantage' ? 3 : 2;
+  const combos = allCombos(count);
+  const counts: Record<Band, number> = { crit: 0, success: 0, partial: 0, failure: 0, fumble: 0 };
+  for (const dice of combos) {
+    const kept = keepDice(dice, mode).map((i) => dice[i] ?? 0);
+    counts[classify(kept, totalMod)] += 1;
+  }
+  const total = combos.length;
+  return {
+    crit: counts.crit / total,
+    success: counts.success / total,
+    partial: counts.partial / total,
+    failure: counts.failure / total,
+    fumble: counts.fumble / total,
+  };
+}
+
+/** Las tres bandas visibles: success incluye crit; failure incluye fumble. */
+export function odds(totalMod: number, mode: RollMode): Odds {
+  const b = bandOdds(totalMod, mode);
+  return { success: b.crit + b.success, partial: b.partial, failure: b.failure + b.fumble };
+}

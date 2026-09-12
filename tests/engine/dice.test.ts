@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classify, keepDice } from '@/engine/dice';
+import { bandOdds, classify, keepDice, odds } from '@/engine/dice';
 
 describe('keepDice', () => {
   it('normal y cancelled conservan siempre los índices 0 y 1', () => {
@@ -75,5 +75,115 @@ describe('classify', () => {
     const kept = [6, 6];
     classify(kept, 0);
     expect(kept).toEqual([6, 6]);
+  });
+});
+
+/** Porcentaje redondeado a un decimal, como lo muestra la UI. */
+const pct = (p: number): number => Math.round(p * 1000) / 10;
+
+describe('bandOdds', () => {
+  it('normal: fracciones exactas sobre 36 casos', () => {
+    const b = bandOdds(0, 'normal');
+    expect(b.crit).toBe(1 / 36);
+    expect(b.success).toBe(5 / 36);
+    expect(b.partial).toBe(15 / 36);
+    expect(b.failure).toBe(14 / 36);
+    expect(b.fumble).toBe(1 / 36);
+  });
+
+  it('cancelled se calcula igual que normal', () => {
+    expect(bandOdds(0, 'cancelled')).toEqual(bandOdds(0, 'normal'));
+    expect(bandOdds(2, 'cancelled')).toEqual(bandOdds(2, 'normal'));
+  });
+
+  it('advantage: fracciones exactas sobre 216 casos', () => {
+    const b = bandOdds(0, 'advantage');
+    expect(b.crit).toBe(16 / 216);
+    expect(b.success).toBe(61 / 216);
+    expect(b.partial).toBe(97 / 216);
+    expect(b.failure).toBe(41 / 216);
+    expect(b.fumble).toBe(1 / 216);
+  });
+
+  it('disadvantage: fracciones exactas sobre 216 casos', () => {
+    const b = bandOdds(0, 'disadvantage');
+    expect(b.crit).toBe(1 / 216);
+    expect(b.success).toBe(10 / 216);
+    expect(b.partial).toBe(58 / 216);
+    expect(b.failure).toBe(131 / 216);
+    expect(b.fumble).toBe(16 / 216);
+  });
+
+  it('las cinco bandas suman 1 en todos los modos y modificadores', () => {
+    const modes = ['normal', 'advantage', 'disadvantage', 'cancelled'] as const;
+    for (const mode of modes) {
+      for (let mod = -4; mod <= 4; mod += 1) {
+        const b = bandOdds(mod, mode);
+        expect(b.crit + b.success + b.partial + b.failure + b.fumble).toBeCloseTo(1, 12);
+      }
+    }
+  });
+
+  it('dobles: crit 2,8 % normal y 7,4 % con ventaja; fumble 7,4 % con desventaja y 0,5 % con ventaja', () => {
+    expect(pct(bandOdds(0, 'normal').crit)).toBeCloseTo(2.8, 3);
+    expect(pct(bandOdds(0, 'normal').fumble)).toBeCloseTo(2.8, 3);
+    expect(pct(bandOdds(0, 'advantage').crit)).toBeCloseTo(7.4, 3);
+    expect(pct(bandOdds(0, 'disadvantage').fumble)).toBeCloseTo(7.4, 3);
+    expect(pct(bandOdds(0, 'advantage').fumble)).toBeCloseTo(0.5, 3);
+  });
+
+  it('los naturales no dependen del modificador', () => {
+    expect(bandOdds(-5, 'normal').crit).toBe(1 / 36);
+    expect(bandOdds(9, 'normal').fumble).toBe(1 / 36);
+  });
+});
+
+describe('odds', () => {
+  it('normal mod 0 → 16,7 / 41,7 / 41,7', () => {
+    const o = odds(0, 'normal');
+    expect(pct(o.success)).toBeCloseTo(16.7, 3);
+    expect(pct(o.partial)).toBeCloseTo(41.7, 3);
+    expect(pct(o.failure)).toBeCloseTo(41.7, 3);
+  });
+
+  it('normal mod +2 → 41,7 / 41,7 / 16,7', () => {
+    const o = odds(2, 'normal');
+    expect(pct(o.success)).toBeCloseTo(41.7, 3);
+    expect(pct(o.partial)).toBeCloseTo(41.7, 3);
+    expect(pct(o.failure)).toBeCloseTo(16.7, 3);
+  });
+
+  it('advantage mod 0 → 35,6 / 44,9 / 19,4', () => {
+    const o = odds(0, 'advantage');
+    expect(pct(o.success)).toBeCloseTo(35.6, 3);
+    expect(pct(o.partial)).toBeCloseTo(44.9, 3);
+    expect(pct(o.failure)).toBeCloseTo(19.4, 3);
+  });
+
+  it('advantage mod +2 → 68,1 / 26,9 / 5,1', () => {
+    const o = odds(2, 'advantage');
+    expect(pct(o.success)).toBeCloseTo(68.1, 3);
+    expect(pct(o.partial)).toBeCloseTo(26.9, 3);
+    expect(pct(o.failure)).toBeCloseTo(5.1, 3);
+  });
+
+  it('disadvantage mod 0 → 5,1 / 26,9 / 68,1', () => {
+    const o = odds(0, 'disadvantage');
+    expect(pct(o.success)).toBeCloseTo(5.1, 3);
+    expect(pct(o.partial)).toBeCloseTo(26.9, 3);
+    expect(pct(o.failure)).toBeCloseTo(68.1, 3);
+  });
+
+  it('success = crit + success y failure = failure + fumble', () => {
+    const b = bandOdds(0, 'advantage');
+    const o = odds(0, 'advantage');
+    expect(o.success).toBeCloseTo(b.crit + b.success, 12);
+    expect(o.partial).toBe(b.partial);
+    expect(o.failure).toBeCloseTo(b.failure + b.fumble, 12);
+  });
+
+  it('las tres bandas suman 1', () => {
+    const o = odds(-1, 'disadvantage');
+    expect(o.success + o.partial + o.failure).toBeCloseTo(1, 12);
   });
 });
