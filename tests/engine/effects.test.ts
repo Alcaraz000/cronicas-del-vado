@@ -197,3 +197,79 @@ describe('applyEffects: relojes', () => {
     expect(result.run.clocks).not.toBe(ctx.state.run.clocks);
   });
 });
+
+describe('applyEffects: heridas', () => {
+  it('wound 1 desde Sano deja Herido (1)', () => {
+    const result = applyEffects([{ wound: 1 }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(1);
+  });
+
+  it('wound 2 desde Sano deja Malherido (2)', () => {
+    const result = applyEffects([{ wound: 2 }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(2);
+  });
+
+  it('wound satura en 3 (Caído)', () => {
+    const result = applyEffects([{ wound: 2 }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(3);
+  });
+
+  it('heal baja una Herida', () => {
+    const result = applyEffects([{ heal: 1 }], contexto({ wounds: 2 }));
+    expect(result.run.wounds).toBe(1);
+  });
+
+  it('heal no baja de 0', () => {
+    const result = applyEffects([{ heal: 1 }], contexto({ wounds: 0 }));
+    expect(result.run.wounds).toBe(0);
+  });
+});
+
+describe('applyEffects: condiciones', () => {
+  it('addCondition agrega la condición', () => {
+    const result = applyEffects([{ addCondition: 'asustado' }], contexto());
+    expect(result.run.conditions).toEqual(['asustado']);
+  });
+
+  it('addCondition no duplica una condición ya presente', () => {
+    const ctx = contexto({ conditions: ['asustado'] });
+    const result = applyEffects([{ addCondition: 'asustado' }], ctx);
+    expect(result.run.conditions).toEqual(['asustado']);
+  });
+
+  it('addCondition con 3 condiciones reemplaza la más antigua (índice 0)', () => {
+    const ctx = contexto({ conditions: ['envenenado', 'asustado', 'exhausto'] });
+    const result = applyEffects([{ addCondition: 'empapado' }], ctx);
+    expect(result.run.conditions).toEqual(['asustado', 'exhausto', 'empapado']);
+  });
+
+  it('addCondition con 3 condiciones y una ya presente no cambia nada', () => {
+    const ctx = contexto({ conditions: ['envenenado', 'asustado', 'exhausto'] });
+    const result = applyEffects([{ addCondition: 'asustado' }], ctx);
+    expect(result.run.conditions).toEqual(['envenenado', 'asustado', 'exhausto']);
+  });
+
+  it('removeCondition con id quita solo esa condición', () => {
+    const ctx = contexto({ conditions: ['envenenado', 'asustado'] });
+    const result = applyEffects([{ removeCondition: 'asustado' }], ctx);
+    expect(result.run.conditions).toEqual(['envenenado']);
+  });
+
+  it("removeCondition 'all' vacía la lista", () => {
+    const ctx = contexto({ conditions: ['envenenado', 'asustado', 'exhausto'] });
+    const result = applyEffects([{ removeCondition: 'all' }], ctx);
+    expect(result.run.conditions).toEqual([]);
+  });
+
+  it('removeCondition de una condición ausente deja la lista igual', () => {
+    const ctx = contexto({ conditions: ['envenenado'] });
+    const result = applyEffects([{ removeCondition: 'perseguido' }], ctx);
+    expect(result.run.conditions).toEqual(['envenenado']);
+  });
+
+  it('no muta la lista de condiciones de entrada', () => {
+    const ctx = contexto({ conditions: ['envenenado', 'asustado', 'exhausto'] });
+    applyEffects([{ addCondition: 'empapado' }], ctx);
+    expect(ctx.state.run.conditions).toEqual(['envenenado', 'asustado', 'exhausto']);
+  });
+});
