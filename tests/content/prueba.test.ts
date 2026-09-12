@@ -45,8 +45,14 @@ describe('prueba: declaraciones', () => {
     expect(items['llave_de_hierro']?.relic).toBeUndefined();
   });
 
-  it('declara los tres flags de la campaña con prefijos correctos', () => {
-    expect(Object.keys(flags).sort()).toEqual(['char:prueba.vio_la_cripta', 'run:centinela_vencido', 'run:tiene_pista']);
+  it('declara los cuatro flags de la campaña con prefijos correctos', () => {
+    // run:centinela_abatido se agregó en la ronda de arreglo 2, para distinguir "vencido a las piñas" de "convencido/trabado".
+    expect(Object.keys(flags).sort()).toEqual([
+      'char:prueba.vio_la_cripta',
+      'run:centinela_abatido',
+      'run:centinela_vencido',
+      'run:tiene_pista',
+    ]);
     for (const descripcion of Object.values(flags)) {
       expect(descripcion.trim().length).toBeGreaterThan(0);
     }
@@ -314,5 +320,47 @@ describe('prueba: continuidad tras vencer al centinela (ronda de arreglo 1)', ()
     expect(vista.sceneId).toBe('p_victoria');
     expect(vista.kind).not.toBe('encounter');
     expect(vista.choices.some((c) => c.id === 'golpear')).toBe(false);
+  });
+});
+
+describe('prueba: p_victoria no renarra un forcejeo que no ocurrió (ronda de arreglo 2)', () => {
+  const FRASES_DEL_FORCEJEO = [/tirado contra el aljibe/, /respirando con un silbido/, /No lo mataste/];
+
+  it('vía pacífica: vencido sin haber peleado nunca, el patio no describe el forcejeo físico', () => {
+    // run:centinela_vencido sin run:centinela_abatido: se lo convenció hablando o se lo trabó con la llave, nunca se peleó.
+    const estado = makeState({
+      run: {
+        campaignId: campaign.id,
+        contentVersion: campaign.contentVersion,
+        sceneId: campaign.start,
+        flags: ['run:centinela_vencido'],
+      },
+    });
+    const vista = render(campaign, enter(campaign, estado, 'p_patio'));
+
+    expect(vista.sceneId).toBe('p_victoria');
+    const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
+    for (const frase of FRASES_DEL_FORCEJEO) {
+      expect(texto).not.toMatch(frase);
+    }
+  });
+
+  it('revisita tras el combate: no vuelve a narrar la pelea en presente', () => {
+    // Ya peleó y ganó (abatido) y ya visitó p_victoria una vez antes.
+    const estado = makeState({
+      run: {
+        campaignId: campaign.id,
+        contentVersion: campaign.contentVersion,
+        sceneId: campaign.start,
+        flags: ['run:centinela_vencido', 'run:centinela_abatido'],
+        visited: { p_victoria: 1 },
+      },
+    });
+    const vista = render(campaign, enter(campaign, estado, 'p_victoria'));
+
+    const texto = vista.paragraphs.map((p) => p.text).join(' \n ');
+    for (const frase of FRASES_DEL_FORCEJEO) {
+      expect(texto).not.toMatch(frase);
+    }
   });
 });

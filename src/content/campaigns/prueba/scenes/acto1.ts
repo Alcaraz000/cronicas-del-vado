@@ -387,12 +387,12 @@ export const p_patio_2 = {
         outcomes: {
           success: {
             text: ['Lo agarrás de la cota y lo estrellás contra el brocal. Se queda quieto.'],
-            effects: [{ clock: 'pelea', delta: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }],
             next: 'p_patio_2',
           },
           partial: {
             text: ['Lo tirás al suelo, pero te lleva con él y su codo te encuentra las costillas.'],
-            effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }, { wound: 1 }],
             next: 'p_patio_2',
           },
           failure: {
@@ -426,12 +426,12 @@ export const p_patio_2 = {
         outcomes: {
           success: {
             text: ['Esta vez no amagás: el puño le entra por debajo de la mandíbula y se le doblan las rodillas.'],
-            effects: [{ clock: 'pelea', delta: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }],
             next: 'p_patio_2',
           },
           partial: {
             text: ['Cambian golpe por golpe: él escupe sangre, vos también.'],
-            effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }, { wound: 1 }],
             next: 'p_patio_2',
           },
           failure: {
@@ -452,12 +452,12 @@ export const p_patio_2 = {
         outcomes: {
           success: {
             text: ['—¿Eso es todo lo que te pagan? —Se le va la calma: viene de frente, sin cubrirse, y le entrás por el costado.'],
-            effects: [{ clock: 'pelea', delta: 1 }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }],
             next: 'p_patio_2',
           },
           partial: {
             text: ['Se enfurece, y la furia lo hace rápido: te alcanza antes de que aproveches la abertura, pero deja la guardia abierta y la pagás con creces.'],
-            effects: [{ clock: 'pelea', delta: 1 }, { addCondition: 'asustado' }],
+            effects: [{ clock: 'pelea', delta: 1 }, { set: 'run:centinela_abatido' }, { addCondition: 'asustado' }],
             next: 'p_patio_2',
           },
           failure: {
@@ -513,10 +513,36 @@ export const p_victoria = {
   npcs: ['centinela'],
   onEnter: [{ set: 'run:centinela_vencido' }],
   text: [
-    'El centinela queda tirado contra el aljibe, respirando con un silbido. No lo mataste. Le sacás la lanza de la mano y la tirás dentro del aljibe seco: cae sin ruido.',
+    {
+      variants: [
+        {
+          when: { visited: 'p_victoria', min: 1 },
+          text: 'El patio sigue como lo dejaste: el aljibe seco, las losas frías, ni un alma. Ya no hay nada acá que valga la pena mirar dos veces.',
+        },
+        {
+          when: { flag: 'run:centinela_abatido' },
+          text: 'El centinela queda tirado contra el aljibe, respirando con un silbido. No lo mataste. Le sacás la lanza de la mano y la tirás dentro del aljibe seco: cae sin ruido.',
+        },
+        {
+          text: 'El patio está tranquilo, casi vacío. Del centinela no hay rastro: como haya sido, ya no tiene nada que reclamarte.',
+        },
+      ],
+    },
     {
       speaker: 'centinela',
-      variants: [{ text: '—Andá. Andá y que te sirva. —Cierra los ojos.' }],
+      variants: [
+        {
+          when: { visited: 'p_victoria', min: 1 },
+          text: '—¿Otra vez vos? —Ni te mira—. Ya no tengo nada que agregar.',
+        },
+        {
+          when: { flag: 'run:centinela_abatido' },
+          text: '—Andá. Andá y que te sirva. —Cierra los ojos.',
+        },
+        {
+          text: '—Andá. No tengo ganas de discutirlo de nuevo.',
+        },
+      ],
     },
     'La puerta de la escalera está a diez pasos. Nada te la cierra ahora, salvo lo que decidas.',
   ],
