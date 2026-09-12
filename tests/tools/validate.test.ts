@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { CAMPAIGNS } from '@/content/campaigns/index';
 import type { Campaign } from '@/content/schema';
+import { WORLD } from '@/content/world/index';
 import { RULES, validateCampaign, type ValidateContext, type ValidationIssue } from '../../tools/lib/validate/index';
+import { minimal } from '../fixtures/campaigns/minimal';
 import { campanaBase, mundoDePrueba } from '../fixtures/campaigns/broken/base';
 import { rotaR01Ciclo, rotaR01Target } from '../fixtures/campaigns/broken/r01';
 import { rotaR02Aislada, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
@@ -10,6 +13,8 @@ import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05Solo
 import { rotaR06RondaSinEstado, rotaR06SinHuida, rotaR06UnAtributo } from '../fixtures/campaigns/broken/r06';
 import { rotaR07FlagNoDeclarado, rotaR07Prefijo, rotaR07RedefineMundo, rotaR07Reliquia, rotaR07SpeakerFuera } from '../fixtures/campaigns/broken/r07';
 import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/broken/r08';
+import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
+import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -193,5 +198,53 @@ describe('r08_memory_frame', () => {
     const issues = soloRegla(rotaR08SinDefecto, 'r08_memory_frame');
     expect(issues).toHaveLength(1);
     expect(issues[0]?.sceneId).toBe('b_inicio');
+  });
+});
+
+describe('r09_extreme', () => {
+  it('extrema con levelRange[0] < 3', () => {
+    const issues = soloRegla(rotaR09Extrema, 'r09_extreme');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[0]?.message).toContain('hablar');
+  });
+  it('extrema permitida con levelRange[0] >= 3', () => {
+    expect(validateCampaign({ ...rotaR09Extrema, levelRange: [3, 5] }, ctx())).toEqual([]);
+  });
+});
+
+describe('r10_todo', () => {
+  it('TODO residual falla en release y pasa en smoke', () => {
+    const issues = soloRegla(rotaR10Todo, 'r10_todo', 'release');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(validateCampaign(rotaR10Todo, ctx('smoke'))).toEqual([]);
+  });
+  it('detecta TODO en labels, lockedHint, outcome.text y epílogo', () => {
+    const conTodos: Campaign = {
+      ...campanaBase,
+      scenes: {
+        ...campanaBase.scenes,
+        b_fin_a: { ...campanaBase.scenes.b_fin_a!, ending: { id: 'fin_a', epilogue: ['TODO epílogo'] } },
+        b_descanso: { ...campanaBase.scenes.b_descanso!, choices: campanaBase.scenes.b_descanso!.choices.map((c) => (c.id === 'mirar'
+          ? { ...c, label: 'TODO label', outcome: { text: ['TODO outcome'], next: 'b_descanso' } }
+          : c)) },
+      },
+    };
+    const issues = soloRegla(conTodos, 'r10_todo', 'release');
+    expect(issues.map((i) => i.sceneId).sort()).toEqual(['b_descanso', 'b_descanso', 'b_fin_a']);
+  });
+});
+
+describe('campañas reales', () => {
+  it('minimal.ts pasa sin errores en release', () => {
+    expect(validateCampaign(minimal, { world: WORLD, profile: 'release' })).toEqual([]);
+  });
+  it('la campaña prueba pasa sin errores con su propio perfil', async () => {
+    const entry = CAMPAIGNS['prueba'];
+    expect(entry).toBeDefined();
+    const campaign = await entry!.load();
+    const issues = validateCampaign(campaign, { world: WORLD, profile: entry!.meta.lintProfile });
+    expect(issues.filter((i) => i.level === 'error')).toEqual([]);
   });
 });

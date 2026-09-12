@@ -8,6 +8,8 @@ import { r05_lethal } from './rules/r05_lethal';
 import { r06_encounter } from './rules/r06_encounter';
 import { r07_ids } from './rules/r07_ids';
 import { r08_memory_frame } from './rules/r08_memory_frame';
+import { r09_extreme } from './rules/r09_extreme';
+import { r10_todo } from './rules/r10_todo';
 import type { Rule, ValidateContext, ValidationIssue } from './types';
 
 export type { Rule, ValidateContext, ValidationIssue } from './types';
@@ -21,6 +23,8 @@ export const RULES: Record<string, Rule> = {
   r06_encounter,
   r07_ids,
   r08_memory_frame,
+  r09_extreme,
+  r10_todo,
 };
 
 export function validateCampaign(campaign: Campaign, ctx: ValidateContext): ValidationIssue[] {
