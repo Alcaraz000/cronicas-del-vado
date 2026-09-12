@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConditionSchema, EffectSchema } from '@/content/schema';
+import { ConditionSchema, EffectSchema, TextSchema, OutcomeSchema, RollSchema, ChoiceSchema } from '@/content/schema';
 
 describe('ConditionSchema', () => {
   it('acepta una condición anidada con all/any/not y todas las hojas', () => {
@@ -92,5 +92,107 @@ describe('EffectSchema', () => {
 
   it('rechaza un delta de reloj no entero', () => {
     expect(EffectSchema.safeParse({ clock: 'pelea', delta: 0.5 }).success).toBe(false);
+  });
+});
+
+describe('TextSchema y OutcomeSchema', () => {
+  it('acepta strings de narrador y párrafos con variantes', () => {
+    const texto: unknown = [
+      'Llegás al claro.',
+      {
+        variants: [
+          { when: { visited: 'm_inicio', min: 1 }, text: 'El claro otra vez.' },
+          { text: 'Un claro entre pinos.' },
+        ],
+      },
+      { speaker: 'm_guia', variants: [{ text: '—Por acá.' }] },
+    ];
+    expect(TextSchema.safeParse(texto).success).toBe(true);
+  });
+
+  it('rechaza un párrafo sin variantes', () => {
+    expect(TextSchema.safeParse([{ speaker: 'm_guia', variants: [] }]).success).toBe(false);
+  });
+
+  it('acepta un outcome con solo next y uno completo', () => {
+    expect(OutcomeSchema.safeParse({ next: 'm_final' }).success).toBe(true);
+    expect(
+      OutcomeSchema.safeParse({ text: ['Subís.'], effects: [{ set: 'run:partio' }], next: 'm_final' }).success,
+    ).toBe(true);
+  });
+
+  it('rechaza un outcome sin next', () => {
+    expect(OutcomeSchema.safeParse({ text: ['Subís.'] }).success).toBe(false);
+  });
+});
+
+describe('RollSchema', () => {
+  const tirada: unknown = {
+    attr: 'vigor',
+    difficulty: 'normal',
+    tags: ['fisico'],
+    advantageIf: { item: 'm_piedra' },
+    outcomes: {
+      success: { next: 'm_final' },
+      partial: { effects: [{ wound: 1 }], next: 'm_final' },
+      failure: { effects: [{ wound: 1 }], next: 'm_descanso' },
+    },
+  };
+
+  it('acepta una tirada con success, partial y failure', () => {
+    expect(RollSchema.safeParse(tirada).success).toBe(true);
+  });
+
+  it('rechaza una tirada sin failure', () => {
+    const sinFailure = {
+      ...(tirada as Record<string, unknown>),
+      outcomes: { success: { next: 'm_final' }, partial: { next: 'm_final' } },
+    };
+    expect(RollSchema.safeParse(sinFailure).success).toBe(false);
+  });
+
+  it('rechaza dificultad o tag fuera del catálogo', () => {
+    expect(RollSchema.safeParse({ ...(tirada as Record<string, unknown>), difficulty: 'imposible' }).success).toBe(false);
+    expect(RollSchema.safeParse({ ...(tirada as Record<string, unknown>), tags: ['cocina'] }).success).toBe(false);
+  });
+});
+
+describe('ChoiceSchema', () => {
+  const tirada: unknown = {
+    attr: 'vigor',
+    difficulty: 'normal',
+    tags: ['fisico'],
+    outcomes: { success: { next: 'm_final' }, partial: { next: 'm_final' }, failure: { next: 'm_descanso' } },
+  };
+
+  it('acepta una opción con outcome', () => {
+    expect(ChoiceSchema.safeParse({ id: 'partir', label: 'Partir', outcome: { next: 'm_final' } }).success).toBe(true);
+  });
+
+  it('acepta una opción con roll', () => {
+    expect(ChoiceSchema.safeParse({ id: 'trepar', label: 'Trepar el risco', roll: tirada }).success).toBe(true);
+  });
+
+  it('acepta requires y lockedHint', () => {
+    const opcion: unknown = {
+      id: 'contar',
+      label: 'Contarle al guía lo que viste',
+      requires: { met: 'm_guia' },
+      lockedHint: 'Todavía no conocés al guía',
+      outcome: { next: 'm_inicio' },
+    };
+    expect(ChoiceSchema.safeParse(opcion).success).toBe(true);
+  });
+
+  it('rechaza una opción con roll y outcome a la vez', () => {
+    const resultado = ChoiceSchema.safeParse({ id: 'trepar', label: 'Trepar', roll: tirada, outcome: { next: 'm_final' } });
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.issues.some((issue) => /exactamente uno/.test(issue.message))).toBe(true);
+    }
+  });
+
+  it('rechaza una opción sin roll ni outcome', () => {
+    expect(ChoiceSchema.safeParse({ id: 'nada', label: 'Nada' }).success).toBe(false);
   });
 });

@@ -231,3 +231,50 @@ export const EffectSchema = z.union([
   z.object({ fortune: z.number().int() }),
   z.object({ lethal: z.literal(true) }),
 ]);
+
+export const TextVariantSchema = z.object({
+  when: ConditionSchema.optional(),
+  text: z.string(),
+});
+
+export const ParagraphSchema = z.object({
+  speaker: idSchema.optional(),
+  variants: z.array(TextVariantSchema).min(1),
+});
+
+export const TextSchema = z.array(z.union([z.string(), ParagraphSchema]));
+
+export const OutcomeSchema = z.object({
+  text: TextSchema.optional(),
+  effects: z.array(EffectSchema).optional(),
+  next: idSchema,
+});
+
+export const RollSchema = z.object({
+  attr: AttrSchema,
+  difficulty: DifficultySchema,
+  tags: z.array(TagSchema),
+  advantageIf: ConditionSchema.optional(),
+  disadvantageIf: ConditionSchema.optional(),
+  outcomes: z.object({
+    success: OutcomeSchema,
+    partial: OutcomeSchema,
+    failure: OutcomeSchema,
+    crit: OutcomeSchema.optional(),
+    fumble: OutcomeSchema.optional(),
+  }),
+});
+
+export const ChoiceSchema = z
+  .object({
+    id: idSchema,
+    label: z.string().min(1),
+    requires: ConditionSchema.optional(),
+    lockedHint: z.string().min(1).optional(),
+    roll: RollSchema.optional(),
+    outcome: OutcomeSchema.optional(),
+  })
+  .refine((choice) => (choice.roll !== undefined) !== (choice.outcome !== undefined), {
+    message: 'Una opción debe tener exactamente uno de roll u outcome',
+    path: ['roll'],
+  });
