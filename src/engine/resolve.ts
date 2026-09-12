@@ -1,5 +1,5 @@
 import { CLASSES, FUMBLE_DEFAULT_CONDITION, LIMITS, SKILLS, TRAITS, type ClassId, type PowerScope, type Tag } from '@/content/catalog';
-import type { Campaign, Choice, Condition, Outcome, Roll, Scene } from '@/content/schema';
+import type { Campaign, Choice, Condition, Effect, Outcome, Roll, Scene } from '@/content/schema';
 import { evaluate } from '@/engine/conditions';
 import { classify, keepDice } from '@/engine/dice';
 import { applyEffects } from '@/engine/effects';
@@ -488,6 +488,45 @@ export function commitRoll(campaign: Campaign, state: GameState, pending: Pendin
   return enter(campaign, next, outcome.next);
 }
 
+/**
+ * Tope de reliquias que un personaje puede llevar entre campañas (spec §4, "Reliquias").
+ * Vive acá y no en `LIMITS` porque hoy es el único lugar que puede sumar una reliquia.
+ */
+const MAX_RELICS = 2;
+
+/**
+ * Lo que una `reward` de final sabe hacer. El esquema declara `reward?: Effect[]`, pero solo dos
+ * formas tienen semántica definida al cerrar la partida:
+ * - `{ give: <objeto con relic: true> }` → la reliquia pasa a `character.relics`.
+ * - `{ set: 'char:…' | 'world:…' }` → el flag se suma al canon que el final escribe.
+ * Todo lo demás se IGNORA en silencio, a propósito: un `give` de un objeto común iría a `run.items`,
+ * que se descarta justo acá; `wound`, `heal`, `clock`, `milestone`, `fortune` y compañía tocan una
+ * partida que ya terminó; un `set` de `run:` muere con ella. No se inventa semántica y no se lanza,
+ * para que una campaña mal escrita no le rompa el cierre a nadie: prohibirlos es trabajo del
+ * validador (regla de contenido), no del motor.
+ */
+function applyReward(
+  campaign: Campaign,
+  reward: readonly Effect[],
+  relics: readonly string[],
+): { relics: string[]; flags: string[] } {
+  const nextRelics = [...relics];
+  const flags: string[] = [];
+  for (const effect of reward) {
+    if ('give' in effect) {
+      const item = campaign.items[effect.give];
+      if (item?.relic !== true) continue;
+      if (nextRelics.includes(effect.give) || nextRelics.length >= MAX_RELICS) continue;
+      nextRelics.push(effect.give);
+      continue;
+    }
+    if ('set' in effect && (effect.set.startsWith('char:') || effect.set.startsWith('world:'))) {
+      if (!flags.includes(effect.set)) flags.push(effect.set);
+    }
+  }
+  return { relics: nextRelics, flags };
+}
+
 /** Unión ordenada sin duplicados: primero `base`, después los de `extra` que no estaban. */
 function unionStrings(base: readonly string[], extra: readonly string[]): string[] {
   const out = [...base];
@@ -502,7 +541,8 @@ function unionStrings(base: readonly string[], extra: readonly string[]): string
  * - ending: los `char:<campaña>.*` del personaje y los `world:<campaña>.*` del mundo se REEMPLAZAN por los
  *   apostados en run.stagedFlags (canon); los de otras campañas y los espacios compartidos se conservan.
  *   campaignLog: runs+1, wins+1, endings ∪ id, milestones ∪ run.milestones, canonEnding = id.
- * - defeat: runs+1, milestones ∪ run.milestones; lo apostado se descarta.
+ *   Además se aplica `endings[<id>].reward` (ver applyReward): reliquias al personaje y flags al canon.
+ * - defeat: runs+1, milestones ∪ run.milestones; lo apostado se descarta y no hay recompensa.
  * - death: como defeat, más character.dead, world.fallen y world:caido.<campaña>.
  * En todos los casos character.run = null.
  */
@@ -522,10 +562,17 @@ export function endRun(
   const milestones = unionStrings(prev.milestones, run.milestones);
 
   if (outcome.kind === 'ending') {
-    const stagedChar = run.stagedFlags.filter((f) => f.startsWith(charPrefix));
-    const stagedWorld = run.stagedFlags.filter((f) => f.startsWith(worldPrefix));
-    const charFlags = [...character.flags.filter((f) => !f.startsWith(charPrefix)), ...stagedChar];
-    const worldFlags = [...world.flags.filter((f) => !f.startsWith(worldPrefix)), ...stagedWorld];
+    const reward = applyReward(campaign, campaign.endings[outcome.endingId]?.reward ?? [], character.relics);
+    const canonChar = unionStrings(
+      run.stagedFlags.filter((f) => f.startsWith(charPrefix)),
+      reward.flags.filter((f) => f.startsWith('char:')),
+    );
+    const canonWorld = unionStrings(
+      run.stagedFlags.filter((f) => f.startsWith(worldPrefix)),
+      reward.flags.filter((f) => f.startsWith('world:')),
+    );
+    const charFlags = unionStrings(character.flags.filter((f) => !f.startsWith(charPrefix)), canonChar);
+    const worldFlags = unionStrings(world.flags.filter((f) => !f.startsWith(worldPrefix)), canonWorld);
     const entry: CampaignLogEntry = {
       runs: prev.runs + 1,
       wins: prev.wins + 1,
@@ -535,8 +582,14 @@ export function endRun(
     };
     return {
       world: { ...world, flags: worldFlags, fallen: [...world.fallen] },
-      character: { ...character, flags: charFlags, campaignLog: { ...character.campaignLog, [id]: entry }, run: null },
-      summary: { outcome, canonFlags: [...stagedChar, ...stagedWorld], discardedFlags: [] },
+      character: {
+        ...character,
+        flags: charFlags,
+        relics: reward.relics,
+        campaignLog: { ...character.campaignLog, [id]: entry },
+        run: null,
+      },
+      summary: { outcome, canonFlags: [...canonChar, ...canonWorld], discardedFlags: [] },
     };
   }
 

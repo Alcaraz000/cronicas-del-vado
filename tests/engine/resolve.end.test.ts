@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { endRun } from '@/engine/resolve';
+import type { Campaign, Effect, Item } from '@/content/schema';
 import type { GameState, RunOutcome } from '@/engine/types';
 import { makeCtx } from '../fixtures/state';
 import { tirada as campaign } from '../fixtures/campaigns/tirada';
@@ -160,5 +161,103 @@ describe('endRun · muerte', () => {
 describe('endRun · sin desenlace', () => {
   it('lanza si la partida no terminó', () => {
     expect(() => endRun(campaign, makeCtx(campaign).state)).toThrow('La partida no terminó todavía');
+  });
+});
+
+/* ------------------------------------------------------------------ recompensas de final */
+
+/** Reliquia de prueba: en el juego real las reliquias solo se declaran en `world/items.ts`. */
+const RELIQUIA: Item = {
+  id: 'reliquia_prueba',
+  name: 'Reliquia de prueba',
+  icon: 'reliquia_prueba',
+  description: 'Una piedra que sobrevive a la partida.',
+  relic: true,
+};
+
+const OTRA_RELIQUIA: Item = { ...RELIQUIA, id: 'otra_reliquia', name: 'Otra reliquia' };
+
+/** La campaña de prueba con las reliquias declaradas y `fin_prueba` dando la recompensa pedida. */
+function conRecompensa(reward: Effect[]): Campaign {
+  return {
+    ...campaign,
+    items: { ...campaign.items, reliquia_prueba: RELIQUIA, otra_reliquia: OTRA_RELIQUIA },
+    endings: { fin_prueba: { title: 'Fin de la prueba', reward } },
+  };
+}
+
+/** Partida terminada con `outcome` y las reliquias que ya trae el personaje. */
+function terminadaCon(outcome: RunOutcome, relics: string[] = []): GameState {
+  return makeCtx(campaign, {
+    character: { relics },
+    run: { stagedFlags: ['char:tirada.entro'], outcome },
+  }).state;
+}
+
+describe('endRun · recompensa del final', () => {
+  it('un `give` de un objeto `relic` deja la reliquia en el personaje', () => {
+    const conReward = conRecompensa([{ give: 'reliquia_prueba' }]);
+    const state = terminadaCon(FINAL);
+    const antes = JSON.stringify(state);
+    const { character } = endRun(conReward, state);
+    expect(character.relics).toEqual(['reliquia_prueba']);
+    expect(JSON.stringify(state)).toBe(antes);
+  });
+
+  it('no duplica una reliquia que el personaje ya tenía', () => {
+    const conReward = conRecompensa([{ give: 'reliquia_prueba' }]);
+    const { character } = endRun(conReward, terminadaCon(FINAL, ['reliquia_prueba']));
+    expect(character.relics).toEqual(['reliquia_prueba']);
+  });
+
+  it('con 2 reliquias no entra una tercera y el final se cierra igual', () => {
+    const conReward = conRecompensa([{ give: 'otra_reliquia' }]);
+    const state = terminadaCon(FINAL, ['una', 'dos']);
+    const { character, summary } = endRun(conReward, state);
+    expect(character.relics).toEqual(['una', 'dos']);
+    expect(character.campaignLog.tirada?.canonEnding).toBe('fin_prueba');
+    expect(summary.outcome).toEqual(FINAL);
+  });
+
+  it('un `set` de un flag char: o world: se suma al canon del final', () => {
+    const conReward = conRecompensa([{ set: 'char:met.orell' }, { set: 'world:tirada.sello' }]);
+    const { character, world, summary } = endRun(conReward, terminadaCon(FINAL));
+    expect(character.flags).toEqual(['char:tirada.entro', 'char:met.orell']);
+    expect(world.flags).toEqual(['world:tirada.sello']);
+    expect(summary.canonFlags).toEqual(['char:tirada.entro', 'char:met.orell', 'world:tirada.sello']);
+  });
+
+  it('ignora los efectos sin semántica de recompensa sin romper el cierre', () => {
+    const conReward = conRecompensa([
+      { give: 'llave' },
+      { set: 'run:leyo' },
+      { wound: 1 },
+      { milestone: 'hito_prueba' },
+    ]);
+    const { character, world, summary } = endRun(conReward, terminadaCon(FINAL));
+    expect(character.relics).toEqual([]);
+    expect(character.flags).toEqual(['char:tirada.entro']);
+    expect(world.flags).toEqual([]);
+    expect(character.campaignLog.tirada?.milestones).toEqual([]);
+    expect(summary.canonFlags).toEqual(['char:tirada.entro']);
+  });
+
+  it('la derrota no aplica la recompensa', () => {
+    const conReward = conRecompensa([{ give: 'reliquia_prueba' }, { set: 'world:tirada.sello' }]);
+    const { character, world } = endRun(conReward, terminadaCon({ kind: 'defeat' }));
+    expect(character.relics).toEqual([]);
+    expect(world.flags).toEqual([]);
+  });
+
+  it('la muerte no aplica la recompensa', () => {
+    const conReward = conRecompensa([{ give: 'reliquia_prueba' }, { set: 'world:tirada.sello' }]);
+    const { character, world } = endRun(conReward, terminadaCon({ kind: 'death' }));
+    expect(character.relics).toEqual([]);
+    expect(world.flags).toEqual(['world:caido.tirada']);
+  });
+
+  it('un final sin `reward` deja las reliquias como estaban', () => {
+    const { character } = endRun(campaign, terminadaCon(FINAL, ['una']));
+    expect(character.relics).toEqual(['una']);
   });
 });
