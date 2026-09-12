@@ -309,3 +309,71 @@ export const SceneSchema = z
     message: 'Una escena de tipo ending no puede tener opciones',
     path: ['choices'],
   });
+
+export const NpcSchema = z.object({
+  id: idSchema,
+  name: z.string().min(1),
+  portrait: idSchema,
+  voice: z.string(),
+  canonPrompt: z.string(),
+});
+
+export const PlaceSchema = z.object({
+  id: idSchema,
+  name: z.string().min(1),
+  background: idSchema,
+  variants: z.record(z.string(), z.string()).optional(),
+  canonPrompt: z.string(),
+});
+
+export const ItemSchema = z.object({
+  id: idSchema,
+  name: z.string().min(1),
+  icon: idSchema,
+  description: z.string(),
+  advantageTags: z.array(TagSchema).optional(),
+  relic: z.literal(true).optional(),
+});
+
+export const CampaignMetaSchema = z.object({
+  id: idSchema,
+  contentVersion: z.number().int().min(1),
+  title: z.string().min(1),
+  premise: z.string(),
+  cover: idSchema,
+  levelRange: z.tuple([z.number().int().min(1), z.number().int().min(1)]),
+  durationMin: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+  lethalScenes: z.number().int().min(0),
+  lintProfile: z.enum(['smoke', 'release']),
+  hidden: z.literal(true).optional(),
+});
+
+export const CampaignSchema = CampaignMetaSchema.extend({
+  start: idSchema,
+  scenes: z.record(z.string(), SceneSchema),
+  npcs: z.record(z.string(), NpcSchema),
+  places: z.record(z.string(), PlaceSchema),
+  items: z.record(z.string(), ItemSchema),
+  flags: z.record(z.string(), z.string()),
+  milestones: z.record(z.string(), z.object({ label: z.string().min(1) })),
+  clocks: z.record(z.string(), z.object({ max: z.number().int().min(1), label: z.string().min(1) })),
+  endings: z.record(
+    z.string(),
+    z.object({
+      title: z.string().min(1),
+      hidden: z.literal(true).optional(),
+      reward: z.array(EffectSchema).optional(),
+    }),
+  ),
+});
+
+export const WorldContentSchema = z.object({
+  npcs: z.record(z.string(), NpcSchema),
+  places: z.record(z.string(), PlaceSchema),
+  items: z.record(z.string(), ItemSchema),
+  flags: z.record(z.string(), z.string()),
+});
+
+export function parseCampaign(data: unknown): Campaign {
+  return CampaignSchema.parse(data);
+}

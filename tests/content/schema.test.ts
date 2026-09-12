@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import type { z } from 'zod';
 import {
   ConditionSchema,
   EffectSchema,
@@ -8,7 +9,14 @@ import {
   ChoiceSchema,
   RedirectSchema,
   SceneSchema,
+  CampaignSchema,
+  WorldContentSchema,
+  parseCampaign,
+  type Campaign,
+  type FlagId,
+  type WorldContent,
 } from '@/content/schema';
+import { minimal } from '../fixtures/campaigns/minimal';
 
 describe('ConditionSchema', () => {
   it('acepta una condición anidada con all/any/not y todas las hojas', () => {
@@ -279,5 +287,101 @@ describe('SceneSchema', () => {
   it('rechaza kind y lethal con valores inválidos', () => {
     expect(SceneSchema.safeParse({ id: 'x', kind: 'boss', place: 'm_claro', text: [], choices: [] }).success).toBe(false);
     expect(SceneSchema.safeParse({ id: 'x', kind: 'normal', lethal: false, place: 'm_claro', text: [], choices: [] }).success).toBe(false);
+  });
+});
+
+// Clon profundo del fixture: el fixture no tiene valores undefined ni funciones,
+// así que el viaje por JSON es sin pérdidas. Los tests modifican el clon, nunca `minimal`.
+function clonarMinimal(): Campaign {
+  return JSON.parse(JSON.stringify(minimal)) as Campaign;
+}
+
+describe('parseCampaign', () => {
+  it('devuelve una campaña igual al fixture minimal (y un objeto nuevo)', () => {
+    const parseada = parseCampaign(minimal);
+    expect(parseada).toEqual(minimal);
+    expect(parseada).not.toBe(minimal);
+  });
+
+  it('CampaignSchema.safeParse acepta el fixture', () => {
+    expect(CampaignSchema.safeParse(minimal).success).toBe(true);
+  });
+
+  it('falla si una opción tiene roll y outcome', () => {
+    const roto = clonarMinimal();
+    const trepar = roto.scenes['m_inicio']!.choices.find((choice) => choice.id === 'trepar')!;
+    trepar.outcome = { next: 'm_final' };
+    expect(() => parseCampaign(roto)).toThrow(/exactamente uno/);
+  });
+
+  it('falla si una opción no tiene ni roll ni outcome', () => {
+    const roto = clonarMinimal();
+    const partir = roto.scenes['m_inicio']!.choices.find((choice) => choice.id === 'partir')!;
+    delete partir.outcome;
+    expect(() => parseCampaign(roto)).toThrow(/exactamente uno/);
+  });
+
+  it('falla si un flag no tiene prefijo válido', () => {
+    const roto = clonarMinimal();
+    const partir = roto.scenes['m_inicio']!.choices.find((choice) => choice.id === 'partir')!;
+    // El cast es deliberado: queremos un dato mal formado que TypeScript no dejaría escribir.
+    partir.outcome!.effects = [{ set: 'partio' as unknown as FlagId }];
+    expect(() => parseCampaign(roto)).toThrow(/run:, char: o world:/);
+  });
+
+  it('falla si un ending tiene choices', () => {
+    const roto = clonarMinimal();
+    roto.scenes['m_final']!.choices = [{ id: 'volver', label: 'Volver al claro', outcome: { next: 'm_inicio' } }];
+    expect(() => parseCampaign(roto)).toThrow(/no puede tener opciones/);
+  });
+
+  it('falla si falta un campo obligatorio de la meta', () => {
+    const { start: _start, ...sinStart } = clonarMinimal();
+    expect(() => parseCampaign(sinStart)).toThrow();
+  });
+
+  it('falla con datos que no son un objeto', () => {
+    expect(() => parseCampaign(null)).toThrow();
+    expect(() => parseCampaign('minimal')).toThrow();
+  });
+
+  it('no muta la entrada', () => {
+    const copia = clonarMinimal();
+    parseCampaign(copia);
+    expect(copia).toEqual(minimal);
+  });
+});
+
+describe('WorldContentSchema', () => {
+  it('acepta un mundo vacío y uno con contenido', () => {
+    const vacio: unknown = { npcs: {}, places: {}, items: {}, flags: {} };
+    expect(WorldContentSchema.safeParse(vacio).success).toBe(true);
+    const conContenido: unknown = {
+      npcs: { orell: { id: 'orell', name: 'Orell', portrait: 'orell', voice: 'Grave.', canonPrompt: 'sargento de barba gris' } },
+      places: {},
+      items: { sello_del_vado: { id: 'sello_del_vado', name: 'Sello del vado', icon: 'sello', description: 'Frío.', relic: true } },
+      flags: { 'char:met.*': 'PNJ conocidos' },
+    };
+    expect(WorldContentSchema.safeParse(conContenido).success).toBe(true);
+  });
+
+  it('rechaza un mundo sin flags', () => {
+    expect(WorldContentSchema.safeParse({ npcs: {}, places: {}, items: {} }).success).toBe(false);
+  });
+});
+
+describe('tipos inferidos por zod', () => {
+  it('z.infer<typeof CampaignSchema> y Campaign son intercambiables', () => {
+    expectTypeOf<z.infer<typeof CampaignSchema>>().toMatchTypeOf<Campaign>();
+    expectTypeOf<Campaign>().toMatchTypeOf<z.infer<typeof CampaignSchema>>();
+  });
+
+  it('z.infer<typeof WorldContentSchema> y WorldContent son intercambiables', () => {
+    expectTypeOf<z.infer<typeof WorldContentSchema>>().toMatchTypeOf<WorldContent>();
+    expectTypeOf<WorldContent>().toMatchTypeOf<z.infer<typeof WorldContentSchema>>();
+  });
+
+  it('parseCampaign devuelve Campaign', () => {
+    expectTypeOf(parseCampaign).returns.toEqualTypeOf<Campaign>();
   });
 });
