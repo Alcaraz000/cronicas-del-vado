@@ -358,3 +358,54 @@ export function rerollDie(campaign: Campaign, state: GameState, pending: Pending
     canUsePower: computeCanUsePower(state, roll, band, pending.powerUsed),
   };
 }
+
+/** Marca el Poder como usado en el pending: failure/fumble pasan a partial; el resto no cambia. */
+function markPowerUsed(pending: PendingRoll): PendingRoll {
+  const band: Band = pending.band === 'failure' || pending.band === 'fumble' ? 'partial' : pending.band;
+  return { ...pending, band, powerUsed: true, canUsePower: false };
+}
+
+/**
+ * Convierte un Fallo (o Fallo grave) en Éxito con costo si el Poder de la clase aplica.
+ * Lanza si no se puede (ya usado en la partida o en esta tirada, banda no es fallo, scope no aplica).
+ */
+export function usePower(campaign: Campaign, state: GameState, pending: PendingRoll): PendingRoll {
+  const { roll } = rollOfChoice(campaign, state, pending.choiceId);
+  if (!computeCanUsePower(state, roll, pending.band, pending.powerUsed)) {
+    throw new Error('El Poder no se puede usar en esta tirada');
+  }
+  return markPowerUsed(pending);
+}
+
+/**
+ * Poder del Clérigo, desde la ficha: cura 1 Herida y limpia todas las condiciones.
+ * Si no es clérigo o ya usó el Poder, devuelve el mismo estado.
+ */
+export function usePlegaria(_campaign: Campaign, state: GameState): GameState {
+  const { character, run } = state;
+  if (character.classId !== 'clerigo' || run.powerUsed) {
+    return state;
+  }
+  const wounds = Math.max(0, run.wounds - 1) as Run['wounds'];
+  return { ...state, run: { ...run, wounds, conditions: [], powerUsed: true } };
+}
+
+/**
+ * Reconstruye el PendingRoll desde run.pending tras una recarga: beginRoll, un rerollDie por índice
+ * en orden y, si powerUsed, el Poder. Si al final la banda ya no es fallo (el jugador usó el Poder y
+ * después repitió un dado hasta el éxito), se conserva powerUsed sin tocar la banda.
+ */
+export function restorePending(campaign: Campaign, state: GameState): PendingRoll | null {
+  const persisted = state.run.pending;
+  if (persisted === undefined) {
+    return null;
+  }
+  let pending = beginRoll(campaign, state, persisted.choiceId);
+  for (const dieIndex of persisted.rerolls) {
+    pending = rerollDie(campaign, state, pending, dieIndex);
+  }
+  if (persisted.powerUsed) {
+    pending = pending.canUsePower ? usePower(campaign, state, pending) : markPowerUsed(pending);
+  }
+  return pending;
+}

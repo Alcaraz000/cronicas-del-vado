@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { classify, keepDice } from '@/engine/dice';
 import { rollDice } from '@/engine/rng';
 import { hashParagraph } from '@/engine/text';
-import { beginRoll, choose, enter, rerollDie } from '@/engine/resolve';
-import type { GameState, LogEntry } from '@/engine/types';
+import { beginRoll, choose, enter, rerollDie, restorePending, usePlegaria, usePower } from '@/engine/resolve';
+import type { Band, GameState, LogEntry, PendingRoll } from '@/engine/types';
 import { makeCtx, type StateOverrides } from '../fixtures/state';
-import { tirada as campaign } from '../fixtures/campaigns/tirada';
+import { findSeed, tirada as campaign, withSeed } from '../fixtures/campaigns/tirada';
 
 type SceneEntry = Extract<LogEntry, { kind: 'scene' }>;
 
@@ -25,6 +25,19 @@ function sceneEntries(log: LogEntry[]): SceneEntry[] {
 function textos(entry: { paragraphs: { text: string }[] }): string[] {
   return entry.paragraphs.map((p) => p.text);
 }
+
+/** Copia del pending con otra banda: sirve para probar reglas sin depender de los dados. */
+function forzar(p: PendingRoll, band: Band): PendingRoll {
+  return { ...p, band };
+}
+
+const GUERRERO: StateOverrides = {
+  character: { classId: 'guerrero', traits: [], attrs: { vigor: 2, astucia: 1, saber: 1, presencia: 0 } },
+};
+
+const CLERIGO: StateOverrides = {
+  character: { classId: 'clerigo', traits: [], attrs: { vigor: 0, astucia: 1, saber: 1, presencia: 2 } },
+};
 
 describe('choose', () => {
   it('deriva la memoria de la escena actual ANTES de aplicar efectos y entrar', () => {
@@ -208,5 +221,158 @@ describe('rerollDie', () => {
     const p = beginRoll(campaign, state, 'mirar');
     expect(() => rerollDie(campaign, state, p, 2)).toThrow('Índice de dado inválido: 2');
     expect(() => rerollDie(campaign, state, p, -1)).toThrow('Índice de dado inválido: -1');
+  });
+});
+
+describe('usePower', () => {
+  it('el mago convierte un Fallo en Éxito con costo en cualquier tirada', () => {
+    const state = estadoEn('t_inicio');
+    const p = forzar(beginRoll(campaign, state, 'mirar'), 'failure');
+    const q = usePower(campaign, state, p);
+    expect(q.band).toBe('partial');
+    expect(q.powerUsed).toBe(true);
+    expect(q.canUsePower).toBe(false);
+    expect(q.dice).toEqual(p.dice);
+    expect(q.rerolls).toEqual(p.rerolls);
+    // No muta el pending de entrada.
+    expect(p.band).toBe('failure');
+    expect(p.powerUsed).toBe(false);
+  });
+
+  it('también convierte un Fallo grave', () => {
+    const state = estadoEn('t_inicio');
+    const q = usePower(campaign, state, forzar(beginRoll(campaign, state, 'saber'), 'fumble'));
+    expect(q.band).toBe('partial');
+    expect(q.powerUsed).toBe(true);
+  });
+
+  it('no aplica sobre éxito, éxito con costo ni crítico', () => {
+    const state = estadoEn('t_inicio');
+    const p = beginRoll(campaign, state, 'mirar');
+    for (const band of ['success', 'partial', 'crit'] as const) {
+      expect(() => usePower(campaign, state, forzar(p, band))).toThrow('El Poder no se puede usar en esta tirada');
+    }
+  });
+
+  it('el guerrero solo puede usar Furia en tiradas con tag fisico', () => {
+    const state = estadoEn('t_inicio', GUERRERO);
+    const fisica = forzar(beginRoll(campaign, state, 'fuerza'), 'failure');
+    expect(usePower(campaign, state, fisica).band).toBe('partial');
+    const mental = forzar(beginRoll(campaign, state, 'saber'), 'failure');
+    expect(() => usePower(campaign, state, mental)).toThrow('El Poder no se puede usar en esta tirada');
+    expect(mental.canUsePower).toBe(false);
+  });
+
+  it('el clérigo nunca usa su Poder desde una tirada', () => {
+    const state = estadoEn('t_inicio', CLERIGO);
+    for (const id of ['saber', 'fuerza', 'mirar']) {
+      const p = forzar(beginRoll(campaign, state, id), 'failure');
+      expect(() => usePower(campaign, state, p)).toThrow('El Poder no se puede usar en esta tirada');
+    }
+  });
+
+  it('no se puede usar dos veces: ni en la misma tirada ni si run.powerUsed ya está', () => {
+    const state = estadoEn('t_inicio');
+    const q = usePower(campaign, state, forzar(beginRoll(campaign, state, 'mirar'), 'failure'));
+    expect(() => usePower(campaign, state, forzar(q, 'failure'))).toThrow('El Poder no se puede usar en esta tirada');
+    const gastado = estadoEn('t_inicio', { run: { powerUsed: true } });
+    const p = beginRoll(campaign, gastado, 'mirar');
+    expect(p.canUsePower).toBe(false);
+    expect(() => usePower(campaign, gastado, forzar(p, 'failure'))).toThrow('El Poder no se puede usar en esta tirada');
+  });
+
+  it('beginRoll deja canUsePower coherente con la banda real', () => {
+    const state = estadoEn('t_inicio');
+    const p = beginRoll(campaign, state, 'mirar');
+    expect(p.canUsePower).toBe(p.band === 'failure' || p.band === 'fumble');
+  });
+
+  it('tras usar el Poder, repetir un dado nunca vuelve a Fallo', () => {
+    const base = estadoEn('t_inicio');
+    const seed = findSeed((s) => beginRoll(campaign, s, 'mirar'), 'failure', base);
+    const state = withSeed(base, seed);
+    const q = usePower(campaign, state, beginRoll(campaign, state, 'mirar'));
+    const r = rerollDie(campaign, state, q, 0);
+    const valores = r.kept.map((i) => r.dice[i]!);
+    const cruda = classify(valores, r.preview.totalMod);
+    expect(r.band).toBe(cruda === 'failure' || cruda === 'fumble' ? 'partial' : cruda);
+    expect(r.powerUsed).toBe(true);
+    expect(r.canUsePower).toBe(false);
+  });
+});
+
+describe('usePlegaria', () => {
+  it('el clérigo cura 1 Herida, limpia condiciones y gasta el Poder', () => {
+    const state = estadoEn('t_inicio', { ...CLERIGO, run: { wounds: 2, conditions: ['asustado', 'empapado'] } });
+    const antes = JSON.stringify(state);
+    const next = usePlegaria(campaign, state);
+    expect(next.run.wounds).toBe(1);
+    expect(next.run.conditions).toEqual([]);
+    expect(next.run.powerUsed).toBe(true);
+    expect(JSON.stringify(state)).toBe(antes);
+  });
+
+  it('sano: las Heridas quedan en 0', () => {
+    const next = usePlegaria(campaign, estadoEn('t_inicio', { ...CLERIGO, run: { conditions: ['asustado'] } }));
+    expect(next.run.wounds).toBe(0);
+    expect(next.run.conditions).toEqual([]);
+    expect(next.run.powerUsed).toBe(true);
+  });
+
+  it('con el Poder ya usado devuelve el mismo estado', () => {
+    const state = estadoEn('t_inicio', { ...CLERIGO, run: { wounds: 2, powerUsed: true } });
+    expect(usePlegaria(campaign, state)).toBe(state);
+  });
+
+  it('otra clase devuelve el mismo estado', () => {
+    const state = estadoEn('t_inicio', { run: { wounds: 2, conditions: ['asustado'] } }); // mago
+    expect(usePlegaria(campaign, state)).toBe(state);
+  });
+});
+
+describe('restorePending', () => {
+  it('devuelve null si no hay tirada pendiente', () => {
+    expect(restorePending(campaign, estadoEn('t_inicio'))).toBeNull();
+  });
+
+  it('sin rerolls ni Poder equivale a beginRoll', () => {
+    const state = estadoEn('t_inicio', { run: { pending: { choiceId: 'saber', rerolls: [], powerUsed: false } } });
+    expect(restorePending(campaign, state)).toEqual(beginRoll(campaign, state, 'saber'));
+  });
+
+  it('reproduce exactamente un pending con dos rerolls y Poder (mismos dados y banda)', () => {
+    const base = estadoEn('t_inicio');
+    const construir = (s: GameState): PendingRoll =>
+      rerollDie(campaign, s, rerollDie(campaign, s, beginRoll(campaign, s, 'mirar'), 0), 1);
+    const seed = findSeed(construir, 'failure', base);
+    const state = withSeed(base, seed);
+    const esperado = usePower(campaign, state, construir(state));
+    const conPending: GameState = {
+      ...state,
+      run: { ...state.run, pending: { choiceId: 'mirar', rerolls: [0, 1], powerUsed: true } },
+    };
+    const restaurado = restorePending(campaign, conPending);
+    expect(restaurado).toEqual(esperado);
+    expect(restaurado?.dice).toEqual(esperado.dice);
+    expect(restaurado?.band).toBe('partial');
+    expect(restaurado?.rerolls).toEqual([0, 1]);
+    expect(restaurado?.powerUsed).toBe(true);
+    expect(restaurado?.canUsePower).toBe(false);
+  });
+
+  it('si el Poder se usó y después un dado repetido dio éxito, conserva powerUsed sin cambiar la banda', () => {
+    const base = estadoEn('t_inicio');
+    const construir = (s: GameState): PendingRoll => rerollDie(campaign, s, beginRoll(campaign, s, 'mirar'), 0);
+    const seed = findSeed(construir, 'success', base);
+    const state = withSeed(base, seed);
+    const conPending: GameState = {
+      ...state,
+      run: { ...state.run, pending: { choiceId: 'mirar', rerolls: [0], powerUsed: true } },
+    };
+    const restaurado = restorePending(campaign, conPending);
+    expect(restaurado?.band).toBe('success');
+    expect(restaurado?.powerUsed).toBe(true);
+    expect(restaurado?.canUsePower).toBe(false);
+    expect(restaurado?.dice).toEqual(construir(state).dice);
   });
 });
