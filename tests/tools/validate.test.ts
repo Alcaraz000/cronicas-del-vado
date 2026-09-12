@@ -4,6 +4,9 @@ import { RULES, validateCampaign, type ValidateContext, type ValidationIssue } f
 import { campanaBase, mundoDePrueba } from '../fixtures/campaigns/broken/base';
 import { rotaR01Ciclo, rotaR01Target } from '../fixtures/campaigns/broken/r01';
 import { rotaR02Aislada, rotaR02SoloMago } from '../fixtures/campaigns/broken/r02';
+import { rotaR03FinalConOpciones, rotaR03Pocas, rotaR03PocasLibres } from '../fixtures/campaigns/broken/r03';
+import { rotaR04Ambos } from '../fixtures/campaigns/broken/r04';
+import { rotaR05Conteo, rotaR05EntradaPorTirada, rotaR05LethalFuera, rotaR05SoloFisico } from '../fixtures/campaigns/broken/r05';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -67,5 +70,64 @@ describe('r02_reach', () => {
     expect(texto).toContain('Explorador');
     expect(texto).toContain('Clérigo');
     expect(texto).not.toContain('Mago');
+  });
+});
+
+describe('r03_choices', () => {
+  it('menos de LIMITS.minChoices opciones: dos issues (total y libres) en smoke y en release', () => {
+    expect(soloRegla(rotaR03Pocas, 'r03_choices', 'smoke').map((i) => i.sceneId)).toEqual(['b_inicio', 'b_inicio']);
+    expect(soloRegla(rotaR03Pocas, 'r03_choices', 'release').map((i) => i.sceneId)).toEqual(['b_inicio', 'b_inicio']);
+  });
+  it('un final con opciones (zod lo rechaza antes; la regla se prueba directo)', () => {
+    expect(validateCampaign(rotaR03FinalConOpciones, ctx())[0]?.rule).toBe('schema');
+    const issues = RULES.r03_choices?.(rotaR03FinalConOpciones, ctx()) ?? [];
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_fin_a');
+    expect(issues[0]?.message).toContain('0 opciones');
+  });
+  it('pocas opciones libres: falla en release y en smoke', () => {
+    const issues = soloRegla(rotaR03PocasLibres, 'r03_choices', 'release');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('sin requires');
+    expect(soloRegla(rotaR03PocasLibres, 'r03_choices', 'smoke')).toHaveLength(1);
+  });
+});
+
+describe('r04_choice_shape', () => {
+  it('opción con roll y outcome a la vez (zod lo rechaza antes; la regla se prueba directo)', () => {
+    expect(validateCampaign(rotaR04Ambos, ctx())[0]?.rule).toBe('schema');
+    const issues = RULES.r04_choice_shape?.(rotaR04Ambos, ctx()) ?? [];
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[0]?.message).toContain('descansar');
+  });
+  it('opción sin roll ni outcome y tirada sin failure', () => {
+    const sinNada = { ...campanaBase.scenes.b_inicio!, choices: campanaBase.scenes.b_inicio!.choices.map((c) => (c.id === 'descansar' ? { id: 'descansar', label: 'Buscar refugio' } : c)) };
+    const rota = { ...campanaBase, scenes: { ...campanaBase.scenes, b_inicio: sinNada } } as unknown as Campaign;
+    const issues = RULES.r04_choice_shape?.(rota, ctx()) ?? [];
+    expect(issues.map((i) => i.message)).toEqual(['La opción descansar debe tener exactamente uno de roll u outcome (tiene ninguno)']);
+  });
+});
+
+describe('r05_lethal', () => {
+  it('lethal fuera de una escena lethal', () => {
+    const issues = soloRegla(rotaR05LethalFuera, 'r05_lethal');
+    expect(issues.map((i) => i.sceneId)).toEqual(['b_inicio']);
+  });
+  it('entrada a la escena mortal por outcome de tirada', () => {
+    const issues = soloRegla(rotaR05EntradaPorTirada, 'r05_lethal');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_inicio');
+    expect(issues[0]?.message).toContain('b_cripta');
+  });
+  it('lethalScenes no coincide', () => {
+    const issues = soloRegla(rotaR05Conteo, 'r05_lethal');
+    expect(issues[0]?.message).toContain('lethalScenes');
+    expect(issues[0]?.sceneId).toBeUndefined();
+  });
+  it('sin tirada que no sea fisico', () => {
+    const issues = soloRegla(rotaR05SoloFisico, 'r05_lethal');
+    expect(issues.map((i) => i.sceneId)).toEqual(['b_cripta']);
+    expect(issues[0]?.message).toContain('fisico');
   });
 });
