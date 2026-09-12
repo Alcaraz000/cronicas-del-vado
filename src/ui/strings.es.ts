@@ -197,6 +197,10 @@ export const S = {
       `No se puede: ${tag} es la Debilidad del ${clase}.`,
     motivoRepetida: 'Ya la tenés.',
   },
+  ficha: {
+    caido: (nombre: string, clase: string, nivel: number, campana: string): string =>
+      `${nombre}, ${clase} de nivel ${nivel}, murió en ${campana}`,
+  },
   /**
    * El modal de Opciones (spec §6), que por ahora es exportar e importar el guardado.
    * Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de opciones
