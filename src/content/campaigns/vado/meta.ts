@@ -7,8 +7,10 @@ import type { CampaignMeta } from '@/content/schema';
  * `id: 'vado'` en particular sostiene a r07, que exige que todo flag de canon empiece con
  * `char:vado.` / `world:vado.`.
  *
- * `hidden: true` es de la Fase C: mientras el texto de las escenas sea `TODO`, la campaña no se
- * le ofrece al jugador. La Fase D lo saca junto con el cambio de `lintProfile` a `'release'`.
+ * `hidden` ya no está: era de la Fase C, para no ofrecerle al jugador una campaña cuyo texto
+ * todavía decía `TODO`. La Fase D lo saca junto con el cambio de `lintProfile` a `'release'`.
+ * Se saca omitiendo la clave, no poniéndola en `false`: el esquema la declara
+ * `z.literal(true).optional()`, así que `hidden: false` no valida.
  */
 export const meta: CampaignMeta = {
   id: 'vado',
@@ -20,6 +22,5 @@ export const meta: CampaignMeta = {
   levelRange: [1, 3],
   durationMin: [30, 45],
   lethalScenes: 1,
-  lintProfile: 'smoke',
-  hidden: true,
+  lintProfile: 'release',
 };

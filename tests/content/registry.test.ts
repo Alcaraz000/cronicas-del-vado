@@ -76,10 +76,11 @@ describe('CAMPAIGNS (registro de campañas)', () => {
     const entry = CAMPAIGNS['vado'];
     expect(entry).toBeDefined();
     expect(entry?.meta).toBe(vadoMeta);
-    // Oculta mientras el texto sea `TODO` (esqueleto de la Fase C): se ofrece al jugador recién
-    // cuando la prosa esté escrita y el perfil pase a 'release'.
-    expect(entry?.meta.hidden).toBe(true);
-    expect(listCampaigns(false).map((m) => m.id)).not.toContain('vado');
+    // Fase D: la prosa está escrita y el perfil pasó a 'release', así que la campaña ya se le
+    // ofrece al jugador. `hidden` se saca omitiendo la clave, no poniéndola en `false`: el
+    // esquema la declara `z.literal(true).optional()`.
+    expect(entry?.meta.hidden).toBeUndefined();
+    expect(listCampaigns(false).map((m) => m.id)).toContain('vado');
     expect(listCampaigns(true).map((m) => m.id)).toContain('vado');
 
     const loaded = await entry!.load();

@@ -196,10 +196,11 @@ describe('vado: chasis y meta', () => {
     expect(meta.levelRange).toEqual([1, 3]);
     expect(meta.durationMin).toEqual([30, 45]);
     expect(meta.lethalScenes).toBe(1);
-    expect(meta.lintProfile).toBe('smoke');
-    // No está en el contrato §8.1: es el estado de la Fase C. Mientras el texto sea `TODO` la
-    // campaña no se le ofrece al jugador, y se destapa junto con el cambio de perfil a 'release'.
-    expect(meta.hidden).toBe(true);
+    expect(meta.lintProfile).toBe('release');
+    // No está en el contrato §8.1: `hidden` era el estado de la Fase C. Con la prosa escrita la
+    // campaña se le ofrece al jugador y la clave se omite: el esquema la declara
+    // `z.literal(true).optional()`, así que `hidden: false` no valida.
+    expect(meta.hidden).toBeUndefined();
     expect(campaign.start).toBe('p_camino');
     expect(campaign.scenes[campaign.start]).toBeDefined();
   });
