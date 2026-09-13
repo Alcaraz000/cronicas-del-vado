@@ -150,16 +150,19 @@ describe('StatusBar', () => {
     expect(cuerpoDe('.ficha,.abandonar')).not.toMatch(/var\(--color-peligro/);
   });
 
-  it('en móvil se compacta: "Condiciones: ..." se oculta, el resto de la barra queda igual', () => {
-    // Mismo motivo que arriba (jsdom no evalúa `@media`) y mismo método: leer el archivo. El
-    // lugar, las marcas de heridas/Fortuna y los botones comparten `.dato`/clases propias sin
-    // tocar; lo único que este cambio saca en móvil es la línea de condiciones, la más larga y
-    // la que menos falta hace con la barra siempre visible.
+  it('en móvil solo se oculta "sin condiciones": la regla vieja que tapaba toda la línea no debe quedar', () => {
+    // Mismo motivo que arriba (jsdom no evalúa `@media`) y mismo método: leer el archivo.
+    // Oleada final de la Fase H, hallazgo B3: los costos que esta fase agregó son en su mayoría
+    // condiciones (perseguido, empapado, agotado), y ocultar `.condiciones` sin condición
+    // le tapaba al jugador de teléfono el precio que estaba pagando, mientras las Heridas
+    // seguían a la vista. Ahora la regla de móvil apunta al modificador `.condicionesVacias`
+    // que `StatusBar` solo agrega cuando no hay ninguna condición.
     const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
     const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
-    const condiciones = cuerpoDeBloque(movil, '.condiciones');
-    expect(condiciones, '.condiciones no tiene una regla propia en el bloque de móvil').not.toBeNull();
-    expect(condiciones).toMatch(/display\s*:\s*none/);
+    expect(cuerpoDeBloque(movil, '.condiciones'), '.condiciones ya no debe ocultarse entera en móvil').toBeNull();
+    const vacias = cuerpoDeBloque(movil, '.condicionesVacias');
+    expect(vacias, '.condicionesVacias no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(vacias).toMatch(/display\s*:\s*none/);
   });
 
   it('la línea de condiciones tiene su propia clase además de `.dato`, para poder ocultarla en móvil sin tocar heridas ni Fortuna', () => {
@@ -176,5 +179,38 @@ describe('StatusBar', () => {
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
     expect(condiciones).toHaveClass('condiciones');
+  });
+
+  it('sin condiciones, la línea lleva el modificador que la oculta en móvil', () => {
+    render(
+      <StatusBar
+        placeName="Torre abandonada"
+        wounds={0}
+        fortune={3}
+        fortuneMax={3}
+        conditions={[]}
+        onAbandon={vi.fn()}
+        onOpenFicha={vi.fn()}
+      />,
+    );
+    const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
+    expect(condiciones).toHaveClass('condicionesVacias');
+  });
+
+  it('con condiciones reales (los costos de esta fase: perseguido, empapado, agotado), la línea NO lleva el modificador y queda visible en móvil', () => {
+    render(
+      <StatusBar
+        placeName="Torre abandonada"
+        wounds={0}
+        fortune={3}
+        fortuneMax={3}
+        conditions={['perseguido']}
+        onAbandon={vi.fn()}
+        onOpenFicha={vi.fn()}
+      />,
+    );
+    const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
+    expect(condiciones).toHaveClass('condiciones');
+    expect(condiciones).not.toHaveClass('condicionesVacias');
   });
 });

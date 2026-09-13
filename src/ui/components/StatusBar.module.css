@@ -49,13 +49,22 @@
   color: var(--color-texto-suave);
 }
 
-/* Fase H, tarea 5: en la hoja móvil la barra se compacta. El lugar y las marcas de heridas y
-   Fortuna entran igual (son cortas, con símbolos); "Condiciones: sin condiciones" es la línea
-   más larga de las tres y la que menos falta hace con la barra siempre a la vista — la Ficha
-   (tecla C) ya muestra las condiciones con detalle. Mismo punto de corte que
-   `EscenaScreen.module.css` (800px), para que los dos cambien de layout juntos. */
+/* Selector propio, sin declaraciones: existe para que `styles.condiciones` se pueda aplicar
+   siempre (así el módulo CSS exporta la clase) y para no confundirlo con `.dato`, que comparten
+   las tres líneas. El aspecto sigue siendo el de `.dato`; lo único que distingue a esta línea es
+   `.condicionesVacias`, más abajo. */
+.condiciones {
+}
+
+/* Fase H, tarea 5 (revisado en la oleada final): en la hoja móvil la barra se compacta, pero solo
+   "Condiciones: sin condiciones" no aporta nada. Cuando SÍ hay condiciones —los costos que esta
+   fase agregó son en su mayoría condiciones (perseguido, empapado, agotado)— tienen que verse en
+   el teléfono igual que las Heridas: ocultarlas dejaba al jugador pagando un precio que la barra
+   no le mostraba. `.condicionesVacias` es el modificador que `StatusBar` agrega solo cuando
+   `conditions` está vacío; `.condiciones` sola (con contenido) se queda visible. Mismo punto de
+   corte que `EscenaScreen.module.css` (800px), para que los dos cambien de layout juntos. */
 @media (max-width: 800px) {
-  .condiciones {
+  .condicionesVacias {
     display: none;
   }
 }
