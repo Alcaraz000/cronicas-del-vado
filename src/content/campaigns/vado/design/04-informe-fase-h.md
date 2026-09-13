@@ -172,3 +172,83 @@ las tres están fuera de la tabla de esta tarea:
 2. `c2_vado_crecido.entregar_lo_que_llevas` y `c2_otra_orilla.dejar_el_sello_en_la_cadena`: dos
    Burnt Bridge libres seguidos, sin Herida ni tic, en el cuello 2.
 3. `cl_molino.encarar_a_dravos`: primera libre del clímax, sin costo.
+
+---
+
+## 5. Anexo — segunda vuelta: cobrar donde la medición dice
+
+El §4 midió que la ruta real de la política prudente no pasa por cinco de las seis opciones de la
+tabla. La decisión fue **cobrar donde la medición señala**, y no abrir una tarea aparte: las tres
+palancas están todas en escenas bisagra, así que es el mismo principio ya aprobado puesto donde hace
+falta. Ninguna de las tres cobra `sospecha`: el reloj llega a 4 y redirige, y la primera vuelta ya
+gastó un tic. Las monedas acá son una relación, dos condiciones y una Herida.
+
+| Escena · opción | Costo nuevo | Por qué es consistente |
+|---|---|---|
+| `c2_vado_crecido.entregar_lo_que_llevas` | `{ addCondition: 'perseguido' }` | Era la manera de cruzar el tramo más peligroso de la campaña sin pagar nada físico: el que llega sin la piedra entregaba un bulto vacío y lo pasaban gratis. La escena ya narraba el precio: desde la isla **dicen tu nombre, que ya lo tienen**, bajan dos hombres y te suben en vilo "como una mercadería". `perseguido` es exactamente eso: llegás siendo carga suya y no te sueltan. **Sigue sin poder matar** y su prosa sigue sin una palabra de muerte, como pide biblia §11 para las opciones 3, 4 y 5. |
+| `c2_otra_orilla.dejar_el_sello_en_la_cadena` | `{ addCondition: 'empapado' }` | Era la otra salida gratis del cuello 2: esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— sin cobrar nada. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche: el precio es meterse, y las dos variantes del texto lo dicen ahora. |
+| `cl_molino.encarar_a_dravos` | `{ set: 'run:dravos_sabe' }` | Era la primera libre del clímax y la única de sus cuatro libres sin costo. Lo que se paga por salir al claro y decirlo es la última ventaja que queda: la sorpresa. Es la moneda propia de la escena —la usan `rendirte_de_entrada` y el fallo de `escuchar`— y su **ausencia** es lo que abre `interrumpir_antes_de_que_firmen`. Una relación que se enfría, no un tic de reloj. |
+| `cl_dravos.huir_escaleras_abajo` | `empapado` en el éxito · `{ wound: 1 }` en el parcial | Era la **única** salida del encuentro que no movía el reloj `pelea` y no cobraba nada en dos de sus tres bandas: las otras cinco piden haber peleado, la piedra, el flag de Orell, una Herida o quedar Agotado. El éxito cobra lo que su propio texto ya narraba ("el agua de abajo está más fría y te recibe entera") y el parcial cobra el medio escalón que te llevás puesto, que es la gramática de esta campaña para un parcial: pasás pagando. |
+
+Las cuatro se anuncian en la etiqueta, igual que las seis de la primera vuelta:
+
+| Antes | Ahora |
+|---|---|
+| Entregar lo que llevás y que te pasen | **Entregar lo que llevás y cruzar bajo custodia** |
+| Dejar el sello donde está y no volver | **Meterte al agua, dejar el sello y no volver** |
+| Encarar a Dravos delante de todos | **Encarar a Dravos y que sepa que sabés** |
+| Huir escaleras abajo, hacia el sótano | **Huir escaleras abajo, al agua del sótano** |
+
+### Lo que dio la segunda medición
+
+| Clase · nivel · prudente | Derrota | Heridas | Hitos | Tiradas |
+|---|---|---|---|---|
+| guerrero 1 | 0,0 → 0,0 → 0,0 % | 0,00 → 1,30 → **1,33** | 9,0 → 9,0 → 9,0 | 0,0 → 1,0 → **1,0** |
+| guerrero 3 | 0,0 → 1,5 → **0,5 %** | 0,00 → 1,19 → **1,43** | 9,0 → 9,0 → 9,0 | 0,0 → 1,0 → **1,0** |
+| explorador 1 | 0,0 → 0,0 → 0,0 % | 0,00 → 0,00 → **0,47** | 9,0 → 9,0 → 9,0 | 0,0 → 1,3 → **2,0** |
+| explorador 3 | 0,0 → 0,0 → 0,0 % | 0,00 → 0,00 → **0,45** | 9,0 → 9,0 → 9,0 | 0,0 → 1,4 → **2,0** |
+| mago 1 y 3 | 0,0 → 0,0 → 0,0 % | 0,00 → 0,00 → 0,00 | 9,0 → 9,0 → 9,0 | 0,0 → 0,0 → **0,0** |
+| clerigo 1 | 0,0 → 0,0 → 0,0 % | 0,00 → 0,31 → **0,39** | 9,0 → 9,0 → 9,0 | 0,0 → 1,7 → **1,8** |
+| clerigo 3 | 0,0 → 0,0 → 0,0 % | 0,00 → 0,10 → **0,18** | 9,0 → 9,0 → 9,0 | 0,0 → 1,5 → **1,5** |
+
+Campaña entera (línea de base → primera vuelta → segunda): derrota **20,7 → 21,6 → 22,7 %** ·
+heridas **0,90 → 1,09 → 1,19** · tiradas **6,2 → 6,4 → 6,5** · escenas distintas 25,1 en las tres,
+con el porcentaje dentro de 24–30 en **75,9 → 75,4 → 74,9 %**. Las cuatro aserciones pasan y la
+codiciosa sube de 3,4 a 3,5 tiradas.
+
+**El efecto que sí se ve en la traza:** el `perseguido` del vado crecido le da desventaja al
+`huir_escaleras_abajo` del clímax, que es por donde la ruta muda se escapaba. Ahora ya no se escapa:
+el explorador y el clérigo pelean dos rondas antes de salir, y el guerrero tres. La prudente entra al
+clímax marcada, mojada y sin sorpresa, que era exactamente lo que no le costaba nada.
+
+**Lo que NO se movió, y se deja de perseguir por decisión del coordinador:** la columna Hitos sigue
+en 9,0 y la derrota sigue cerca de 0. El motivo es el del §4 y no cambió: **seis de los nueve hitos
+son `onEnter` de escenas obligatorias** y marcan haber estado, que es lo que biblia §7.4 quiere que
+marquen; mientras la prudente **termine** la partida, 9 es el número correcto. Para que baje habría
+que hacerla perder, y perder pide 3 Heridas: con dos o tres rondas de encuentro no llega. A partir
+de acá es una decisión de balance de diseño, no de implementación.
+
+**El mago sigue terminando la campaña sin tirar un solo dado.** Cierra el encuentro con
+`apagar_la_runa_un_latido`, su opción de clase, que por contrato de biblia §9.5 es sabor y atajo y
+paga con la condición `agotado`. Se reporta y no se toca: cambiarlo sería romper el contrato de las
+doce opciones `[Clase]`.
+
+### `fin_hundido` cae un 36 % — anotado y sin compensar
+
+De **1450** partidas en la línea de base a **929** después de las dos vueltas. La causa es una sola y
+es directa: `cl_desenlace.cerrar_la_compuerta_con_orell` pide `run:orell_confia`, y ese flag dejó de
+regalarse en el `onEnter` de `a2_ley_orell`. El otro camino al mismo final,
+`devolver_el_sello_a_la_piedra` (Vigor · normal, sin `requires`), sigue abierto para las cuatro
+clases, y la aserción 3 confirma que las cuatro siguen llegando a los cuatro finales.
+
+**No se compensó tocando otra cosa.** Es un efecto de balance y lo decide Gabriel.
+
+### `enfrentar_a_dravos` se queda donde está
+
+Se evaluó atarlo a haber tirado, que era la alternativa que contemplaba el brief, y se descartó por
+lo que significa el hito. "Atado a haber tirado" habría incluido `huir_escaleras_abajo` —que es una
+tirada, y es huir— y habría dejado **sin** hito al jugador que se ganó a Orell en la rama A y usó su
+palabra en `que_orell_lo_detenga`, que es el camino más caro de todos. Es decir: habría premiado huir
+y castigado el camino que la fase quiere premiar. El hito sigue en `cl_dravos.onEnter` y
+`cl_halvar.onEnter`, como dice biblia §7.4, y el defecto que el brief nombraba —que el enfrentamiento
+se cerrara sin tirar un dado— lo arregla el cambio de `run:orell_confia`.

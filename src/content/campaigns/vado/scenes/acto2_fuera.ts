@@ -47,8 +47,16 @@ import type { Scene } from '@/content/schema';
  * ni un `requires`, ni un `lockedHint`, ni un `roll`, ni un `effects`, ni un `next`, ni un
  * `redirect`, ni un `onEnter`, ni un `npcs`, ni un `place`, ni un `variant`. Entró texto y nada más.
  *
- * FASE H · TAREA 2 — "que ceder cueste algo". Lo único que cambió de estructura en este archivo es
- * un `effects`: `c2_orilla.remar_en_la_barca_de_tome` paga +1 de `sospecha`, con su `label` nuevo.
+ * FASE H · TAREA 2 — "que ceder cueste algo". Lo único que cambió de estructura en este archivo son
+ * tres `effects`, con sus `label`:
+ *   1. `c2_orilla.remar_en_la_barca_de_tome` paga +1 de `sospecha` (primera vuelta, tabla del brief).
+ *   2. `c2_vado_crecido.entregar_lo_que_llevas` → `{ addCondition: 'perseguido' }` (segunda vuelta).
+ *   3. `c2_otra_orilla.dejar_el_sello_en_la_cadena` → `{ addCondition: 'empapado' }` (segunda vuelta).
+ * Las dos de la segunda vuelta salen de la MEDICIÓN, no de la tabla: la traza del simulador mostró
+ * que la ruta de la política prudente cruza el cuello 2 por esas dos y no pagaba nada físico en todo
+ * el tramo más peligroso de la campaña. Ninguna de las dos cobra `sospecha`, a propósito: el reloj
+ * llega a 4 y redirige, y la primera vuelta ya gastó un tic. La 2 sigue sin poder matar y su prosa
+ * sigue sin una palabra de muerte, como pide biblia §11 para las opciones 3, 4 y 5.
  * Ninguna opción se sacó ni ganó `requires`, así que la columna `opc`/`libres` de arriba sigue
  * valiendo. `c2_anochece` NO se tocó a propósito: es escena de aviso, no de habilidad, y su
  * asimetría correcta ya existe (`buscar_una_cuerda` entrega la `cuerda_de_molinero`, que es ventaja
@@ -1170,17 +1178,25 @@ export const c2_vado_crecido = {
       },
     },
     // Burnt Bridge, sin tirada: se entrega la piedra y con ella el bando.
+    //
+    // FASE H · tarea 2, segunda vuelta. Era la manera de cruzar el tramo más peligroso de la campaña
+    // sin pagar nada físico: el que llega sin la piedra entregaba un bulto vacío y lo pasaban gratis.
+    // Ahora se cobra lo que la escena ya narraba: te suben ellos, dicen tu nombre porque ya lo
+    // tienen, y los dos hombres que te suben no te sueltan. `perseguido` es exactamente eso.
+    // NO cobra `sospecha` (el reloj ya llegó lejos) y NO puede matar: sigue siendo una de las tres
+    // salidas seguras que pide biblia §11, y su prosa no usa una sola palabra de muerte.
     {
       id: 'entregar_lo_que_llevas',
-      label: 'Entregar lo que llevás y que te pasen',
+      label: 'Entregar lo que llevás y cruzar bajo custodia',
       outcome: {
         text: [
-          'Desde la isla te alumbran con un farol tapado y dicen tu nombre, que ya lo tienen. Atás el bulto a la cadena y del otro extremo tiran. Después bajan dos hombres con botas hasta la ingle y te suben en vilo, con el cuidado de quien sube una mercadería que no se puede mojar. Nadie pregunta nada: ya está pago.',
+          'Desde la isla te alumbran con un farol tapado y dicen tu nombre, que ya lo tienen. Atás el bulto a la cadena y del otro extremo tiran. Después bajan dos hombres con botas hasta la ingle y te suben en vilo, con el cuidado de quien sube una mercadería que no se puede mojar. Nadie pregunta nada: ya está pago. En la grava, los dos hombres no vuelven a la barca: se quedan uno a cada lado tuyo.',
         ],
         effects: [
           { take: 'sello_del_vado' },
           { set: 'run:trato_con_halvar' },
           { set: 'run:dravos_sabe' },
+          { addCondition: 'perseguido' },
         ],
         next: 'c2_otra_orilla',
       },
@@ -1323,25 +1339,34 @@ export const c2_otra_orilla = {
       },
     },
     // Burnt Bridge, sin tirada: la piedra se queda en el agua y los cuatro epílogos lo dicen.
+    //
+    // FASE H · tarea 2, segunda vuelta. Era la otra manera de salir del cuello 2 sin pagar nada:
+    // esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— y no cobraba nada a
+    // cambio. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche:
+    // el precio es meterse, y las dos variantes lo dicen ahora. Condición y no reloj, a propósito.
     {
       id: 'dejar_el_sello_en_la_cadena',
-      label: 'Dejar el sello donde está y no volver',
+      label: 'Meterte al agua, dejar el sello y no volver',
       outcome: {
         text: [
           {
             variants: [
               {
                 when: { item: 'sello_del_vado' },
-                text: 'Sacás la piedra del trapo, la atás a un eslabón y la dejás bajar hasta que la cadena la frena.',
+                text: 'Entrás hasta la cintura, sacás la piedra del trapo, la atás a un eslabón y la dejás bajar hasta que la cadena la frena.',
               },
               {
-                text: 'Mirás la cadena y no la tocás. Lo que esté ahí abajo está mejor abajo que en la mesa.',
+                text: 'Vas hasta la punta del tablón con el agua encima y no la tocás. Lo que esté ahí abajo está mejor abajo que en la mesa.',
               },
             ],
           },
-          'Subís con las manos vacías. Ninguno de los que entren esta noche va a saber dónde mirar.',
+          'Volvés con las manos vacías y chorreando. Ninguno de los que entren esta noche va a saber dónde mirar.',
         ],
-        effects: [{ take: 'sello_del_vado' }, { set: 'run:sello_escondido' }],
+        effects: [
+          { take: 'sello_del_vado' },
+          { set: 'run:sello_escondido' },
+          { addCondition: 'empapado' },
+        ],
         next: 'cl_molino',
       },
     },

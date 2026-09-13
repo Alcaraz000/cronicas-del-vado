@@ -852,6 +852,77 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
     }
   });
 
+  /**
+   * Segunda vuelta. La tabla del brief salió de un análisis estático de las 46 escenas; la traza del
+   * simulador mostró que la ruta real de la política prudente pasa por otro lado. Estas tres palancas
+   * son las que esa medición señaló, y las tres están en escenas bisagra.
+   *
+   * Ninguna cobra `sospecha`: el reloj llega a 4 y redirige, y en la primera vuelta ya entró un tic.
+   * Las monedas acá son una relación (`run:dravos_sabe`), dos condiciones y una Herida.
+   */
+  it('entregar lo que llevás en el vado crecido te deja marcado', () => {
+    const effects = efectos('c2_vado_crecido', 'entregar_lo_que_llevas');
+    expect(effects).toContainEqual({ addCondition: 'perseguido' });
+    // Sigue sin poder matar: es una de las tres salidas seguras de la escena mortal (biblia §11).
+    expect(tieneLethal(effects)).toBe(false);
+  });
+
+  it('dejar el sello en la cadena te cuesta meterte al agua', () => {
+    expect(efectos('c2_otra_orilla', 'dejar_el_sello_en_la_cadena')).toContainEqual({
+      addCondition: 'empapado',
+    });
+  });
+
+  it('encarar a Dravos en el molino le dice que sabés', () => {
+    expect(efectos('cl_molino', 'encarar_a_dravos')).toContainEqual({ set: 'run:dravos_sabe' });
+  });
+
+  it('huir escaleras abajo deja de ser la salida gratis del encuentro', () => {
+    const roll = opcion('cl_dravos', 'huir_escaleras_abajo')?.roll;
+    expect(roll?.outcomes.success.effects).toContainEqual({ addCondition: 'empapado' });
+    expect(roll?.outcomes.partial.effects).toContainEqual({ wound: 1 });
+    expect(roll?.outcomes.partial.effects).toContainEqual({ addCondition: 'perseguido' });
+  });
+
+  it('ninguna banda del encuentro del clímax sale sin efectos', () => {
+    const dravos = campaign.scenes['cl_dravos'] as Scene;
+    for (const choice of dravos.choices) {
+      for (const [i, banda] of desenlaces(choice).entries()) {
+        expect((banda.effects ?? []).length, `cl_dravos/${choice.id}[${i}]`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('las tres palancas de la segunda vuelta se anuncian en la etiqueta', () => {
+    const avisos: [string, string, string][] = [
+      ['c2_vado_crecido', 'entregar_lo_que_llevas', 'custodia'],
+      ['c2_otra_orilla', 'dejar_el_sello_en_la_cadena', 'al agua'],
+      ['cl_molino', 'encarar_a_dravos', 'que sepa'],
+      ['cl_dravos', 'huir_escaleras_abajo', 'al agua'],
+    ];
+    for (const [sceneId, choiceId, aviso] of avisos) {
+      const label = opcion(sceneId, choiceId)?.label ?? '';
+      expect(label.toLowerCase(), `${sceneId}/${choiceId}`).toContain(aviso.toLowerCase());
+      expect(label.length, `${sceneId}/${choiceId}`).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it('la segunda vuelta no metió ni un tic más de sospecha', () => {
+    const palancas: [string, string][] = [
+      ['c2_vado_crecido', 'entregar_lo_que_llevas'],
+      ['c2_otra_orilla', 'dejar_el_sello_en_la_cadena'],
+      ['cl_molino', 'encarar_a_dravos'],
+    ];
+    for (const [sceneId, choiceId] of palancas) {
+      const effects = efectos(sceneId, choiceId);
+      expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha'), `${sceneId}/${choiceId}`).toBe(false);
+    }
+    for (const banda of desenlaces(opcion('cl_dravos', 'huir_escaleras_abajo') as Choice)) {
+      const effects = banda.effects ?? [];
+      expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha')).toBe(false);
+    }
+  });
+
   it('a2_amanecer y c2_anochece no se tocaron: siguen sin cobrar nada', () => {
     for (const sceneId of ['a2_amanecer', 'c2_anochece']) {
       const scene = campaign.scenes[sceneId] as Scene;

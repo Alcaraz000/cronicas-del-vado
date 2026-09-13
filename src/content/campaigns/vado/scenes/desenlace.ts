@@ -119,6 +119,17 @@ import type { Scene } from '@/content/schema';
  *   3. El hito `cerrar_la_cronica` se mudó de `cl_desenlace.onEnter` al `onEnter` de los CUATRO
  *      finales: se marcaba antes de elegir el final, así que premiaba bajar una escalera. Ahora
  *      marca haber cerrado algo, y una partida que se pierde en el clímax ya no se lo lleva.
+ *
+ * SEGUNDA VUELTA, la que salió de la medición y no de la tabla. La traza del simulador mostró que la
+ * ruta de la política prudente entra al clímax por `cl_molino.encarar_a_dravos` y sale de él por
+ * `cl_dravos.huir_escaleras_abajo`, y que ninguna de las dos cobraba nada:
+ *   4. `cl_molino.encarar_a_dravos` → `{ set: 'run:dravos_sabe' }`. Era la primera libre del clímax
+ *      y la única de sus cuatro libres sin costo. Se paga la sorpresa, que es la moneda de esta
+ *      escena (la usan `rendirte_de_entrada` y el fallo de `escuchar`).
+ *   5. `cl_dravos.huir_escaleras_abajo` → `empapado` en el éxito y `{ wound: 1 }` en el parcial. Era
+ *      la ÚNICA salida del encuentro que no movía el reloj `pelea` y no cobraba nada: las otras
+ *      cinco piden haber peleado, la piedra, el flag de Orell, una Herida o quedar Agotado.
+ * Ninguna de las dos cobra `sospecha`.
  * Ninguna opción se sacó, ninguna ganó `requires` y ningún `next` se movió: la cuenta `opc`/`libres`
  * del outline §2 no cambia. `cl_dravos` no se tocó: es la única de las diez bisagra que ya estaba
  * bien, porque no tiene ninguna opción sin tirada y sin `requires`.
@@ -206,12 +217,18 @@ export const cl_molino = {
       },
     },
     {
+      // FASE H · tarea 2, segunda vuelta. Era la primera libre del clímax y la única de las cuatro
+      // que no cobraba nada. Lo que se paga por salir al claro y decirlo es la última ventaja que
+      // queda: la sorpresa. `run:dravos_sabe` es la moneda propia de esta escena —la usan
+      // `rendirte_de_entrada` y el fallo de `escuchar`— y su AUSENCIA es lo que abre
+      // `interrumpir_antes_de_que_firmen`. No es un tic de reloj: es una relación que se enfría.
       id: 'encarar_a_dravos',
-      label: 'Encarar a Dravos delante de todos',
+      label: 'Encarar a Dravos y que sepa que sabés',
       outcome: {
         text: [
-          'Salís al claro del piso y decís lo que viniste a decir. Dravos no levanta la voz ni llama a nadie: dobla el papel en dos y busca los guantes.',
+          'Salís al claro del piso y decís lo que viniste a decir. Dravos no levanta la voz ni llama a nadie: dobla el papel en dos y busca los guantes. Ahora sabe qué sabés, y lo que le queda por hacer es una cuenta corta.',
         ],
+        effects: [{ set: 'run:dravos_sabe' }],
         next: 'cl_dravos',
       },
     },
@@ -451,8 +468,13 @@ export const cl_dravos = {
       },
     },
     {
+      // FASE H · tarea 2, segunda vuelta. Era la única salida del encuentro que no movía el reloj
+      // `pelea` y no costaba nada en dos de sus tres bandas: las otras cinco piden haber peleado, la
+      // piedra, el flag de Orell, una Herida o quedar Agotado. Ahora el éxito cobra lo que el propio
+      // texto ya narraba —el agua de abajo te recibe entera— y el parcial cobra el medio escalón que
+      // te llevás puesto, que es la gramática de esta campaña para un parcial: pasás pagando.
       id: 'huir_escaleras_abajo',
-      label: 'Huir escaleras abajo, hacia el sótano',
+      label: 'Huir escaleras abajo, al agua del sótano',
       roll: {
         attr: 'astucia',
         difficulty: 'normal',
@@ -462,13 +484,14 @@ export const cl_dravos = {
             text: [
               'Tirás el cajón atrás tuyo y buscás la trampilla con el pie. El agua de abajo está más fría y te recibe entera. Arriba, alguien pregunta adónde fuiste y nadie contesta.',
             ],
+            effects: [{ addCondition: 'empapado' }],
             next: 'cl_desenlace',
           },
           partial: {
             text: [
               'Bajás a los tropezones y te llevás medio escalón con vos. Alguien te sigue con el farol en alto, sin correr, contando los escalones como los cuenta el que ya bajó por acá.',
             ],
-            effects: [{ addCondition: 'perseguido' }],
+            effects: [{ addCondition: 'perseguido' }, { wound: 1 }],
             next: 'cl_desenlace',
           },
           failure: {
