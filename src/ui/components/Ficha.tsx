@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { ATTRS, ATTR_NAMES, CLASSES, CONDITIONS, SKILLS, TRAITS, WOUND_LABELS } from '@/content/catalog';
+import { ATTRS, ATTR_NAMES, CLASSES, SKILLS, TRAITS, WOUND_LABELS } from '@/content/catalog';
 import type { Campaign } from '@/content/schema';
 import { topeDeNivel, xpDelNivel } from '@/engine/progression';
 import type { GameState } from '@/engine/types';
@@ -8,25 +8,20 @@ import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { Cajon } from '@/ui/components/Cajon';
 import { Recuerdos } from '@/ui/components/Recuerdos';
-import { derivarCronica, derivarRecuerdos, type Cronica, type Recuerdos as RecuerdosDatos } from '@/ui/memoria';
+import {
+  derivarCronica,
+  derivarRecuerdos,
+  nombresDeCondiciones,
+  nombresDeItems,
+  type Cronica,
+  type Recuerdos as RecuerdosDatos,
+} from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './Ficha.module.css';
 
 export interface FichaProps {
   abierto: boolean;
   onCerrar: () => void;
-}
-
-/**
- * Nombres de `campaign.items` para una lista de ids (objetos de la partida o reliquias del
- * personaje). Un id que no resuelve se omite: acá también rige la regla de no mostrar nunca
- * un identificador crudo.
- */
-function nombresDeItems(ids: string[], campaign: Campaign): string[] {
-  return ids.flatMap((id) => {
-    const item = campaign.items[id];
-    return item === undefined ? [] : [item.name];
-  });
 }
 
 /**
@@ -69,8 +64,7 @@ function FichaContenido({ campaign, gs, recuerdos, cronica }: FichaContenidoProp
   const clase = CLASSES[character.classId];
   const tope = topeDeNivel(campaign.levelRange);
   const siguiente = xpDelNivel(character.level + 1);
-  const nombresCondiciones =
-    run.conditions.length === 0 ? S.barra.sinCondiciones : run.conditions.map((c) => CONDITIONS[c].name).join(', ');
+  const nombresCondiciones = nombresDeCondiciones(run.conditions);
   const objetos = nombresDeItems(run.items, campaign);
   const reliquias = nombresDeItems(character.relics, campaign);
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CONDITIONS, WOUND_LABELS, type ConditionId } from '@/content/catalog';
+import { WOUND_LABELS, type ConditionId } from '@/content/catalog';
 import { Dialogo } from '@/ui/components/Dialogo';
+import { nombresDeCondiciones } from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './StatusBar.module.css';
 
@@ -36,8 +37,7 @@ export function StatusBar({
   abandonDisabled = false,
 }: StatusBarProps) {
   const [confirmando, setConfirmando] = useState(false);
-  const nombresCondiciones =
-    conditions.length === 0 ? S.barra.sinCondiciones : conditions.map((c) => CONDITIONS[c].name).join(', ');
+  const nombresCondiciones = nombresDeCondiciones(conditions);
 
   return (
     <header className={styles.barra}>

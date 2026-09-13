@@ -1,4 +1,4 @@
-import { CLASSES } from '@/content/catalog';
+import { CLASSES, CONDITIONS, type ConditionId } from '@/content/catalog';
 import type { Campaign } from '@/content/schema';
 import type { Character, GameState } from '@/engine/types';
 import { S } from '@/ui/strings.es';
@@ -84,4 +84,27 @@ export function derivarCronica(campaign: Campaign, character: Character): Cronic
     finalesVistos: entrada?.endings.length ?? 0,
     finalesTotales: Object.keys(campaign.endings).length,
   };
+}
+
+/**
+ * Nombres de las condiciones activas, ya unidos en una sola cadena lista para mostrar
+ * ("Asustado, Exhausto"), o `S.barra.sinCondiciones` si no hay ninguna. Comparten esta
+ * derivación `StatusBar` (las condiciones de la partida en curso) y `Ficha` (las mismas,
+ * leídas de `run.conditions`): es una sola definición para no arrastrar dos si el día de
+ * mañana cambia cómo se listan.
+ */
+export function nombresDeCondiciones(conditions: ConditionId[]): string {
+  return conditions.length === 0 ? S.barra.sinCondiciones : conditions.map((c) => CONDITIONS[c].name).join(', ');
+}
+
+/**
+ * Nombres de `campaign.items` para una lista de ids (objetos de la partida o reliquias del
+ * personaje). Un id que no resuelve se omite: acá también rige la regla de no mostrar nunca
+ * un identificador crudo.
+ */
+export function nombresDeItems(ids: string[], campaign: Campaign): string[] {
+  return ids.flatMap((id) => {
+    const item = campaign.items[id];
+    return item === undefined ? [] : [item.name];
+  });
 }
