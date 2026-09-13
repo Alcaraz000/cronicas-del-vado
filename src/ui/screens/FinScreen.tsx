@@ -15,6 +15,7 @@ import {
 } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { Parrafos } from '@/ui/components/Parrafos';
+import { derivarCronica } from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './FinScreen.module.css';
 
@@ -112,6 +113,26 @@ export function FinScreen() {
 
   const resumen = endSummary?.xp ?? null;
   const muerto = desenlace.kind === 'death';
+
+  /**
+   * Lo que el mundo recordará: una línea por flag de canon que quedó (`endSummary.canonFlags`),
+   * en voz del narrador. `discardedFlags` NO entra: es el canon que se perdió por no terminar
+   * como ese final, y mostrarlo le contaría al jugador la partida que no tuvo. Un flag sin línea
+   * en `campaign.memories` se omite en silencio (r12 garantiza que en producción no falta
+   * ninguna, pero si faltara, la UI nunca muestra el identificador crudo).
+   */
+  const recuerdos =
+    endSummary !== null && campaign !== null
+      ? endSummary.canonFlags.map((f) => ({ id: f, texto: campaign.memories[f] ?? '' })).filter((l) => l.texto !== '')
+      : [];
+
+  // La cuenta "vistos de totales" sale de `derivarCronica` (tarea 2): no se recalcula acá.
+  const cronica = campaign !== null && personaje !== null ? derivarCronica(campaign, personaje) : null;
+  // Los ids de los finales que el personaje ya tiene para ESTA campaña. El final recién
+  // conseguido ya está acá: `finishRun` (llamado arriba) lo agregó a `campaignLog` antes de
+  // este render, así que no hace falta sumarlo aparte.
+  const finalesVistos = campaign !== null && personaje !== null ? (personaje.campaignLog[campaign.id]?.endings ?? []) : [];
+
   // El primer premio que el jugador todavía tiene que elegir; los automáticos solo se informan.
   const aElegir: PremioDeNivel | null =
     subida?.premios.find((p) => p.kind === 'atributo' || p.kind === 'habilidad') ?? null;
@@ -124,6 +145,38 @@ export function FinScreen() {
       <div className={styles.epilogo}>
         <Parrafos parrafos={desenlace.parrafos} />
       </div>
+
+      {recuerdos.length > 0 && (
+        <section className={styles.canon} aria-labelledby="fin-recuerda">
+          <h2 id="fin-recuerda" className={styles.subtitulo}>
+            {S.fin.recuerda}
+          </h2>
+          <ul className={styles.listaCanon}>
+            {recuerdos.map((r) => (
+              <li key={r.id}>{r.texto}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {campaign !== null && cronica !== null && (
+        <section className={styles.finales} aria-labelledby="fin-finales">
+          <h2 id="fin-finales" className={styles.subtitulo}>
+            {S.fin.finales}
+          </h2>
+          <p className={styles.subtitulo3}>{S.hub.campana.finales(cronica.finalesVistos, cronica.finalesTotales)}</p>
+          <ul className={styles.listaFinales}>
+            {Object.keys(campaign.endings).map((id) => {
+              const visto = finalesVistos.includes(id);
+              return (
+                <li key={id} className={visto ? styles.finalVisto : styles.finalOculto}>
+                  {visto ? campaign.endings[id].title : S.fin.finalOculto}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {resumen !== null && (
         <section className={styles.progreso} aria-labelledby="fin-progreso">

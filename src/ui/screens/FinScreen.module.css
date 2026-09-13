@@ -32,6 +32,8 @@
   line-height: var(--interlineado-juego);
 }
 
+.canon,
+.finales,
 .progreso {
   display: grid;
   gap: var(--esp-2);
@@ -41,6 +43,37 @@
   border-radius: var(--radio);
   background: var(--color-superficie);
   font-family: var(--fuente-ui);
+}
+
+.listaCanon {
+  margin: 0;
+  padding-left: var(--esp-5);
+}
+
+.listaFinales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finalVisto,
+.finalOculto {
+  padding: 0.3em 0.8em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+}
+
+.finalVisto {
+  background: var(--color-superficie-alta);
+  color: var(--color-texto);
+}
+
+.finalOculto {
+  border-style: dashed;
+  color: var(--color-texto-suave);
 }
 
 .subtitulo {

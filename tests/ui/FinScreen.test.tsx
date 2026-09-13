@@ -8,7 +8,9 @@ import { campaign } from '@/content/campaigns/prueba/campaign';
 import { CLASSES, SKILLS } from '@/content/catalog';
 import * as engine from '@/engine/resolve';
 import { S } from '@/ui/strings.es';
-import type { Character, GameState, Run } from '@/engine/types';
+import type { Campaign } from '@/content/schema';
+import type { Character, EndSummary, GameState, Run } from '@/engine/types';
+import type { ResumenXp } from '@/engine/progression';
 
 /**
  * `render()` del motor (tarea 9/10) devuelve el epílogo de un final DOS veces:
@@ -84,6 +86,55 @@ function montarFinCon(gs: GameState): void {
   });
 }
 
+/** ResumenXp mínimo y válido: a estos tests no les importan los números, solo el resto del EndSummary. */
+function xpDePrueba(): ResumenXp {
+  return {
+    ganancia: { hitos: 0, finales: 0, bono: 0, total: 0, detalle: [] },
+    otorgada: 0,
+    descartada: 0,
+    xpAntes: 0,
+    xpDespues: 0,
+    nivelAntes: 1,
+    nivelDespues: 1,
+    premios: [],
+    topeNivel: 6,
+    topeXp: 300,
+    topeAlcanzado: false,
+  };
+}
+
+/**
+ * Monta el store como queda DESPUÉS de que `finishRun` ya corrió (tarea 11: cuando FinScreen se
+ * dibuja el final recién conseguido ya está en `character.campaignLog[campaña].endings`, así que
+ * acá se arma directamente ese estado "ya cerrado" en vez de simularlo con `engine.endRun`).
+ * `endingsVistos` son los finales que el personaje ya tiene registrados para esa campaña.
+ */
+function montarFinCerrado(opts: { campaign?: Campaign; endSummary: EndSummary; endingsVistos?: string[] }): void {
+  const personaje = personajeDePrueba();
+  const camp = opts.campaign ?? campaign;
+  useStore.setState({
+    characters: [
+      {
+        ...personaje,
+        campaignLog: { [camp.id]: { runs: 1, wins: 0, endings: opts.endingsVistos ?? [], milestones: [] } },
+      },
+    ],
+    activeCharacterId: personaje.id,
+    world: { flags: [], fallen: [] },
+    seen: {},
+    prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
+    ui: {
+      screen: 'fin',
+      campaign: camp,
+      pending: null,
+      error: null,
+      endSummary: opts.endSummary,
+      ganancia: null,
+      subidaPendiente: null,
+    },
+  });
+}
+
 describe('FinScreen', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -118,7 +169,9 @@ describe('FinScreen', () => {
 
     render(<FinScreen />);
 
-    expect(screen.getByText(campaign.endings['fin_huida']?.title ?? '')).toBeInTheDocument();
+    // El título aparece como mínimo una vez (como encabezado); desde la tarea 11 también
+    // aparece en el mapa de finales, porque es el que acabás de conseguir.
+    expect(screen.getAllByText(campaign.endings['fin_huida']?.title ?? '').length).toBeGreaterThan(0);
 
     // Frase exclusiva de la variante de epílogo sin heridas: si apareciera dos
     // veces (una por `paragraphs`, otra por `ending.epilogue`), este assert falla.
@@ -239,6 +292,128 @@ describe('FinScreen', () => {
     expect(volver).toHaveTextContent(S.fin.volverAlInicio);
     fireEvent.click(volver);
     expect(useStore.getState().ui.screen).toBe('inicio');
+  });
+});
+
+describe('FinScreen: lo que el mundo recordará y los finales', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('lista lo que el mundo recordará, con la línea de memories de cada flag de canon', () => {
+    montarFinCerrado({
+      endSummary: {
+        outcome: { kind: 'ending', endingId: 'fin_huida' },
+        canonFlags: ['char:prueba.vio_la_cripta'],
+        discardedFlags: [],
+        xp: xpDePrueba(),
+      },
+      endingsVistos: ['fin_huida'],
+    });
+
+    render(<FinScreen />);
+
+    expect(screen.getByText(S.fin.recuerda)).toBeInTheDocument();
+    expect(screen.getByText(campaign.memories['char:prueba.vio_la_cripta'] ?? '')).toBeInTheDocument();
+  });
+
+  it('no muestra los flags descartados', () => {
+    // endSummary.discardedFlags no aparece: se perdieron, no son canon. El flag descartado
+    // SÍ tiene línea en `memories` (le agregamos una) para probar que lo que lo excluye es
+    // estar en `discardedFlags`, y no que le falte la línea.
+    const campConDescartado: Campaign = {
+      ...campaign,
+      memories: { ...campaign.memories, 'char:prueba.descartado': 'Esto no debería verse nunca.' },
+    };
+    montarFinCerrado({
+      campaign: campConDescartado,
+      endSummary: {
+        outcome: { kind: 'ending', endingId: 'fin_huida' },
+        canonFlags: ['char:prueba.vio_la_cripta'],
+        discardedFlags: ['char:prueba.descartado'],
+        xp: xpDePrueba(),
+      },
+      endingsVistos: ['fin_huida'],
+    });
+
+    render(<FinScreen />);
+
+    expect(screen.getByText(campaign.memories['char:prueba.vio_la_cripta'] ?? '')).toBeInTheDocument();
+    expect(screen.queryByText('Esto no debería verse nunca.')).toBeNull();
+  });
+
+  it('un flag de canon sin línea se omite, y no se ve ningún identificador', () => {
+    montarFinCerrado({
+      endSummary: {
+        outcome: { kind: 'ending', endingId: 'fin_huida' },
+        canonFlags: ['char:prueba.vio_la_cripta', 'char:prueba.sin_linea'],
+        discardedFlags: [],
+        xp: xpDePrueba(),
+      },
+      endingsVistos: ['fin_huida'],
+    });
+
+    render(<FinScreen />);
+
+    expect(screen.getByText(campaign.memories['char:prueba.vio_la_cripta'] ?? '')).toBeInTheDocument();
+    expect(screen.queryByText(/sin_linea/)).toBeNull();
+    expect(document.body.textContent).not.toContain('char:prueba.sin_linea');
+  });
+
+  it('muestra los finales vistos y los no vistos en silueta', () => {
+    const campConCuatroFinales: Campaign = {
+      ...campaign,
+      endings: {
+        ...campaign.endings,
+        fin_c: { title: 'El pacto con la torre' },
+        fin_d: { title: 'La verdad del vado', hidden: true },
+      },
+    };
+    montarFinCerrado({
+      campaign: campConCuatroFinales,
+      endSummary: {
+        outcome: { kind: 'ending', endingId: 'fin_huida' },
+        canonFlags: [],
+        discardedFlags: [],
+        xp: xpDePrueba(),
+      },
+      endingsVistos: ['fin_tesoro', 'fin_huida'],
+    });
+
+    render(<FinScreen />);
+
+    // El título del final visto se lee...
+    expect(screen.getByText('El tesoro de la torre')).toBeInTheDocument();
+    expect(screen.getByText('Con vida')).toBeInTheDocument();
+
+    // ...el del no visto NO se lee, en NINGUNA parte del documento: ni el normal, ni el hidden.
+    expect(screen.queryByText('El pacto con la torre')).toBeNull();
+    expect(screen.queryByText('La verdad del vado')).toBeNull();
+    expect(document.body.textContent).not.toContain('El pacto con la torre');
+    expect(document.body.textContent).not.toContain('La verdad del vado');
+
+    // ...pero se ve que existen, en silueta (dos finales sin descubrir), y la cuenta dice "2 de 4".
+    expect(screen.getAllByText(S.fin.finalOculto)).toHaveLength(2);
+    expect(screen.getByText(S.hub.campana.finales(2, 4))).toBeInTheDocument();
+  });
+
+  it('una derrota no lista canon, porque no escribió ninguno', () => {
+    montarFinCerrado({
+      endSummary: {
+        outcome: { kind: 'defeat' },
+        canonFlags: [],
+        discardedFlags: ['char:prueba.vio_la_cripta'],
+        xp: xpDePrueba(),
+      },
+    });
+
+    render(<FinScreen />);
+
+    expect(screen.queryByText(S.fin.recuerda)).toBeNull();
   });
 });
 

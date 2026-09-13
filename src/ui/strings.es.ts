@@ -240,6 +240,10 @@ export const S = {
     motivoDebilidad: (tag: string, clase: string): string =>
       `No se puede: ${tag} es la Debilidad del ${clase}.`,
     motivoRepetida: 'Ya la tenés.',
+    // Lo que quedó escrito en el mundo (canon) y el mapa de finales de la campaña.
+    recuerda: 'Lo que el mundo recordará',
+    finales: 'Finales',
+    finalOculto: '● ● ● ●',
   },
   ficha: {
     titulo: 'Ficha de personaje',
