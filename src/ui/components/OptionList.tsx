@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RenderedChoice, RollPreview } from '@/engine/types';
 import { Chips, chipsDeTirada } from '@/ui/components/Chips';
 import { Dialogo } from '@/ui/components/Dialogo';
@@ -26,6 +26,24 @@ export function OptionList({ choices, showOdds, wounds, onPick }: OptionListProp
   // Escena mortal: la opción queda pendiente de confirmar en el Dialogo, que se dibuja
   // una sola vez fuera del `map` (no uno por opción). onPick solo se llama si confirma.
   const [pendiente, setPendiente] = useState<string | null>(null);
+  const lista = useRef<HTMLOListElement>(null);
+
+  // `OptionList` solo existe en el DOM cuando `terminado` es verdadero (EscenaScreen no la
+  // dibuja mientras el texto se revela): este montaje ES el momento en que el revelado ya
+  // terminó y el jugador está esperando para elegir, así que enfocar acá no le corta la
+  // lectura a nadie. Sin esto, elegir una opción desmonta el botón elegido (la escena cambia)
+  // y el foco cae a `<body>`: hay que tabular desde arriba en cada escena nueva.
+  //
+  // `hayModalAbierto()` puede ser verdadero acá (la Ficha se puede abrir con el texto todavía
+  // revelándose): si hay uno, la trampa de foco del modal manda y esto no le roba el foco.
+  // Corre una sola vez al montar, no en cada cambio de `choices`: `OptionList` se remonta
+  // entera con cada escena nueva (el padre la reemplaza por nada mientras se revela, y por
+  // `RollPanel` mientras hay una tirada), así que "al montar" ya es "por cada escena".
+  useEffect(() => {
+    if (hayModalAbierto()) return;
+    lista.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const elegir = useCallback((choice: RenderedChoice): void => {
     if (!choice.enabled) return;
@@ -57,7 +75,7 @@ export function OptionList({ choices, showOdds, wounds, onPick }: OptionListProp
 
   return (
     <>
-      <ol className={styles.lista} aria-label={S.opciones.titulo}>
+      <ol ref={lista} className={styles.lista} aria-label={S.opciones.titulo}>
         {visibles.map((c) => {
           const numero = c.enabled ? String(habilitadas.indexOf(c) + 1) : '—';
           return (

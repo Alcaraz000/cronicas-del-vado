@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { OptionList } from '@/ui/components/OptionList';
+import { marcarModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import type { RenderedChoice, RollPreview } from '@/engine/types';
 
@@ -111,6 +112,27 @@ describe('OptionList', () => {
     expect(screen.getByText('Necesitás algo con qué trabar la puerta')).toBeInTheDocument();
     fireEvent.click(boton);
     expect(onPick).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Tarea 6 (Fase H), pedido del coordinador: cuando el revelado termina y aparecen las
+   * opciones, el jugador de teclado está esperando justo para elegir. Enfocar la primera acá
+   * es seguro porque `OptionList` recién se monta cuando `terminado` es verdadero: la región
+   * viva del texto ya no está cambiando, así que moverle el foco no le corta la lectura a un
+   * lector de pantalla. Sin esto, elegir una opción hace que el botón elegido se desmonte (la
+   * escena cambia) y el foco cae a `<body>`: el jugador tiene que tabular desde arriba en cada
+   * escena nueva.
+   */
+  it('al montar, el foco va a la primera opción visible y habilitada (salta la bloqueada)', () => {
+    render(<OptionList choices={opciones} showOdds={true} wounds={0} onPick={onPick} />);
+    expect(screen.getByTestId('opcion-leer')).toHaveFocus();
+  });
+
+  it('si hay un modal abierto, no le roba el foco (la trampa de foco del modal manda)', () => {
+    const cerrarModal = marcarModalAbierto();
+    render(<OptionList choices={opciones} showOdds={true} wounds={0} onPick={onPick} />);
+    expect(screen.getByTestId('opcion-leer')).not.toHaveFocus();
+    cerrarModal();
   });
 
   it('la tecla 1 elige la primera opción visible y habilitada (salta la bloqueada)', () => {

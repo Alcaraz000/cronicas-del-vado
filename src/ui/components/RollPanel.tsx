@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PendingRoll } from '@/engine/types';
 import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
+import { hayModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import { Chips, chipsDeTirada } from './Chips';
 import { Dados } from './Dados';
@@ -37,6 +38,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
   const [girando, setGirando] = useState(!reducedMotion);
   const timerRef = useRef<number | undefined>(undefined);
   const rerollsVistos = useRef(pending.rerolls.length);
+  const acciones = useRef<HTMLDivElement>(null);
 
   const limpiarTimer = (): void => {
     if (timerRef.current !== undefined) {
@@ -80,6 +82,20 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
     setGirando(false);
   };
 
+  // Tarea 6 (Fase H), mismo criterio que `OptionList`: recién cuando la tirada se asienta el
+  // total y el sello son legibles y los botones existen en el DOM (antes de `asentado` no hay
+  // ninguno: ver el `{asentado && (…)}` de abajo), así que es el momento seguro para mover el
+  // foco sin interrumpir nada que se esté leyendo. Sin esto, "Continuar" (o "Repetir"/el Poder)
+  // se desmonta al consolidar la tirada y el foco cae a `<body>`.
+  //
+  // `hayModalAbierto()` puede ser verdadero acá (la Ficha se puede abrir con una tirada
+  // pendiente): si hay uno, la trampa de foco del modal manda y esto no le roba el foco.
+  useEffect(() => {
+    if (!asentado) return;
+    if (hayModalAbierto()) return;
+    acciones.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [asentado]);
+
   const resaltado = pending.rerolls.length > 0 ? pending.rerolls[pending.rerolls.length - 1] : undefined;
 
   return (
@@ -100,7 +116,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
             <span aria-hidden="true">{S.tirada.icono[pending.band]}</span> {S.tirada.banda[pending.band]}
           </p>
 
-          <div className={styles.acciones}>
+          <div ref={acciones} className={styles.acciones}>
             {pending.canReroll &&
               pending.dice.map((_, i) => (
                 <button key={i} type="button" className={styles.secundario} onClick={() => onReroll(i)}>
