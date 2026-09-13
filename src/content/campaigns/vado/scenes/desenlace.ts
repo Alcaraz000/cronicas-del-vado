@@ -123,13 +123,23 @@ import type { Scene } from '@/content/schema';
  * SEGUNDA VUELTA, la que salió de la medición y no de la tabla. La traza del simulador mostró que la
  * ruta de la política prudente entra al clímax por `cl_molino.encarar_a_dravos` y sale de él por
  * `cl_dravos.huir_escaleras_abajo`, y que ninguna de las dos cobraba nada:
- *   4. `cl_molino.encarar_a_dravos` → `{ set: 'run:dravos_sabe' }`. Era la primera libre del clímax
- *      y la única de sus cuatro libres sin costo. Se paga la sorpresa, que es la moneda de esta
- *      escena (la usan `rendirte_de_entrada` y el fallo de `escuchar`).
+ *   4. `cl_molino.encarar_a_dravos` → `{ addCondition: 'perseguido' }`. Era la primera libre del
+ *      clímax y la única de sus cuatro libres sin costo. El primer intento cobró `run:dravos_sabe`
+ *      y era decorativo: nada lee ese flag después de esta escena. Ahora se paga la salida, y la
+ *      lee la única tirada con tag `huida` del encuentro.
  *   5. `cl_dravos.huir_escaleras_abajo` → `empapado` en el éxito y `{ wound: 1 }` en el parcial. Era
  *      la ÚNICA salida del encuentro que no movía el reloj `pelea` y no cobraba nada: las otras
  *      cinco piden haber peleado, la piedra, el flag de Orell, una Herida o quedar Agotado.
- * Ninguna de las dos cobra `sospecha`.
+ *   6. `cl_dravos.apagar_la_runa_un_latido` [Mago] → `{ wound: 1 }`, además del `agotado` que ya
+ *      tenía. `agotado` es tag `magia` y en el clímax no hay ni una tirada con ese tag: no lo leía
+ *      nadie. Ahora paga la misma moneda que `trabar_el_eje` [Guerrero], su hermana de escena.
+ * Ninguna cobra `sospecha`.
+ *
+ * UNA TRAMPA DEL MOTOR, PARA QUE NADIE LA REPITA: `choose` y `commitRoll` aplican los `effects`
+ * ANTES de resolver el texto del desenlace (`resolve.ts:265-267` y `473-489`). Una variante
+ * `when: { item: X }` dentro del desenlace de una opción que hace `take: X` NO SE DISPARA NUNCA.
+ * La nota (c) de `scenes/acto2_fuera.ts` documenta ese patrón como solución y no lo es: la variante
+ * de `c2_vado_crecido.cruzar_de_frente.partial` es prosa muerta. Queda anotado en el informe.
  * Ninguna opción se sacó, ninguna ganó `requires` y ningún `next` se movió: la cuenta `opc`/`libres`
  * del outline §2 no cambia. `cl_dravos` no se tocó: es la única de las diez bisagra que ya estaba
  * bien, porque no tiene ninguna opción sin tirada y sin `requires`.
@@ -218,17 +228,24 @@ export const cl_molino = {
     },
     {
       // FASE H · tarea 2, segunda vuelta. Era la primera libre del clímax y la única de las cuatro
-      // que no cobraba nada. Lo que se paga por salir al claro y decirlo es la última ventaja que
-      // queda: la sorpresa. `run:dravos_sabe` es la moneda propia de esta escena —la usan
-      // `rendirte_de_entrada` y el fallo de `escuchar`— y su AUSENCIA es lo que abre
-      // `interrumpir_antes_de_que_firmen`. No es un tic de reloj: es una relación que se enfría.
+      // que no cobraba nada.
+      //
+      // El primer intento cobró `{ set: 'run:dravos_sabe' }` y ERA UN COBRO DECORATIVO: nada lee ese
+      // flag después de esta escena. Su único `requires` (`interrumpir_antes_de_que_firmen`) y su
+      // única variante viven acá mismo y se evalúan antes de elegir; `cl_dravos`, `cl_halvar`,
+      // `cl_desenlace` y los cuatro epílogos no lo miran. Un costo que nadie lee no es un costo.
+      //
+      // Lo que se cobra ahora es lo que la escena contrapone: `escuchar` es quedarse tapado detrás
+      // de los sacos y esta es salir al claro. El que sale al claro no se vuelve a escabullir.
+      // `perseguido` es tag `huida`, y el encuentro tiene exactamente una tirada con ese tag
+      // (`cl_dravos.huir_escaleras_abajo`): el precio se paga en la escena siguiente.
       id: 'encarar_a_dravos',
-      label: 'Encarar a Dravos y que sepa que sabés',
+      label: 'Encarar a Dravos y quedarte sin puerta atrás',
       outcome: {
         text: [
-          'Salís al claro del piso y decís lo que viniste a decir. Dravos no levanta la voz ni llama a nadie: dobla el papel en dos y busca los guantes. Ahora sabe qué sabés, y lo que le queda por hacer es una cuenta corta.',
+          'Salís al claro del piso y decís lo que viniste a decir. Dravos no levanta la voz ni llama a nadie: dobla el papel en dos y busca los guantes. Pell se corre a la puerta y se queda ahí, con la lanza cruzada.',
         ],
-        effects: [{ set: 'run:dravos_sabe' }],
+        effects: [{ addCondition: 'perseguido' }],
         next: 'cl_dravos',
       },
     },
@@ -559,16 +576,24 @@ export const cl_dravos = {
       },
     },
     {
-      // [Mago] — cierra el encuentro sin pelear, al precio de quedar Agotado.
+      // [Mago] — cierra el encuentro sin pelear, y desde la Fase H lo paga como su hermana de escena.
+      //
+      // `agotado` es tag `magia` y en el clímax entero no queda ni una tirada con ese tag, así que
+      // era un precio que no leía nadie: la maga cerraba el encuentro con cero tiradas, cero Heridas
+      // y cero consecuencias. `trabar_el_eje` [Guerrero], tres opciones más arriba, cuesta
+      // `{ wound: 1 }` y ni siquiera cierra. La asimetría era entre dos opciones de la misma escena,
+      // no entre dos clases: ahora las dos pagan la misma moneda, la que el motor sí lee (3 = Caído).
+      // El `pelea +3` se queda: que cierre el encuentro es el contrato de biblia §9.5 para esta
+      // opción, y lo que estaba mal no era que cerrara sino que cerrara gratis.
       id: 'apagar_la_runa_un_latido',
-      label: 'Apagar la runa un latido',
+      label: 'Apagar la runa un latido, y pagarlo',
       requires: { class: 'mago' },
       lockedHint: 'Solo un Mago le hace callar una runa.',
       outcome: {
         text: [
-          'Le decís a la piedra el nombre que tenía antes del molino y la piedra se calla un latido. En ese latido el agua se queda quieta y el eje no chilla. A Dravos se le termina la noche ahí.',
+          'Le decís a la piedra el nombre que tenía antes del molino y la piedra se calla un latido. En ese latido el agua se queda quieta y el eje no chilla. A Dravos se le termina la noche ahí. Cuando el ruido vuelve estás de rodillas en el agua, con la nariz sangrando.',
         ],
-        effects: [{ addCondition: 'agotado' }, { clock: 'pelea', delta: 3 }],
+        effects: [{ addCondition: 'agotado' }, { wound: 1 }, { clock: 'pelea', delta: 3 }],
         next: 'cl_desenlace',
       },
     },

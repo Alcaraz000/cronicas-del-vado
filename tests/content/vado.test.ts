@@ -718,6 +718,21 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
     expect(o?.outcome?.effects).toContainEqual({ take: 'carta_lacrada' });
   });
 
+  /**
+   * `choose` aplica los `effects` ANTES de resolver el texto (`resolve.ts:265-267`, y `commitRoll`
+   * hace lo mismo en `473-489`), así que una variante `when: { item: … }` en el desenlace de una
+   * opción que hace `take` de ese mismo objeto no se dispara nunca. Por eso la prosa de `ceder`
+   * tiene que ser verdadera con la carta y sin ella: no puede afirmar que te sacan algo que la ruta
+   * del jugador quizá ya gastó (la prudente llega acá sin la carta, la entregó en el puente).
+   */
+  it('la prosa de ceder no afirma un objeto que el jugador puede no tener', () => {
+    const choice = opcion('c1_acusacion', 'ceder');
+    const plano = JSON.stringify(choice?.outcome?.text ?? []);
+    expect(plano.toLowerCase()).not.toContain('carta lacrada');
+    expect(plano, 'una variante por item acá sería prosa muerta').not.toContain('sello_del_vado');
+    expect(plano, 'una variante por item acá sería prosa muerta').not.toContain('carta_lacrada');
+  });
+
   it('rendirse en la refriega se paga con sospecha', () => {
     const o = campaign.scenes['c1_refriega']?.choices.find((c) => c.id === 'rendirte');
     expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
@@ -823,7 +838,7 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
    */
   it('cada costo nuevo se anuncia en la etiqueta', () => {
     const avisos: [string, string, string][] = [
-      ['c1_acusacion', 'ceder', 'carta'],
+      ['c1_acusacion', 'ceder', 'palpen la capa'],
       ['c1_refriega', 'rendirte', 'delante de todos'],
       ['c2_orilla', 'remar_en_la_barca_de_tome', 'a la vista'],
       ['cl_halvar', 'bajar_al_sotano_sin_contestar', 'delante del capitán'],
@@ -873,8 +888,37 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
     });
   });
 
-  it('encarar a Dravos en el molino le dice que sabés', () => {
-    expect(efectos('cl_molino', 'encarar_a_dravos')).toContainEqual({ set: 'run:dravos_sabe' });
+  /**
+   * Un costo que nadie lee no es un costo. `run:dravos_sabe` no lo lee nada DESPUÉS de `cl_molino`:
+   * su único `requires` (`interrumpir_antes_de_que_firmen`) y su única variante viven en esa misma
+   * escena y se evalúan antes de elegir; `cl_dravos`, `cl_halvar`, `cl_desenlace` y los cuatro
+   * finales no lo miran. El precio de salir al claro es la salida: `perseguido` es `huida`, y el
+   * encuentro tiene exactamente una tirada con ese tag.
+   */
+  it('encarar a Dravos cuesta la salida, y el encuentro la lee', () => {
+    const effects = efectos('cl_molino', 'encarar_a_dravos');
+    expect(effects).toContainEqual({ addCondition: 'perseguido' });
+    expect(effects).not.toContainEqual({ set: 'run:dravos_sabe' });
+    const huir = opcion('cl_dravos', 'huir_escaleras_abajo');
+    expect(huir?.roll?.tags, 'perseguido solo cobra si algo tira con tag huida').toContain('huida');
+  });
+
+  it('la opción del mago en el encuentro cuesta lo mismo que la del guerrero', () => {
+    const mago = efectos('cl_dravos', 'apagar_la_runa_un_latido');
+    const guerrero = efectos('cl_dravos', 'trabar_el_eje');
+    // `agotado` es `magia` y en el clímax no queda ni una tirada con ese tag: no lo lee nadie.
+    // La Herida sí la lee el motor (3 = Caído) y es la moneda de su hermana de escena.
+    expect(guerrero).toContainEqual({ wound: 1 });
+    expect(mago).toContainEqual({ wound: 1 });
+  });
+
+  it('ninguna tirada del clímax tiene tag magia, así que agotado solo no alcanza como precio', () => {
+    const climax = ['cl_molino', 'cl_dravos', 'cl_halvar', 'cl_desenlace'];
+    for (const sceneId of climax) {
+      for (const choice of (campaign.scenes[sceneId] as Scene).choices) {
+        expect(choice.roll?.tags ?? [], `${sceneId}/${choice.id}`).not.toContain('magia');
+      }
+    }
   });
 
   it('huir escaleras abajo deja de ser la salida gratis del encuentro', () => {
@@ -897,7 +941,7 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
     const avisos: [string, string, string][] = [
       ['c2_vado_crecido', 'entregar_lo_que_llevas', 'custodia'],
       ['c2_otra_orilla', 'dejar_el_sello_en_la_cadena', 'al agua'],
-      ['cl_molino', 'encarar_a_dravos', 'que sepa'],
+      ['cl_molino', 'encarar_a_dravos', 'sin puerta'],
       ['cl_dravos', 'huir_escaleras_abajo', 'al agua'],
     ];
     for (const [sceneId, choiceId, aviso] of avisos) {

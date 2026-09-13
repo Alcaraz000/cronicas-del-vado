@@ -482,7 +482,7 @@ Estas cuatro se verifican a mano y con un test de contenido en `tests/content/va
 
 ### 7.1 Dos relojes
 
-**`sospecha`, max 4 — "cuánto sabe Dravos de vos".** Nunca baja. Sube +1 en: Éxito con costo o Fallo en las sociales del puente · esperar/acampar en el prólogo (**tope de +2 en todo el prólogo**) · entrar a una de las dos `rest` **del acto 2** (`onEnter`) · **salir del Ancla Seca después de preguntar por Tomé de frente** (`run:mausi_informo`) · que Pell te vea (+1) o te delate (+2) · robar el libro de Mausi o revisar el escritorio de Berta y que salga mal · cruzar de rama · fallar una social con Berta, Halvar o Dravos · enterrar a Tomé (removés tierra y alguien lo nota) · esperar a que pase la ronda en `c2_otra_orilla`. Son **~17 fuentes para un tope de 4**: no es un presupuesto holgado, es un recurso que se gasta rápido, y por eso **cada tic se nombra en la ficción** y se puede atribuir a una decisión.
+**`sospecha`, max 4 — "cuánto sabe Dravos de vos".** Nunca baja. Sube +1 en: Éxito con costo o Fallo en las sociales del puente · esperar/acampar en el prólogo (**tope de +2 en todo el prólogo**) · entrar a una de las dos `rest` **del acto 2** (`onEnter`) · **salir del Ancla Seca después de preguntar por Tomé de frente** (`run:mausi_informo`) · que Pell te vea (+1) o te delate (+2) · robar el libro de Mausi o revisar el escritorio de Berta y que salga mal · cruzar de rama · fallar una social con Berta, Halvar o Dravos · enterrar a Tomé (removés tierra y alguien lo nota) · esperar a que pase la ronda en `c2_otra_orilla` · **(Fase H) rendirse en la refriega delante de la línea** · **leer el sigilo lacrado delante de Dravos** · **remar hasta la isla a la vista del molino** · **irse del sótano de Halvar sin contestar, delante del capitán**. Son **~21 fuentes para un tope de 4**: no es un presupuesto holgado, es un recurso que se gasta rápido, y por eso **cada tic se nombra en la ficción** y se puede atribuir a una decisión.
 
 **`a1_posada` no cobra `sospecha`.** El tic de descanso existe solo en las dos `rest` del acto 2, donde la `rest` **cura una Herida** y el tic es el precio de esa cura: ahí es una decisión. En `a1_posada`, que no cura Heridas y solo hace pasar la noche, cobrarlo era castigar dos veces al que ya iba perdiendo con un reloj que se llama "cuánto sabe Dravos de vos" pero medía cuánto dormiste.
 
@@ -749,6 +749,10 @@ Cuatro tipos. **Cada opción se etiqueta en el esqueleto**, antes de escribir un
 
 **Reparto sobre 252 opciones en 42 escenas no finales (media 6,0):** Fluff ~45 (18 %) · Spice ~80 (32 %) · Floodgate ~118 (47 %) · Burnt Bridge 9 (3 %). Dos invariantes por escena: **al menos una opción Fluff o Spice** (siempre existe una salida que no cobra peaje) y **al menos una Floodgate o Burnt Bridge** (si no, es una escena que no debería existir).
 
+**La excepción de las bisagra (Fase H, decisión de Gabriel).** La primera invariante vale en las **escenas de exploración lateral**, que son la enorme mayoría, y **no** vale en las **diez escenas bisagra** —los cuellos por los que pasa toda partida: `c1_cuerpo`, `c1_acusacion`, `c1_refriega`, `a2_amanecer`, `c2_anochece`, `c2_orilla`, `cl_molino`, `cl_dravos`, `cl_halvar`, `cl_desenlace`—. Ahí la salida sin tirada **sigue existiendo** (la spec §4 la exige y el jugador que no quiere arriesgar la necesita) pero **cobra peaje**: un objeto, un tic de reloj, una condición, una Herida o una relación. El motivo está medido: sin eso, un jugador que cede siempre recorría las 46 escenas con cero tiradas, cero Heridas y nueve de los diez hitos, y el sistema de reglas no se encendía nunca. Dos de las diez quedan exentas y el motivo se escribe en cada una: `a2_amanecer` (el Burnt Bridge es la escena, no la opción, y no hay un solo PNJ declarado que pueda mirar) y `c2_anochece` (escena de aviso, cuya asimetría correcta ya es la `cuerda_de_molinero`). El detalle, escena por escena, en `design/04-informe-fase-h.md`.
+
+**Y el corolario que vale para toda la campaña: un costo que nadie lee no es un costo.** Antes de cobrar un flag hay que listar quién lo lee **después** de la escena que lo enciende. Dos casos reales que se corrigieron en la Fase H: `run:dravos_sabe` cobrado en `cl_molino` (su único `requires` y su única variante viven en esa misma escena y se evalúan antes de elegir) y la condición `agotado` cobrada en el clímax (es tag `magia` y en el clímax no queda ni una tirada con ese tag).
+
 ---
 
 ## 11. La escena mortal: `c2_vado_crecido`
@@ -763,7 +767,7 @@ Cuatro tipos. **Cada opción se etiqueta en el esqueleto**, antes de escribir un
 |---|---|---|---|---|---|
 | 1 | `cruzar_de_frente` | sí | **Vigor · muy_dificil · `['fisico','supervivencia']`**, `advantageIf: { item: 'cuerda_de_molinero' }` | **Fallo y Fallo grave** | ninguno: **no enciende `run:dravos_sabe`** |
 | 2 | `cruzar_por_las_piedras` | sí | **Astucia · muy_dificil · `['sigilo','supervivencia']`** | **Fallo** | ninguno: **no enciende `run:dravos_sabe`** |
-| 3 | `entregar_lo_que_llevas` | **no** | — · `take sello_del_vado`, `set run:trato_con_halvar`, `set run:dravos_sabe` | no | el sello y el bando |
+| 3 | `entregar_lo_que_llevas` | **no** | — · `take sello_del_vado`, `set run:trato_con_halvar`, `set run:dravos_sabe`, **`addCondition perseguido`** (Fase H) | no | el sello, el bando y la salida |
 | 4 | `atar_lo_que_llevas_a_la_cadena` | sí | **Astucia · normal · `['engano','supervivencia']`** · `set run:sello_escondido`, `set run:dravos_sabe` | no | **tiempo**: llegás con el trato cerrado |
 | 5 | `esperar_a_orell` | **no** | `requires: { flag: 'run:orell_confia' }` | no | tiempo, pero sin `run:dravos_sabe` |
 

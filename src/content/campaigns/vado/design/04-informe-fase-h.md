@@ -74,7 +74,37 @@ Los seis `label` quedan en 60 caracteres o menos, y un test los comprueba uno po
 
 ---
 
-## 3. La simulación, antes y después
+## 3. La simulación — **el estado vigente**
+
+Semilla 20260912, 100 carreras por combinación, 4 partidas por carrera, 12.490 partidas. Estos son
+los números del repositorio HOY; `sim-report.md` los reescribe en cada corrida. El §3 bis y el §5
+guardan las vueltas anteriores para poder comparar, y **están superados por esta tabla**.
+
+| Clase | Nivel | Política | Derrota | Heridas | Hitos | Tiradas |
+|---|---|---|---|---|---|---|
+| guerrero | 1 | prudente | 0,0 % | 1,33 | 9,0 | 1,0 |
+| guerrero | 3 | prudente | 0,5 % | 1,43 | 9,0 | 1,0 |
+| explorador | 1 | prudente | 0,0 % | 0,47 | 9,0 | 2,0 |
+| explorador | 3 | prudente | 0,0 % | 0,45 | 9,0 | 2,0 |
+| mago | 1 | prudente | 0,0 % | 1,00 | 9,0 | 0,0 |
+| mago | 3 | prudente | 0,0 % | 1,00 | 9,0 | 0,0 |
+| clerigo | 1 | prudente | 0,0 % | 0,39 | 9,0 | 1,8 |
+| clerigo | 3 | prudente | 0,0 % | 0,18 | 9,0 | 1,5 |
+
+Campaña entera, **línea de base → vigente**: derrota **20,7 → 23,1 %** · muerte 1,6 → 1,6 % ·
+heridas **0,90 → 1,33** · tiradas **6,2 → 6,4** · escenas distintas 25,1 en las dos, dentro de 24–30
+el **75,9 → 74,8 %** · aserción 4 (codiciosa) 3,4 → 3,3. Las cuatro aserciones pasan, las 46 escenas
+y las 252 opciones se siguen visitando y los cuatro finales se alcanzan con las cuatro clases.
+Finales `hundido / dravos / crecida / heredero`: 1450 / 5993 / 2149 / 128 → **914 / 6307 / 2077 / 118**.
+
+---
+
+## 3 bis. La simulación después de la PRIMERA vuelta (histórico)
+
+> Los números de abajo son los de la primera vuelta, cuando solo estaban aplicadas las seis opciones
+> de la tabla del §1. **Están superados por el §3.** Se conservan porque son la línea contra la que
+> se mide lo que hizo cada vuelta.
+
 
 Semilla 20260912, 100 carreras por combinación, 4 partidas por carrera, 12.490 partidas.
 
@@ -252,3 +282,129 @@ palabra en `que_orell_lo_detenga`, que es el camino más caro de todos. Es decir
 y castigado el camino que la fase quiere premiar. El hito sigue en `cl_dravos.onEnter` y
 `cl_halvar.onEnter`, como dice biblia §7.4, y el defecto que el brief nombraba —que el enfrentamiento
 se cerrara sin tirar un dado— lo arregla el cambio de `run:orell_confia`.
+
+---
+
+## 6. Anexo — ronda de arreglos 1
+
+Siete puntos del coordinador. Los tres importantes eran, los tres, la misma falla de fondo: **un
+costo anunciado que no se cobra**. Vale la pena dejarla escrita como regla, porque es la que esta
+fase iba a producir por diseño:
+
+> **Antes de cobrar algo, listar quién lo lee después de la escena que lo enciende.** Un flag que
+> solo leen `requires` y variantes de su propia escena, o una condición cuyo tag no aparece en
+> ninguna tirada posterior, no es un precio: es decoración.
+
+### 6.1 `c1_acusacion.ceder` afirmaba un objeto que la ruta puede no tener
+
+La etiqueta prometía "dejar que te tomen la carta" y la prosa afirmaba que la sacaban y que Dravos la
+leía. La `carta_lacrada` se gasta de cinco maneras y la ruta más muda la entrega en el puente, así
+que el narrador mentía justo en el cobro número 1, en el cuello por el que pasa toda partida.
+
+**No se resolvió con una variante por objeto, y hay un motivo que conviene que quede escrito.**
+`choose` aplica los `effects` **antes** de resolver el texto del desenlace (`resolve.ts:265-267`, y
+`commitRoll` hace lo mismo en `473-489`). Una variante `when: { item: X }` dentro del desenlace de
+una opción que hace `take: X` **no se dispara nunca**: cuando se evalúa, el objeto ya no está.
+
+> **Deuda que esto destapa, y que no toqué porque es de otra escena:** la nota (c) de la cabecera de
+> `scenes/acto2_fuera.ts` documenta ese patrón como la solución para
+> `c2_vado_crecido.cruzar_de_frente.partial`, que hace `take: 'carta_lacrada'` y lleva una variante
+> `when: { item: 'carta_lacrada' }`. **Esa variante es prosa muerta**: el jugador que llega con la
+> carta lee igual el texto del que no la tiene. Está anotado en la cabecera de `desenlace.ts` para
+> que nadie vuelva a copiar el patrón.
+
+La solución acá es prosa verdadera en los dos casos: se describe el cacheo, que pasa siempre, y el
+`take` se encarga del resto. Etiqueta **«Bajar la voz y dejar que te palpen la capa»**, que anuncia
+el precio (si llevás algo, lo perdés) sin prometer un objeto concreto. Un test fija que la prosa de
+esa opción no nombre la carta ni use una variante por objeto.
+
+### 6.2 El costo de `cl_molino.encarar_a_dravos` era decorativo
+
+Verificado: después de `cl_molino`, **nada lee `run:dravos_sabe`**. Su único `requires`
+(`interrumpir_antes_de_que_firmen`) y su única variante viven en esa misma escena y se evalúan antes
+de elegir; `cl_dravos`, `cl_halvar`, `cl_desenlace` y los cuatro epílogos no lo miran.
+
+Elegí la primera salida de las dos que me diste: **cobrarle algo que se lea**. El costo pasa a ser
+`{ addCondition: 'perseguido' }`, y es lo que la escena ya contrapone: `escuchar` es quedarse tapado
+detrás de los sacos y esta es salir al claro. El que sale al claro no se vuelve a escabullir.
+`perseguido` es tag `huida` y el encuentro tiene **exactamente una** tirada con ese tag
+(`cl_dravos.huir_escaleras_abajo`, `modifiers.ts:54-56` aplica la desventaja): el precio se paga en
+la escena siguiente, y se paga en la opción por la que la ruta muda se escapaba.
+
+Etiqueta **«Encarar a Dravos y quedarte sin puerta atrás»**. Y con eso se resuelve también el punto
+7: la línea explicativa existía para justificar el flag, y en su lugar hay algo que se ve — «Pell se
+corre a la puerta y se queda ahí, con la lanza cruzada».
+
+### 6.3 La opción del mago
+
+Tenías razón y era peor de lo que decía el punto: **`agotado` es tag `magia`, y en el clímax entero
+—`cl_molino`, `cl_dravos`, `cl_halvar`, `cl_desenlace`— no queda ni una tirada con ese tag**. Los
+nueve `tags` del archivo son `sigilo`, `percepcion`, `fisico`, `social`, `huida`, `saber` y `fe`. O
+sea que la maga no pagaba `agotado`: pagaba nada, y cerraba el encuentro entero. Su hermana de
+escena, `trabar_el_eje` [Guerrero], cuesta `{ wound: 1 }` y ni siquiera cierra.
+
+Elegí la Herida y no el `pelea +2`, y por una razón medida: con `+2` la maga prudente habría hecho
+`apagar_la_runa` y después `rematarlo` —que pide `pelea >= 2`, no tiene tirada y es gratis—, así que
+habría salido igual **sin tirar un dado** y con una pantalla más. La Herida, en cambio, la lee el
+motor (3 = Caído) y es exactamente la moneda de la opción hermana. El `pelea +3` se queda: que cierre
+el encuentro es el contrato de biblia §9.5 para esta opción, y lo que estaba mal no era que cerrara
+sino que cerrara gratis. Un test nuevo fija que las dos opciones de clase del encuentro cuesten lo
+mismo, y otro fija que ninguna tirada del clímax tenga tag `magia`.
+
+**Efecto medido:** la maga prudente pasa de **0,00 a 1,00 Heridas** en los dos niveles. **Sigue en
+0,0 tiradas**, y eso no lo arregla esta línea: `apagar_la_runa_un_latido` es una opción sin tirada
+por contrato de biblia §9.5, igual que las otras once `[Clase]`. Ahora paga, pero sigue sin tirar.
+Cambiar eso es cambiar el contrato de las doce opciones de clase, y esa decisión no es mía.
+
+### 6.4 Los cuatro puntos chicos
+
+- **§3 del informe:** renombrado. Arriba va la tabla **vigente** y abajo queda el §3 bis con los
+  números de la primera vuelta, marcado como histórico y superado.
+- **Deriva de documentación:** biblia §7.1 lista ahora los cuatro tics nuevos y dice **~21 fuentes**
+  en vez de ~17; biblia §11 y outline §5 listan el `perseguido` de `entregar_lo_que_llevas`. La
+  fuente de `run:dravos_sabe` en biblia §7.2 **no** hacía falta tocarla: el punto 6.2 sacó ese `set`.
+- **La contradicción de biblia §10:** escrita la excepción. La invariante "al menos una opción Fluff
+  o Spice, siempre existe una salida que no cobra peaje" vale en las escenas de exploración lateral
+  y **no** en las diez bisagra, donde la salida sin tirada sigue existiendo pero cobra peaje, con las
+  dos exenciones (`a2_amanecer` y `c2_anochece`) y su motivo. Va con el corolario de arriba: un costo
+  que nadie lee no es un costo.
+- **`acto2_fuera.ts`**, "salió gente a mirar: uno se queda mirándote" → "uno no se mueve hasta que
+  tocás la grava".
+
+### 6.5 La pregunta: por qué encarecer la ruta muda **bajó** la derrota del guerrero
+
+Es real, no es ruido, y la causa está en la política del simulador, no en el contenido. Lo medí con
+cuatro semillas sobre el guerrero nivel 3 prudente:
+
+| | semilla 20260912 | 11111 | 22222 | 33333 |
+|---|---|---|---|---|
+| después de la **primera** vuelta | 1,5 % | 0,8 % | — | — |
+| después de la **segunda** | 0,5 % | 0,5 % | 0,5 % | 0,3 % |
+
+O sea ~1,1 % → ~0,45 %: la mitad de lo que sugería comparar dos celdas de una sola semilla, pero un
+efecto de verdad. El mecanismo se ve en la traza, comparando la misma partida antes y después:
+
+| | antes | después |
+|---|---|---|
+| guerrero en `cl_dravos` | `trabar_el_eje` → **`huir_escaleras_abajo`** | `trabar_el_eje` → **`usar_la_maquinaria`** → `rematarlo` |
+
+El `perseguido` que ahora cobra el vado crecido le baja la probabilidad de éxito a
+`huir_escaleras_abajo` (tag `huida`), y **la política prudente, cuando no le queda opción libre,
+elige por probabilidad de éxito y es ciega a lo que hace la banda**. Así que se corre a
+`usar_la_maquinaria`. Y esas dos tiradas no son equivalentes:
+
+- `huir_escaleras_abajo`: el éxito sale del encuentro, pero el **fallo cuesta una Herida y devuelve a
+  `cl_dravos` con el reloj `pelea` donde estaba**. Fallar no acerca el final: repite la exposición.
+- `usar_la_maquinaria`: el éxito **y el parcial** mueven `pelea +1`, y el parcial cuesta `exhausto`,
+  no una Herida. Con el `pelea +1` que ya dejó `trabar_el_eje`, una sola banda buena llega a 2 y
+  **desbloquea `rematarlo`**, que no tiene tirada, no hiere y cierra el encuentro.
+
+Resumido: **el costo no hizo el encuentro más seguro; hizo que la política eligiera la tirada que
+progresa en vez de la que solo escapa.** Como la derrota se acumula por quedarse rondas adentro del
+encuentro, salir antes derrota menos. Cuadra con el otro número que parecía contradictorio: las
+Heridas medias **subieron** (1,19 → 1,43) mientras la derrota bajaba — más partidas con una o dos
+Heridas, menos partidas metidas en el bucle que llega a tres.
+
+Lo dejo como está y lo anoto, porque lo que muestra no es un problema del contenido sino un límite
+del instrumento: `prudente` maximiza la probabilidad de éxito de la tirada y no mira la consecuencia
+de la banda. Un jugador real sí la mira.

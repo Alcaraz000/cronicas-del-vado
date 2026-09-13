@@ -728,7 +728,7 @@ Reparto exacto de libres: **32 escenas con 4** · 7 con 5 (`p_puente`, `p_vado_o
 |---|---|---|---|---|---|---|
 | 1 | `cruzar_de_frente` | sí | Vigor · `muy_dificil` · `['fisico','supervivencia']`, `advantageIf: { item: 'cuerda_de_molinero' }` | **`failure` + `fumble`** | — | **ninguno** — no enciende `run:dravos_sabe` |
 | 2 | `cruzar_por_las_piedras` | sí | Astucia · `muy_dificil` · `['sigilo','supervivencia']` | **`failure`** | — | **ninguno** — ídem |
-| 3 | `entregar_lo_que_llevas` | no | — | no | — | `take sello_del_vado`, `set run:trato_con_halvar`, `set run:dravos_sabe` |
+| 3 | `entregar_lo_que_llevas` | no | — | no | — | `take sello_del_vado`, `set run:trato_con_halvar`, `set run:dravos_sabe`, **`addCondition perseguido`** (Fase H) |
 | 4 | `atar_lo_que_llevas_a_la_cadena` | sí | Astucia · `normal` · `['engano','supervivencia']` | no | — | `set run:sello_escondido`, `set run:dravos_sabe` |
 | 5 | `esperar_a_orell` | no | — | no | `{ flag: 'run:orell_confia' }` | ninguno |
 

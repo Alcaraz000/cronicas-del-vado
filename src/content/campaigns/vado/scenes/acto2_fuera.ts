@@ -1011,7 +1011,7 @@ export const c2_orilla = {
       label: 'Remar hasta la isla, a la vista del molino',
       outcome: {
         text: [
-          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás al pie de la isla mucho después de lo que pensabas. Del molino ya salió gente a mirar: uno se queda mirándote hasta la grava y después entra a decirlo.',
+          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás al pie de la isla mucho después de lo que pensabas. Del molino ya salió gente a mirar: uno no se mueve hasta que tocás la grava y después entra a decirlo.',
         ],
         effects: [{ set: 'run:dravos_sabe' }, { clock: 'sospecha', delta: 1 }],
         next: 'c2_otra_orilla',

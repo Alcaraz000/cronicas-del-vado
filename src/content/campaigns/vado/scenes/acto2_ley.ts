@@ -405,11 +405,18 @@ export const c1_acusacion = {
       // deriva el `badge` del `requires` y esta opción no tiene. Es la escena más pública de la
       // campaña —Dravos, Berta y la ronda entera están en `npcs`—, así que al que se deja procesar
       // sin jugar ninguna carta se la encuentran igual, y pierde el beneficio de haberla mostrado él.
+      //
+      // LA PROSA NO NOMBRA LA CARTA, y no es descuido. Un jugador puede llegar acá sin ella —se
+      // gasta de cinco maneras (biblia §5), y la ruta más muda la entrega en el puente—, así que el
+      // narrador no puede afirmar que se la sacan. Y una variante `when: { item: 'carta_lacrada' }`
+      // acá sería PROSA MUERTA: `choose` aplica los `effects` antes de resolver el texto
+      // (`resolve.ts:265-267`), así que después del `take` la condición ya es falsa. Se describe el
+      // cacheo, que es verdad siempre, y el efecto se encarga del resto.
       id: 'ceder',
-      label: 'Bajar la voz y dejar que te tomen la carta',
+      label: 'Bajar la voz y dejar que te palpen la capa',
       outcome: {
         text: [
-          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. Antes de anotar nada te palpan la capa y sacan la carta lacrada. Dravos la lee sin pedirla y no la devuelve.',
+          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. Antes de anotar nada te palpan la capa por fuera y por dentro, y lo que encuentran no te lo devuelven. El chico del casco anota mal el nombre dos veces y te lo hace repetir.',
         ],
         effects: [{ take: 'carta_lacrada' }, { set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_amanecer',
