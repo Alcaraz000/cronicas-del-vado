@@ -25,6 +25,20 @@
   padding-right: var(--esp-2);
 }
 
+.saltarLeido {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: var(--esp-2);
+  padding: 0.3em 0.8em;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--color-texto);
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+  cursor: pointer;
+}
+
 @media (max-width: 800px) {
   .grid {
     grid-template-columns: 1fr;

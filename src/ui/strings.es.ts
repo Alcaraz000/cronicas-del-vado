@@ -138,6 +138,10 @@ export const S = {
     confirmarAbandonoTitulo: 'Abandonar la partida',
     confirmarAbandono: 'Si abandonás, la campaña se pierde. Tu personaje conserva lo suyo. ¿Abandonar?',
   },
+  escena: {
+    saltarLeido: 'Saltar lo leído',
+    saltarLeidoTitulo: 'Adelanta hasta lo que todavía no leíste',
+  },
   opciones: {
     titulo: 'Opciones',
     yaElegida: '· ya elegida',

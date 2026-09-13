@@ -179,6 +179,16 @@ export function EscenaScreen() {
           )}
         </aside>
         <main className={styles.columna}>
+          {revelado.puedeSaltarLeido && (
+            <button
+              type="button"
+              className={styles.saltarLeido}
+              onClick={revelado.saltarLeido}
+              title={S.escena.saltarLeidoTitulo}
+            >
+              {S.escena.saltarLeido}
+            </button>
+          )}
           <TextColumn log={gs.run.log} revelado={revelado} />
           {revelado.terminado &&
             (pending !== null ? (
