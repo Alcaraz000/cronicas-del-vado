@@ -1096,41 +1096,21 @@ describe('vado: el sello es invisible, no inaccesible (Fase H §3)', () => {
   });
 
   /**
-   * BLOQUEADO (Fase H · tarea 3, brief §"la carta que nadie podía usar"). El brief pide condicionar
-   * `cl_halvar.leerle_el_libro_de_rutas` con `requires: { item: 'carta_de_halvar' }`, con la premisa
-   * de que hoy es una opción que la rama B "nunca puede elegir". Verificado contra el código y el
-   * diseño, la premisa no se sostiene:
+   * Fase H · tarea 3, brief §"la carta que nadie podía usar". El brief nombraba
+   * `cl_halvar.leerle_el_libro_de_rutas` como la opción sin guardia, pero esa premisa no se sostenía
+   * (investigación completa en `task-3-report.md` §4): esa opción es una de las 4 libres de
+   * `cl_halvar` a propósito —el diseño la documenta como la vía SIN objeto, en paralelo a la que sí
+   * lo pide— y forzarle un `requires` deja la escena en 3 libres, lo que dispara `r03_choices`
+   * (`LIMITS.minChoices = 4`), confirmado corriendo `npm run validate` con el cambio puesto.
    *
-   * 1. **Hoy no tiene `requires`**: es una de las 4 opciones libres de `cl_halvar` (`OPCIONES_DEL_
-   *    OUTLINE.cl_halvar = [7, 4]`, arriba). Agregarle un `requires` la saca de esa cuenta y deja la
-   *    escena en 3 libres, y `LIMITS.minChoices = 4` (`src/content/catalog.ts`) es un piso, no un
-   *    objetivo: `r03_choices` lo aplica como error. **Confirmado corriendo `npm run validate` con el
-   *    cambio puesto**: `vado › cl_halvar › [r03_choices] La escena cl_halvar tiene 3 opciones sin
-   *    requires; debe tener al menos 4`, y rompe además esta misma suite (la cuenta exacta de
-   *    `cl_halvar` y el total de 252/179/41 opciones de la campaña).
-   * 2. **El diseño ya explica esta opción como la vía LIBRE, a propósito.** `design/00-biblia.md`
-   *    (ficha de Halvar) dice: "*Vías:* las cartas de la torre; su libro de rutas, con los peajes del
-   *    año que viene ya anotados (`cl_halvar.leerle_el_libro_de_rutas`); la negociación del clímax con
-   *    `carta_de_halvar`" — tres caminos DISTINTOS al mismo secreto, y este es el que no pide el
-   *    objeto. Depende de `run:sabe_de_halvar` (solo da ventaja, no gatea) y esa flag se gana en el
-   *    ACTO 1 (`a1_taberna.robar_el_libro` u `a1_orell_mesa`), disponible para las dos ramas por
-   *    igual: no hay asimetría de rama que arreglar acá.
-   * 3. **La opción que sí usa `carta_de_halvar` ya está bien gateada.** `cl_halvar.leerle_lo_que_
-   *    firmo_berta` (abajo en el archivo) ya tiene `requires: { item: 'carta_de_halvar' }` y
-   *    `lockedHint: 'No tenés la carta de Halvar encima.'`, exactamente el patrón que el brief pide
-   *    copiar. Se revisaron las 8 apariciones de `requires: { item: … }` en las escenas de la
-   *    campaña (`carta_lacrada` ×2, `farol_de_sebo`, `cuaderno_de_tome` ×2, `carta_de_halvar` ×2,
-   *    `sello_del_vado`) y las 8 ya tienen `requires` y `lockedHint`: no hay ninguna opción de la
-   *    campaña que pida un objeto sin avisarlo.
-   *
-   * No se tocó `cl_halvar` para no romper r03 ni contradecir la biblia. Este test queda escrito y en
-   * `skip`, con la aserción que pide el brief, para que quede a mano si alguien decide más adelante
-   * cuál es el objeto/escena correcto o cómo compensar la cuenta de libres. Detalle completo en
-   * `.superpowers/sdd/2026-09-13-fase-h-pulido-y-lanzamiento/task-3-report.md`.
+   * La opción que de verdad usa `carta_de_halvar`, `leerle_lo_que_firmo_berta`, ya tenía el
+   * `requires` y el `lockedHint` puestos —probablemente desde el lote que escribió la prosa—, así
+   * que el segundo arreglo de la tarea no existía: ya estaba hecho. Este test fija ese estado para
+   * que, si alguna vez se le saca la guardia a esta opción, algo se entere.
    */
-  it.skip('la opción de la carta en el clímax pide el objeto y explica qué falta', () => {
-    const opcion = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'leerle_el_libro_de_rutas');
-    expect(opcion?.requires).toBeDefined();
+  it('la opción del clímax que usa la carta de Halvar ya la pide y explica qué falta', () => {
+    const opcion = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'leerle_lo_que_firmo_berta');
+    expect(opcion?.requires).toEqual({ item: 'carta_de_halvar' });
     expect(opcion?.lockedHint).toBeTruthy();
   });
 });
