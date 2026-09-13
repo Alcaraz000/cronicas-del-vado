@@ -19,8 +19,15 @@
   color: var(--color-texto-suave);
 }
 
-.abandonar {
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
   margin-left: auto;
+}
+
+.ficha,
+.abandonar {
   padding: 0.3em 0.8em;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);

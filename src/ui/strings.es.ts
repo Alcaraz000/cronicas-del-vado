@@ -126,8 +126,11 @@ export const S = {
     fortuna: 'Fortuna',
     condiciones: 'Condiciones',
     sinCondiciones: 'sin condiciones',
+    ficha: 'Ficha',
+    fichaTitulo: 'Ver tu ficha de personaje (tecla C)',
     abandonar: 'Abandonar',
     abandonarDeshabilitado: 'No podés abandonar mientras hay una tirada en curso',
+    confirmarAbandonoTitulo: 'Abandonar la partida',
     confirmarAbandono: 'Si abandonás, la campaña se pierde. Tu personaje conserva lo suyo. ¿Abandonar?',
   },
   opciones: {
@@ -204,6 +207,36 @@ export const S = {
     motivoRepetida: 'Ya la tenés.',
   },
   ficha: {
+    titulo: 'Ficha de personaje',
+    clase: (nombre: string): string => `Clase: ${nombre}`,
+    poder: (nombre: string, descripcion: string): string => `Poder: ${nombre} — ${descripcion}`,
+    debilidad: (tag: string): string => `Debilidad: ${tag}`,
+    rasgos: 'Rasgos de origen',
+    habilidades: 'Habilidades',
+    sinHabilidades: 'Todavía ninguna.',
+    // "nivel N de M": M es el tope de LA CAMPAÑA (topeDeNivel), no el tope global del
+    // personaje. Es la cuenta que explica por qué rejugar una campaña ya superada no sube de nivel.
+    nivel: (nivel: number, tope: number): string => `nivel ${nivel} de ${tope}`,
+    xp: (xp: number, siguiente: number): string => `${xp} / ${siguiente} XP`,
+    objetos: 'Objetos de la partida',
+    sinObjetos: 'No estás llevando nada.',
+    reliquias: 'Reliquias',
+    sinReliquias: 'Ninguna reliquia, por ahora.',
+    cronica: {
+      titulo: 'Crónica',
+      finalCanonico: (titulo: string): string => `Final canónico: ${titulo}`,
+      sinFinalCanonico: 'Todavía no tenés un final canónico en esta campaña.',
+    },
+    recuerdos: {
+      titulo: 'Recuerdos',
+      gente: 'Gente que conociste',
+      lugares: 'Lugares en los que estuviste',
+      hechos: 'Lo que hiciste',
+      mundo: 'Cómo cambiaste el mundo',
+      reliquias: 'Reliquias que encontraste',
+      caidos: 'Caídos',
+    },
+    sinRecuerdos: 'Todavía no hay nada que recordar. Esto se llena solo, jugando.',
     caido: (nombre: string, clase: string, nivel: number, campana: string): string =>
       `${nombre}, ${clase} de nivel ${nivel}, murió en ${campana}`,
     caidoSinCampana: (nombre: string, clase: string, nivel: number): string =>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { ATTR_NAMES, DIFFICULTY_NAMES } from '@/content/catalog';
 import type { RenderedChoice, RollPreview } from '@/engine/types';
 import { S } from '@/ui/strings.es';
+import { esCampoDeTexto } from '@/ui/teclado';
 import styles from './OptionList.module.css';
 
 export interface OptionListProps {
@@ -21,13 +22,6 @@ export function formatAttrChip(preview: RollPreview): string {
 export function formatOdds(odds: RollPreview['odds']): string {
   const pct = (x: number): number => Math.round(x * 100);
   return `${S.opciones.exito} ${pct(odds.success)} % · ${S.opciones.conCosto} ${pct(odds.partial)} % · ${S.opciones.fallo} ${pct(odds.failure)} %`;
-}
-
-function esCampoDeTexto(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-  );
 }
 
 export function OptionList({ choices, showOdds, wounds, onPick }: OptionListProps) {

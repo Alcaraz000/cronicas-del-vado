@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Campaign } from '@/content/schema';
 import { useStore } from '@/state/store';
 import { EscenaScreen } from '@/ui/screens/EscenaScreen';
@@ -107,5 +107,42 @@ describe('EscenaScreen — arte', () => {
     // Nada rompió: las opciones de la escena están y se pueden elegir.
     expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
     expect(screen.getByText('El claro')).toBeInTheDocument();
+  });
+});
+
+describe('EscenaScreen — la Ficha', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('la tecla C abre la Ficha y Esc la cierra', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'c' });
+    const dialogo = screen.getByRole('dialog');
+    expect(dialogo).toHaveAccessibleName(S.ficha.titulo);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('la tecla C no abre la Ficha si el foco está en un campo de texto', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(input, { key: 'c' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    input.remove();
   });
 });

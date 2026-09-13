@@ -1,0 +1,39 @@
+.seccion {
+  display: grid;
+  gap: var(--esp-2);
+  font-family: var(--fuente-ui);
+}
+
+.nombre {
+  margin: 0;
+  color: var(--color-acento);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips > li {
+  padding: 0.2em 0.7em;
+  border-radius: var(--radio);
+  background: var(--color-superficie-alta);
+}
+
+.subtitulo {
+  margin: var(--esp-2) 0 0;
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-texto-suave);
+}
+
+.vacio {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-style: italic;
+}

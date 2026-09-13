@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
@@ -8,6 +8,7 @@ import type { RenderedScene } from '@/engine/types';
 import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { precargarImagen } from '@/ui/assets';
+import { Ficha } from '@/ui/components/Ficha';
 import { Imagen } from '@/ui/components/Imagen';
 import { OptionList } from '@/ui/components/OptionList';
 import { useNombresDePnj } from '@/ui/components/Parrafos';
@@ -15,6 +16,7 @@ import { RollPanel } from '@/ui/components/RollPanel';
 import { StatusBar } from '@/ui/components/StatusBar';
 import { TextColumn } from '@/ui/components/TextColumn';
 import { S } from '@/ui/strings.es';
+import { esCampoDeTexto } from '@/ui/teclado';
 import { CargandoScreen } from './CargandoScreen';
 import styles from './EscenaScreen.module.css';
 
@@ -71,6 +73,8 @@ export function EscenaScreen() {
   const commitRoll = useStore((s) => s.commitRoll);
   const abandonRun = useStore((s) => s.abandonRun);
 
+  const [fichaAbierta, setFichaAbierta] = useState(false);
+
   const rendered = useMemo(
     () => (campaign !== null && gs !== null ? renderScene(campaign, gs) : null),
     [campaign, gs],
@@ -86,6 +90,20 @@ export function EscenaScreen() {
     if (scene === undefined) return;
     for (const fondoId of proximosFondos(scene, campaign)) precargarImagen('fondo', fondoId);
   }, [campaign, rendered]);
+
+  // La tecla C abre la Ficha: mirar el personaje es seguro en cualquier momento, incluso con
+  // una tirada pendiente. Misma guarda que OptionList para 1-9: si el foco está en un campo
+  // de texto, o si es un atajo del navegador (Ctrl/Meta/Alt+C), no dispara nada.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (esCampoDeTexto(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== 'c' && event.key !== 'C') return;
+      setFichaAbierta(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const onPick = useCallback(
     (choiceId: string): void => {
@@ -113,8 +131,10 @@ export function EscenaScreen() {
         fortuneMax={fortuneMax(gs.character.level)}
         conditions={gs.run.conditions}
         onAbandon={abandonRun}
+        onOpenFicha={() => setFichaAbierta(true)}
         abandonDisabled={pending !== null}
       />
+      <Ficha abierto={fichaAbierta} onCerrar={() => setFichaAbierta(false)} />
       <div className={styles.grid}>
         <aside className={styles.visual}>
           <Imagen tipo="fondo" id={fondoId} aspect="16:9" alt={`${S.placeholder.fondo}: ${placeName}`} />
