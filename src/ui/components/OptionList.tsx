@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderedChoice, RollPreview } from '@/engine/types';
 import { Chips, chipsDeTirada } from '@/ui/components/Chips';
 import { Dialogo } from '@/ui/components/Dialogo';
+import { hayModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import { esCampoDeTexto } from '@/ui/teclado';
 import styles from './OptionList.module.css';
@@ -38,6 +39,10 @@ export function OptionList({ choices, showOdds, wounds, onPick }: OptionListProp
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
+      // Con un modal abierto (la confirmación mortal de acá abajo, la Ficha, el abandono) un
+      // dígito NO elige: el jugador está mirando otra cosa, y acá lo que se dispara es
+      // irreversible. El listener vive en `window`, así que el modal no lo tapa solo.
+      if (hayModalAbierto()) return;
       // Ctrl/Meta/Alt+dígito son atajos del navegador (cambiar de pestaña, etc.):
       // si los dejáramos pasar, un atajo del sistema elegiría una opción de forma
       // irreversible. Shift NO se filtra: en AZERTY el dígito se escribe con Shift.

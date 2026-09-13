@@ -17,6 +17,7 @@ import { StatusBar } from '@/ui/components/StatusBar';
 import { TextColumn } from '@/ui/components/TextColumn';
 import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
 import { useRevelado } from '@/ui/hooks/useRevelado';
+import { hayModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import { esCampoDeTexto } from '@/ui/teclado';
 import { CargandoScreen } from './CargandoScreen';
@@ -99,6 +100,7 @@ export function EscenaScreen() {
     cps,
     instantaneo: cps === 0 || reducida,
   });
+  const { avanzar } = revelado;
 
   // Al entrar a la escena, se piden de antemano los fondos de las escenas a las que puede
   // llevar: simple caché del navegador, sin bloquear el render ni evaluar reglas.
@@ -110,11 +112,13 @@ export function EscenaScreen() {
   }, [campaign, rendered]);
 
   // La tecla C abre la Ficha: mirar el personaje es seguro en cualquier momento, incluso con
-  // una tirada pendiente. Misma guarda que OptionList para 1-9: si el foco está en un campo
-  // de texto, o si es un atajo del navegador (Ctrl/Meta/Alt+C), no dispara nada.
+  // una tirada pendiente. Mismas guardas que OptionList para 1-9: si el foco está en un campo
+  // de texto, si ya hay un modal abierto, o si es un atajo del navegador (Ctrl/Meta/Alt+C),
+  // no dispara nada.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
+      if (hayModalAbierto()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key !== 'c' && event.key !== 'C') return;
       setFichaAbierta(true);
@@ -124,17 +128,27 @@ export function EscenaScreen() {
   }, []);
 
   // Enter y Espacio hacen lo mismo que un clic en la columna de texto: completan el párrafo
-  // en curso (o pasan al siguiente si ya estaba completo). Misma guarda que la tecla C.
+  // en curso (o pasan al siguiente si ya estaba completo). Mismas guardas que la tecla C.
+  //
+  // `preventDefault` porque la barra espaciadora además scrollea la página, y la columna ya
+  // se está autoscrolleando sola para seguir al texto que se revela: sin esto las dos cosas
+  // pelean y el jugador termina en otro punto del log del que quería.
+  //
+  // La dependencia es `revelado.avanzar`, memoizado en el hook, y no el objeto `revelado`
+  // entero: ese objeto es nuevo en cada render y con el tipeo a 40 cps este listener se
+  // registraría y desregistraría cuarenta veces por segundo.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
+      if (hayModalAbierto()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      revelado.avanzar();
+      event.preventDefault();
+      avanzar();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [revelado]);
+  }, [avanzar]);
 
   const onPick = useCallback(
     (choiceId: string): void => {

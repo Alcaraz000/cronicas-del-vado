@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { LogEntry, SeenMap } from '@/engine/types';
 
 /**
@@ -129,29 +129,48 @@ export function useRevelado({ log, seen, cps, instantaneo }: UseReveladoArgs): R
     return () => clearInterval(intervalo);
   }, [instantaneo, terminado, cps, ultima]);
 
-  function avanzar(): void {
+  // `avanzar` y `saltarLeido` van memoizados con la identidad de `ultima` (y `seen`), no
+  // redefinidos en cada render: `EscenaScreen` cuelga el listener de Enter/Espacio de
+  // `avanzar`, y con el revelado a 40 cps un callback nuevo por render lo haría registrar y
+  // desregistrar cuarenta veces por segundo. Los párrafos se leen DENTRO del updater, desde
+  // `ultima`, para que la dependencia sea una sola.
+  const avanzar = useCallback((): void => {
     setEstado((previo) => {
-      const enCurso = parrafos[previo.parrafos];
+      const enCurso = parrafosDe(ultima)[previo.parrafos];
       if (enCurso === undefined) return previo;
       if (previo.caracteres < enCurso.text.length) {
         return { ...previo, caracteres: enCurso.text.length };
       }
       return { ...previo, parrafos: previo.parrafos + 1, caracteres: 0 };
     });
-  }
+  }, [ultima]);
 
-  function saltarLeido(): void {
+  /**
+   * El barrido arranca en `previo.parrafos`, NO en 0: el salto solo puede adelantar.
+   *
+   * Arrancar de cero frena en el primer hash no visto de TODA la entrada, mientras que
+   * `puedeSaltarLeido` mira solo el párrafo EN CURSO. En cuanto una entrada tiene un párrafo
+   * ya leído DETRÁS de uno nuevo (la forma exacta de `a1_plaza`: viejo, viejo, variante nueva,
+   * viejo), las dos expresiones dejan de decir lo mismo: el botón reaparece al llegar al
+   * párrafo viejo del final y el clic devuelve el revelado al párrafo nuevo, que se vuelve a
+   * tipear desde cero — y el ciclo se repite para siempre. Arrancando en `previo.parrafos`
+   * las dos expresiones vuelven a coincidir y el salto es monótono por construcción.
+   */
+  const saltarLeido = useCallback((): void => {
     setEstado((previo) => {
       if (ultima?.kind !== 'scene') return previo;
       const vistos = seen[ultima.sceneId] ?? [];
       const hashesEntrada = ultima.hashes;
-      let i = 0;
+      let i = previo.parrafos;
       while (i < hashesEntrada.length && vistos.includes(hashesEntrada[i]!)) {
         i += 1;
       }
+      // Sin nada que adelantar no se toca el estado: poner `caracteres: 0` acá rebobinaría
+      // el párrafo en curso, que es justo lo que este salto no tiene que hacer nunca.
+      if (i === previo.parrafos) return previo;
       return { ...previo, parrafos: i, caracteres: 0 };
     });
-  }
+  }, [ultima, seen]);
 
   const puedeSaltarLeido =
     ultima?.kind === 'scene' &&

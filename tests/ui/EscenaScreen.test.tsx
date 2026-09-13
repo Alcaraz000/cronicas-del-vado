@@ -236,6 +236,15 @@ describe('EscenaScreen — el revelado', () => {
     expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
   });
 
+  it('Enter y Espacio cancelan la acción por defecto del navegador (la barra no scrollea la página)', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un párrafo cualquiera para revelar.'])] });
+    render(<EscenaScreen />);
+
+    // fireEvent.keyDown devuelve false cuando el handler llamó a preventDefault.
+    expect(fireEvent.keyDown(window, { key: ' ', cancelable: true })).toBe(false);
+    expect(fireEvent.keyDown(window, { key: 'Enter', cancelable: true })).toBe(false);
+  });
+
   it('mientras el texto se revela, el teclado 1-9 de las opciones no hace nada (la lista ni se montó)', () => {
     montarEscena(minimal, { log: [escenaLog(['Un texto largo que todavía no terminó de aparecer del todo.'])] });
     render(<EscenaScreen />);
@@ -248,5 +257,85 @@ describe('EscenaScreen — el revelado', () => {
 
     expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
     expect(useStore.getState().characters[0]?.run?.sceneId).toBe(minimal.start);
+  });
+});
+
+/**
+ * Los tres atajos de la pantalla de juego (1-9 de `OptionList`, C de la Ficha, Enter/Espacio
+ * del revelado) escuchan en `window`, así que no los tapa ningún modal por sí solo. Antes de
+ * la tarea 6 la confirmación mortal era `window.confirm`, que bloquea el hilo y no dejaba
+ * pasar nada; al reemplazarla por `Dialogo` esa protección se perdió, y `aria-modal="true"`
+ * pasó a afirmar algo que no era cierto. Estos tests fijan las dos direcciones: con un modal
+ * abierto el atajo NO dispara, y con el modal cerrado sí.
+ */
+describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0 });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  /** La escena en la que está la partida del store: si una tecla eligió por detrás, cambió. */
+  function escenaActual(): string | undefined {
+    return useStore.getState().characters[0]?.run?.sceneId;
+  }
+
+  it('con el modal cerrado, la tecla 1 elige la primera opción', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe('m_descanso');
+  });
+
+  it('con la Ficha abierta, la tecla 1 no elige nada', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe(minimal.start);
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+  });
+
+  it('con la confirmación de abandono abierta, la tecla 1 no elige por detrás', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.click(screen.getByRole('button', { name: S.barra.abandonar }));
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.barra.confirmarAbandonoTitulo);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    // Ni la partida avanzó, ni el diálogo quedó flotando sobre otra escena.
+    expect(escenaActual()).toBe(minimal.start);
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.barra.confirmarAbandonoTitulo);
+  });
+
+  it('con la Ficha abierta, Enter y Espacio no siguen revelando el texto de abajo', () => {
+    vi.useFakeTimers();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo que no tiene que avanzar solo.'])] });
+      useStore.getState().setPrefs({ cps: 40 });
+      render(<EscenaScreen />);
+
+      fireEvent.keyDown(window, { key: 'c' });
+      expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+
+      fireEvent.keyDown(window, { key: 'Enter' });
+      fireEvent.keyDown(window, { key: ' ' });
+
+      expect(screen.queryByText('Un párrafo que no tiene que avanzar solo.')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { choose, enter } from '@/engine/resolve';
@@ -118,5 +120,17 @@ describe('saltar lo leído, de punta a punta', () => {
     // El párrafo en curso ahora es el nuevo (índice 2): su hash nunca estuvo en `seen`,
     // así que ya no hay nada leído por saltar y el botón desaparece.
     expect(screen.queryByRole('button', { name: S.escena.saltarLeido })).not.toBeInTheDocument();
+  });
+
+  it('el botón queda pegado al borde de la columna, que scrollea sola mientras se revela', () => {
+    // jsdom no hace layout ni aplica hojas de estilo de módulos CSS, así que la regla se lee
+    // del archivo. Vale la pena igual: el autoscroll de `TextColumn` clava el log contra el
+    // borde de abajo en cada carácter revelado, y sin `position: sticky` este botón se va de
+    // pantalla justo en la ventana en la que existe. Es el modo de que, si alguien saca la
+    // regla, se entere acá y no jugando la segunda escena.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
+    const regla = /\.saltarLeido\s*\{[^}]*\}/.exec(css)?.[0] ?? '';
+    expect(regla).toMatch(/position:\s*sticky/);
+    expect(regla).toMatch(/top:\s*0/);
   });
 });

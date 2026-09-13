@@ -130,6 +130,27 @@ describe('useRevelado', () => {
     expect(result.current.terminado).toBe(false);
   });
 
+  it('saltar leído nunca retrocede: con un párrafo ya leído DETRÁS del nuevo, no vuelve atrás', () => {
+    // La forma que tiene `a1_plaza` en la campaña real: un párrafo viejo (h3) DESPUÉS de la
+    // variante nueva. Si el salto recorriera siempre desde 0, frenaría en `hNUEVO` (índice 2)
+    // y devolvería el revelado a 2 estando en 3 — el párrafo nuevo se volvería a tipear desde
+    // cero, y como `hashes[3]` está en `seen` el botón reaparecería: un ciclo sin salida.
+    const seen: SeenMap = { m_inicio: ['h1', 'h2', 'h3'] };
+    const log = [escena(['viejo uno', 'viejo dos', 'variante nueva', 'viejo tres'], ['h1', 'h2', 'hNUEVO', 'h3'])];
+    const { result } = renderHook(() => useRevelado({ log, seen, cps: 40, instantaneo: false }));
+
+    // Se lee hasta tener los tres primeros párrafos completos: el en curso es el índice 3.
+    for (let i = 0; i < 6; i += 1) act(() => { result.current.avanzar(); });
+    expect(result.current.parrafosVisibles).toBe(3);
+    // Y el botón se ofrece de nuevo, porque `hashes[3]` ya se había leído.
+    expect(result.current.puedeSaltarLeido).toBe(true);
+
+    act(() => { result.current.saltarLeido(); });
+
+    expect(result.current.parrafosVisibles).toBeGreaterThanOrEqual(3);
+    expect(result.current.terminado).toBe(true);
+  });
+
   it('si toda la entrada ya se leyó, saltar leído la muestra entera', () => {
     // Mismo motivo que el test anterior: el log es un `const` fuera del callback.
     const seen: SeenMap = { m_inicio: ['h1', 'h2'] };

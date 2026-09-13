@@ -62,6 +62,21 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
       data-testid="columna-texto"
       aria-live="polite"
       aria-atomic="false"
+      /**
+       * Mientras la máquina de escribir tipea, la región viva queda declarada OCUPADA.
+       *
+       * Con `aria-atomic="false"` el lector de pantalla reanuncia solo el nodo que cambió, y
+       * el nodo del párrafo en curso cambia una vez por carácter a 40 cps: sin esto, lo que
+       * se escucha es "L", "La", "La c", "La cr"… — la región viva, que estaba puesta para
+       * ayudar, es justo lo que arruina la lectura. `aria-busy` le dice a la tecnología de
+       * asistencia que aguante los cambios hasta que la región se estabilice: pasa a `false`
+       * una sola vez, cuando el revelado termina, y ahí se anuncia la prosa entera de una.
+       *
+       * El texto sigue estando en el árbol de accesibilidad todo el tiempo (no se esconde con
+       * `aria-hidden`), así que quien navegue el documento a mano lo puede leer igual mientras
+       * aparece: lo único que se suspende es el anuncio automático.
+       */
+      aria-busy={revelado !== undefined && !revelado.terminado}
       onClick={() => revelado?.avanzar()}
     >
       {log.map((entry, i) => (
