@@ -24,7 +24,9 @@ export interface ImagenProps {
  * así que la vieja se queda en pantalla en vez de parpadear a un placeholder o pintarse a
  * medio cargar. Una vez lista, `key={mostrado}` fuerza un `<img>` nuevo y la animación de
  * `Imagen.module.css` lo hace entrar con un fundido corto; con `useReducedMotion()`, ese
- * mismo CSS lo corta (`data-reducida`), igual que el giro de los dados en `Dados.module.css`.
+ * mismo CSS lo corta por el atributo `data-reducida` que se escribe más abajo. Los dados
+ * llegan al mismo lugar por otro camino: `RollPanel` ya resuelve la preferencia antes de
+ * pasarles la prop `girando`, así que `Dados` no necesita ningún `data-reducida` propio.
  *
  * `HTMLImageElement.decode` no existe en jsdom: la guarda `img.decode?.() ?? Promise.resolve()`
  * hace que el componente se porte igual en los tests (resuelve enseguida) que en el navegador.

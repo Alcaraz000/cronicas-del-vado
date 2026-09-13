@@ -399,6 +399,12 @@ describe('FinScreen: lo que el mundo recordará y los finales', () => {
     // ...pero se ve que existen, en silueta (dos finales sin descubrir), y la cuenta dice "2 de 4".
     expect(screen.getAllByText(S.fin.finalOculto)).toHaveLength(2);
     expect(screen.getByText(S.hub.campana.finales(2, 4))).toBeInTheDocument();
+
+    // Y esa silueta dice algo: un lector de pantalla leería cuatro viñetas si no.
+    const ocultos = screen.getAllByLabelText(S.fin.finalOcultoEtiqueta);
+    expect(ocultos).toHaveLength(2);
+    // El final que sí viste no lleva la etiqueta: lo que se anuncia es su título.
+    expect(screen.getByText('El tesoro de la torre')).not.toHaveAttribute('aria-label');
   });
 
   it('una derrota no lista canon, porque no escribió ninguno', () => {

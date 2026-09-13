@@ -41,7 +41,7 @@
 
 .subtitulo {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: calc(1.05rem * var(--escala-fuente));
 }
 
 .grupo {

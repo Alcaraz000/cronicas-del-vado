@@ -27,7 +27,7 @@
 .tirada {
   margin: 0;
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 

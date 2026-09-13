@@ -48,6 +48,24 @@ describe('derivarRecuerdos', () => {
     expect(derivarRecuerdos(campana, state).hechos).toEqual([]);
   });
 
+  it('NO muestra el canon apostado en run.stagedFlags: una derrota lo pierde', () => {
+    // La decisión más delicada de esta derivación, y hasta ahora se cumplía solo por
+    // construcción (la función ni mira `run`). Durante la partida el canon está APOSTADO: se
+    // escribe recién al cerrar con un final, y una derrota lo tira. Mostrarlo en la Ficha
+    // sería prometerle al jugador un recuerdo que todavía puede perder.
+    const state = makeState({
+      run: { stagedFlags: ['char:minimal.trepo', 'world:minimal.derrumbe'] },
+    });
+
+    const r = derivarRecuerdos(campana, state);
+
+    // Las dos líneas existen en `memories`: si `stagedFlags` entrara, aparecerían.
+    expect(campana.memories['char:minimal.trepo']).toBeDefined();
+    expect(campana.memories['world:minimal.derrumbe']).toBeDefined();
+    expect(r.hechos).toEqual([]);
+    expect(r.mundo).toEqual([]);
+  });
+
   it('ignora los flags run:, que no son del personaje', () => {
     const state = makeState({ character: { flags: ['run:algo'] } });
     const r = derivarRecuerdos(campana, state);
@@ -80,6 +98,24 @@ describe('derivarRecuerdos', () => {
     });
     const linea = derivarRecuerdos(campana, state).caidos[0]?.texto ?? '';
     expect(linea).toContain(campana.title);
+  });
+
+  it('dos Caídos con el mismo nombre en la misma campaña no colisionan de key', () => {
+    // `Fallen` no tiene id propio: nombre y campaña no alcanzan para distinguir dos
+    // personajes homónimos muertos en la misma crónica, y React con dos keys iguales dibuja
+    // uno solo (o reusa el nodo equivocado). Es un caso perfectamente posible: el jugador
+    // vuelve a llamar Vera a su siguiente maga.
+    const state = makeState({
+      world: makeWorld({
+        fallen: [
+          { name: 'Vera', classId: 'guerrero', level: 2, campaign: 'minimal', scene: 'm_risco' },
+          { name: 'Vera', classId: 'mago', level: 4, campaign: 'minimal', scene: 'm_claro' },
+        ],
+      }),
+    });
+    const caidos = derivarRecuerdos(campana, state).caidos;
+    expect(caidos).toHaveLength(2);
+    expect(caidos[0]?.id).not.toBe(caidos[1]?.id);
   });
 
   it('omite el id de campaña para un Caído de otra campaña', () => {

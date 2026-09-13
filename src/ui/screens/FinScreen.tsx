@@ -15,7 +15,7 @@ import {
 } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { Parrafos } from '@/ui/components/Parrafos';
-import { derivarCronica } from '@/ui/memoria';
+import { derivarCronica, lineasDeMemoria } from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './FinScreen.module.css';
 
@@ -117,14 +117,13 @@ export function FinScreen() {
   /**
    * Lo que el mundo recordará: una línea por flag de canon que quedó (`endSummary.canonFlags`),
    * en voz del narrador. `discardedFlags` NO entra: es el canon que se perdió por no terminar
-   * como ese final, y mostrarlo le contaría al jugador la partida que no tuvo. Un flag sin línea
-   * en `campaign.memories` se omite en silencio (r12 garantiza que en producción no falta
-   * ninguna, pero si faltara, la UI nunca muestra el identificador crudo).
+   * como ese final, y mostrarlo le contaría al jugador la partida que no tuvo.
+   *
+   * La derivación en sí es `lineasDeMemoria`, la misma que usa la Ficha: qué se muestra de un
+   * flag de canon se decide en un solo lugar.
    */
   const recuerdos =
-    endSummary !== null && campaign !== null
-      ? endSummary.canonFlags.map((f) => ({ id: f, texto: campaign.memories[f] ?? '' })).filter((l) => l.texto !== '')
-      : [];
+    endSummary !== null && campaign !== null ? lineasDeMemoria(campaign, endSummary.canonFlags) : [];
 
   // La cuenta "vistos de totales" sale de `derivarCronica` (tarea 2): no se recalcula acá.
   const cronica = campaign !== null && personaje !== null ? derivarCronica(campaign, personaje) : null;
@@ -169,7 +168,11 @@ export function FinScreen() {
             {Object.keys(campaign.endings).map((id) => {
               const visto = finalesVistos.includes(id);
               return (
-                <li key={id} className={visto ? styles.finalVisto : styles.finalOculto}>
+                <li
+                  key={id}
+                  className={visto ? styles.finalVisto : styles.finalOculto}
+                  aria-label={visto ? undefined : S.fin.finalOcultoEtiqueta}
+                >
                   {visto ? campaign.endings[id].title : S.fin.finalOculto}
                 </li>
               );

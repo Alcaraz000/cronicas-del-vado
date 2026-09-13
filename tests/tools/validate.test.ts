@@ -16,7 +16,7 @@ import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/bro
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
 import { conReward, rewardValido, rotaR11RewardEfectoSinSemantica, rotaR11RewardFlagRun, rotaR11RewardLethal, rotaR11RewardObjetoNormal } from '../fixtures/campaigns/broken/r11';
-import { rotaR12FaltaLinea, rotaR12LineaCompartida, rotaR12LineaDeRun, rotaR12LineaHuerfana } from '../fixtures/campaigns/broken/r12';
+import { rotaR12FaltaLinea, rotaR12FaltaLineaDeMundo, rotaR12LineaCompartida, rotaR12LineaDeRun, rotaR12LineaHuerfana } from '../fixtures/campaigns/broken/r12';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -357,6 +357,14 @@ describe('r12_memories', () => {
     const issues = soloRegla(rotaR12FaltaLinea, 'r12_memories');
     expect(issues).toHaveLength(1);
     expect(issues[0]?.message).toContain('char:base.recuerdo');
+  });
+  it('flag de canon DEL MUNDO sin línea', () => {
+    // El otro prefijo de la regla. El canon del mundo es el que sobrevive al personaje: si
+    // `world:<campaña>.` se cayera del barrido, la campaña pasaría el validador con recuerdos
+    // que el jugador nunca va a poder leer.
+    const issues = soloRegla(rotaR12FaltaLineaDeMundo, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('world:base.puente_caido');
   });
   it('línea sin flag declarado', () => {
     const issues = soloRegla(rotaR12LineaHuerfana, 'r12_memories');

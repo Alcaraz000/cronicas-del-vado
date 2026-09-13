@@ -3,7 +3,7 @@
   flex-wrap: wrap;
   gap: var(--esp-1);
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
 .chip {

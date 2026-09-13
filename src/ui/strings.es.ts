@@ -246,7 +246,11 @@ export const S = {
     // Lo que quedó escrito en el mundo (canon) y el mapa de finales de la campaña.
     recuerda: 'Lo que el mundo recordará',
     finales: 'Finales',
+    // Cuatro viñetas: a la vista dicen "acá hay un final que no viste". Un lector de pantalla
+    // leería cuatro viñetas y nada más, así que la fila lleva `finalOcultoEtiqueta` de
+    // `aria-label` y eso es lo que se anuncia en su lugar.
     finalOculto: '● ● ● ●',
+    finalOcultoEtiqueta: 'Un final que todavía no descubriste',
   },
   ficha: {
     titulo: 'Ficha de personaje',
@@ -291,7 +295,8 @@ export const S = {
    */
   ajustes: {
     titulo: 'Opciones',
-    cerrar: 'Cerrar',
+    // Para cerrar está `S.comun.cerrar`: es la misma palabra en el mismo botón de todos los
+    // modales, y tenerla dos veces solo abre la puerta a que un día digan cosas distintas.
     preferencias: {
       titulo: 'Preferencias',
       maquinaDeEscribir: {

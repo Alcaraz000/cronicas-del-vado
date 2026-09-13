@@ -4,6 +4,17 @@ import { campanaBase } from './base';
 /** El flag de canon está declarado, pero el jugador no tiene qué leer de él. */
 export const rotaR12FaltaLinea: Campaign = { ...campanaBase, memories: {} };
 
+/**
+ * Lo mismo, pero del lado del MUNDO. Los otros cuatro fixtures son todos `char:`, así que el
+ * segundo prefijo de la regla (`world:<campaña>.`) recorría el mismo camino sin que nada lo
+ * demostrara: un `startsWith` mal escrito ahí dejaría pasar canon del mundo sin línea, que es
+ * justo el que sobrevive al personaje y más caro sale perder.
+ */
+export const rotaR12FaltaLineaDeMundo: Campaign = {
+  ...campanaBase,
+  flags: { ...campanaBase.flags, 'world:base.puente_caido': 'El puente quedó abajo' },
+};
+
 /** Hay línea para un flag que nadie declaró. */
 export const rotaR12LineaHuerfana: Campaign = {
   ...campanaBase,

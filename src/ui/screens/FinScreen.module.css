@@ -78,7 +78,7 @@
 
 .subtitulo {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--escala-fuente));
 }
 
 .subtitulo3 {
@@ -90,7 +90,7 @@
 
 .xp {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: calc(1.4rem * var(--escala-fuente));
   color: var(--color-acento);
 }
 
@@ -114,7 +114,7 @@
 }
 
 .nivel {
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--escala-fuente));
 }
 
 .falta {

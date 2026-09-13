@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { globSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
@@ -82,5 +84,24 @@ describe('usePrefsCss', () => {
     useStore.getState().setPrefs({ fontScale: 1.25 });
     renderHook(() => usePrefsCss());
     expect(document.documentElement.style.getPropertyValue('--escala-fuente')).toBe('1.25');
+  });
+
+  it('todo font-size de la interfaz multiplica por --escala-fuente', () => {
+    // La preferencia de tamaño de letra no sirve de nada en los lugares donde no llega, y son
+    // justo los textos más chicos de la pantalla (chips, barra de estado, panel de tirada) los
+    // que más falta le hacen a quien pide 150 %. Este barrido evita que la próxima regla de
+    // `font-size` nazca sin la escala.
+    const modulos = globSync('src/ui/**/*.module.css', { cwd: process.cwd() });
+    expect(modulos.length).toBeGreaterThan(0);
+
+    const sinEscala: string[] = [];
+    for (const relativo of modulos) {
+      const css = readFileSync(resolve(process.cwd(), relativo), 'utf8');
+      for (const [declaracion = ''] of css.matchAll(/font-size:[^;]+;/g)) {
+        if (!declaracion.includes('--escala-fuente')) sinEscala.push(`${relativo}: ${declaracion}`);
+      }
+    }
+
+    expect(sinEscala).toEqual([]);
   });
 });

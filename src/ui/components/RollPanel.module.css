@@ -14,13 +14,13 @@
 
 .modo {
   margin: 0 0 var(--esp-2);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
 .total {
   margin: var(--esp-2) 0 var(--esp-1);
-  font-size: var(--tam-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
   font-weight: 600;
 }
 

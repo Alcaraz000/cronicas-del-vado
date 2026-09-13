@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useStore } from '@/state/store';
+import { useTrampaDeFoco } from '@/ui/hooks/useTrampaDeFoco';
 import { S } from '@/ui/strings.es';
 import styles from './OpcionesModal.module.css';
 
@@ -44,6 +45,12 @@ function descargar(json: string, nombre: string): boolean {
  *
  * `exportSave` arma el JSON y `importSave` lo valida con zod y migra; la pantalla solo
  * muestra el motivo cuando el store dice que no.
+ *
+ * El foco lo atrapa `useTrampaDeFoco`, igual que `Cajon` y `Dialogo`: es lo que hace cierto
+ * el `aria-modal="true"` de abajo (Tab no se escapa, Esc cierra aunque el foco esté afuera,
+ * el foco vuelve a donde estaba) y lo que anota el modal para que los atajos de teclado de la
+ * pantalla de juego no sigan disparando por detrás. El botón de cerrar va primero en el
+ * marcado a propósito: la trampa enfoca el primer elemento enfocable al abrirse.
  */
 export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
   const exportSave = useStore((s) => s.exportSave);
@@ -56,25 +63,15 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
   const grupoFontScale = useId();
   const grupoReducedMotion = useId();
   const grupoShowOdds = useId();
-  const cerrarRef = useRef<HTMLButtonElement>(null);
+  const caja = useRef<HTMLDivElement>(null);
 
   const [guardado] = useState<string>(() => exportSave());
   const [pegado, setPegado] = useState('');
   const [aviso, setAviso] = useState<{ tono: 'error' | 'exito'; texto: string } | null>(null);
 
-  useEffect(() => {
-    cerrarRef.current?.focus();
-  }, []);
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>): void => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onCerrar();
-      }
-    },
-    [onCerrar],
-  );
+  // Este componente solo se monta cuando el modal está abierto: la pantalla que lo usa lo
+  // dibuja o no lo dibuja, no lo deja montado y cerrado.
+  useTrampaDeFoco(caja, true, onCerrar);
 
   const alDescargar = (): void => {
     const ok = descargar(guardado, S.ajustes.exportar.nombreArchivo(hoy()));
@@ -100,24 +97,19 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
       }}
     >
       <div
+        ref={caja}
         className={styles.caja}
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        onKeyDown={onKeyDown}
+        tabIndex={-1}
       >
         <header className={styles.cabecera}>
           <h2 id={tituloId} className={styles.titulo}>
             {S.ajustes.titulo}
           </h2>
-          <button
-            ref={cerrarRef}
-            type="button"
-            className={styles.secundario}
-            data-testid="cerrar-opciones"
-            onClick={onCerrar}
-          >
-            {S.ajustes.cerrar}
+          <button type="button" className={styles.secundario} data-testid="cerrar-opciones" onClick={onCerrar}>
+            {S.comun.cerrar}
           </button>
         </header>
 
