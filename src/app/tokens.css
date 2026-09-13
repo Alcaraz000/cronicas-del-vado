@@ -14,13 +14,22 @@
   --color-texto-suave: #a89f8e;
   --color-acento: #c9a24a;
   --color-acento-suave: #8a6d2b;
-  --color-placeholder: #4a443c; /* gris de las cajas de arte provisorio (Placeholder) */
+  /* Gris de las cajas de arte provisorio (Placeholder). Bajado desde #4a443c: con
+     --color-texto-suave encima daba 3,67:1 (tarea 12) — no llegaba a 4,5:1. */
+  --color-placeholder: #332f29;
   --color-velo: rgb(0 0 0 / 65%); /* fondo semitransparente detrás de un modal o panel */
 
-  /* Colores semánticos */
+  /* Colores semánticos. --color-peligro se usa como BORDE (Dialogo, OpcionesModal): no lo
+     tocamos, para no desentonar ahí. Donde se necesita como TEXTO (Chips, CreacionScreen)
+     se usa --color-peligro-texto en su lugar — ver esa entrada más abajo. */
   --color-peligro: #b5443a;
   --color-exito: #5f9e5a;
   --color-aviso: #d19a3a;
+
+  /* Texto de "peligro" (Chips en tono desventaja, error de creación de personaje). Mismo
+     valor que --color-peligroso a propósito, para que se lean como el mismo rojo: #b5443a
+     original daba 2,75:1 sobre --color-superficie-alta, no llegaba a 4,5:1 (tarea 12). */
+  --color-peligro-texto: #d47a71;
 
   /* Etiquetas de riesgo de una tirada (Seguro / Arriesgado / Peligroso), sobre
      --color-superficie-alta. --color-peligroso subido desde #b5443a (2,75:1, no llegaba a

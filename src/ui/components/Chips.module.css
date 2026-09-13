@@ -18,7 +18,7 @@
 }
 
 .chip[data-tono='desventaja'] {
-  color: var(--color-peligro);
+  color: var(--color-peligro-texto);
 }
 
 /* El tachado no se comunica solo por color: el atributo data-tachado es lo que

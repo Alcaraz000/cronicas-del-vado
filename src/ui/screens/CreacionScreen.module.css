@@ -182,7 +182,7 @@
 
 .error {
   font-family: var(--fuente-ui);
-  color: var(--color-peligro);
+  color: var(--color-peligro-texto);
 }
 
 /* Resumen */
