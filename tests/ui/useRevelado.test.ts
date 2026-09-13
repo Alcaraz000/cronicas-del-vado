@@ -1,0 +1,168 @@
+/** @vitest-environment jsdom */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { useRevelado } from '@/ui/hooks/useRevelado';
+import type { LogEntry, SeenMap } from '@/engine/types';
+
+const escena = (paragraphs: string[], hashes: string[]): LogEntry => ({
+  kind: 'scene',
+  sceneId: 'm_inicio',
+  paragraphs: paragraphs.map((text) => ({ text })),
+  hashes,
+});
+
+beforeEach(() => { vi.useFakeTimers(); });
+afterEach(() => { vi.useRealTimers(); });
+
+describe('useRevelado', () => {
+  it('instantáneo muestra todo desde el primer render', () => {
+    const log = [escena(['uno', 'dos'], ['h1', 'h2'])];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: true }));
+    expect(result.current.parrafosVisibles).toBe(2);
+    expect(result.current.terminado).toBe(true);
+  });
+
+  it('revela carácter por carácter al ritmo de cps', () => {
+    const log = [escena(['abcdefgh'], ['h1'])];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: false }));
+    expect(result.current.caracteresVisibles).toBe(0);
+    act(() => { vi.advanceTimersByTime(100); }); // 4 caracteres a 40 cps
+    expect(result.current.caracteresVisibles).toBe(4);
+    expect(result.current.terminado).toBe(false);
+  });
+
+  it('avanzar completa el párrafo en curso y el segundo avanza al siguiente', () => {
+    const log = [escena(['abcdefgh', 'segundo'], ['h1', 'h2'])];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: false }));
+    act(() => { result.current.avanzar(); });
+    expect(result.current.parrafosVisibles).toBe(0);
+    expect(result.current.caracteresVisibles).toBe(8);
+    act(() => { result.current.avanzar(); });
+    expect(result.current.parrafosVisibles).toBe(1);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
+  it('al terminar el último párrafo queda terminado', () => {
+    const log = [escena(['ab'], ['h1'])];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: false }));
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    expect(result.current.parrafosVisibles).toBe(1);
+  });
+
+  it('una entrada nueva en el log reinicia el revelado', () => {
+    const primera = [escena(['ab'], ['h1'])];
+    const { result, rerender } = renderHook((props: { log: LogEntry[] }) =>
+      useRevelado({ log: props.log, seen: {}, cps: 40, instantaneo: false }), { initialProps: { log: primera } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    rerender({ log: [...primera, escena(['cdef'], ['h2'])] });
+    expect(result.current.terminado).toBe(false);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
+  it('con el log recortado (largo constante) una entrada nueva igual reinicia el revelado', () => {
+    // El motor recorta el log a LIMITS.maxLog (`resolve.ts` hace `.slice(...)`): una vez
+    // alcanzado el tope, `log.length` queda constante para siempre aunque sigan llegando
+    // entradas nuevas. La señal de "hay una entrada nueva" no puede ser `log.length`.
+    const frente: LogEntry = { kind: 'choice', sceneId: 'm_prev', choiceId: 'ir', label: 'Ir' };
+    const ventana1 = [frente, escena(['ab'], ['h1'])];
+    const { result, rerender } = renderHook((props: { log: LogEntry[] }) =>
+      useRevelado({ log: props.log, seen: {}, cps: 40, instantaneo: false }), { initialProps: { log: ventana1 } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    // Ventana de largo IDÉNTICO (2), como tras el recorte: solo cambia la última entrada.
+    const ventana2 = [frente, escena(['zz'], ['h2'])];
+    rerender({ log: ventana2 });
+    expect(result.current.terminado).toBe(false);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
+  it('dos entradas de escena con contenido idéntico pero objetos distintos reinician el revelado', () => {
+    // El caso real: una ronda de combate (o una opción de `a1_plaza`) que vuelve a la MISMA
+    // escena con el MISMO texto. El motor arma un objeto de log nuevo siempre (nunca reusa
+    // la referencia de la entrada anterior), así que dos entradas de contenido idéntico deben
+    // reiniciar el revelado igual que si el contenido fuera distinto. Si la señal de "entrada
+    // nueva" volviera a ser una huella por contenido, este caso NO se detectaría: es
+    // exactamente el bug que quedó abierto tras la tarea 8.
+    const primera = escena(['ab'], ['h1']);
+    const { result, rerender } = renderHook((props: { log: LogEntry[] }) =>
+      useRevelado({ log: props.log, seen: {}, cps: 40, instantaneo: false }), { initialProps: { log: [primera] } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    // Mismo contenido exacto ('ab', ['h1']), pero un objeto NUEVO: no es `primera`.
+    const segundaConElMismoContenido = escena(['ab'], ['h1']);
+    rerender({ log: [segundaConElMismoContenido] });
+    expect(result.current.terminado).toBe(false);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
+  it('si la última entrada no lleva prosa, no hay nada que revelar', () => {
+    const log: LogEntry[] = [
+      escena(['ab'], ['h1']),
+      { kind: 'choice', sceneId: 'm_inicio', choiceId: 'partir', label: 'Partir' },
+    ];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: false }));
+    expect(result.current.terminado).toBe(true);
+  });
+
+  it('ofrece saltar leído solo si el párrafo en curso ya se leyó antes', () => {
+    // Los logs van en un `const` FUERA del callback de `renderHook`: si estuvieran adentro,
+    // cada render (p. ej. el que dispara el efecto de reinicio al montar) armaría un array
+    // nuevo, `log[log.length - 1]` sería una referencia nueva en cada vuelta, y el efecto de
+    // reinicio (atado a esa identidad) entraría en bucle infinito.
+    const seen: SeenMap = { m_inicio: ['h1'] };
+    const logSinLeer = [escena(['ab'], ['hX'])];
+    const sinLeer = renderHook(() => useRevelado({ log: logSinLeer, seen, cps: 40, instantaneo: false }));
+    expect(sinLeer.result.current.puedeSaltarLeido).toBe(false);
+    const logLeido = [escena(['ab'], ['h1'])];
+    const leido = renderHook(() => useRevelado({ log: logLeido, seen, cps: 40, instantaneo: false }));
+    expect(leido.result.current.puedeSaltarLeido).toBe(true);
+  });
+
+  it('saltar leído frena EXACTAMENTE en el primer párrafo no leído', () => {
+    const seen: SeenMap = { m_inicio: ['h1', 'h2'] };
+    const log = [escena(['viejo uno', 'viejo dos', 'variante nueva', 'viejo tres'], ['h1', 'h2', 'hNUEVO', 'h3'])];
+    const { result } = renderHook(() => useRevelado({ log, seen, cps: 40, instantaneo: false }));
+    act(() => { result.current.saltarLeido(); });
+    expect(result.current.parrafosVisibles).toBe(2);
+    expect(result.current.caracteresVisibles).toBe(0);
+    expect(result.current.terminado).toBe(false);
+  });
+
+  it('saltar leído nunca retrocede: con un párrafo ya leído DETRÁS del nuevo, no vuelve atrás', () => {
+    // La forma que tiene `a1_plaza` en la campaña real: un párrafo viejo (h3) DESPUÉS de la
+    // variante nueva. Si el salto recorriera siempre desde 0, frenaría en `hNUEVO` (índice 2)
+    // y devolvería el revelado a 2 estando en 3 — el párrafo nuevo se volvería a tipear desde
+    // cero, y como `hashes[3]` está en `seen` el botón reaparecería: un ciclo sin salida.
+    const seen: SeenMap = { m_inicio: ['h1', 'h2', 'h3'] };
+    const log = [escena(['viejo uno', 'viejo dos', 'variante nueva', 'viejo tres'], ['h1', 'h2', 'hNUEVO', 'h3'])];
+    const { result } = renderHook(() => useRevelado({ log, seen, cps: 40, instantaneo: false }));
+
+    // Se lee hasta tener los tres primeros párrafos completos: el en curso es el índice 3.
+    for (let i = 0; i < 6; i += 1) act(() => { result.current.avanzar(); });
+    expect(result.current.parrafosVisibles).toBe(3);
+    // Y el botón se ofrece de nuevo, porque `hashes[3]` ya se había leído.
+    expect(result.current.puedeSaltarLeido).toBe(true);
+
+    act(() => { result.current.saltarLeido(); });
+
+    expect(result.current.parrafosVisibles).toBeGreaterThanOrEqual(3);
+    expect(result.current.terminado).toBe(true);
+  });
+
+  it('si toda la entrada ya se leyó, saltar leído la muestra entera', () => {
+    // Mismo motivo que el test anterior: el log es un `const` fuera del callback.
+    const seen: SeenMap = { m_inicio: ['h1', 'h2'] };
+    const log = [escena(['uno', 'dos'], ['h1', 'h2'])];
+    const { result } = renderHook(() => useRevelado({ log, seen, cps: 40, instantaneo: false }));
+    act(() => { result.current.saltarLeido(); });
+    expect(result.current.terminado).toBe(true);
+  });
+
+  it('una entrada de desenlace no ofrece saltar leído: no lleva hashes', () => {
+    const log: LogEntry[] = [{ kind: 'outcome', paragraphs: [{ text: 'Cae la piedra.' }] }];
+    const { result } = renderHook(() => useRevelado({ log, seen: {}, cps: 40, instantaneo: false }));
+    expect(result.current.puedeSaltarLeido).toBe(false);
+  });
+});

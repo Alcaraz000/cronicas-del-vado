@@ -1,0 +1,55 @@
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: var(--esp-4);
+  background: var(--color-velo);
+}
+
+.caja {
+  display: grid;
+  gap: var(--esp-4);
+  width: min(100%, var(--ancho-columna-max));
+  padding: var(--esp-5);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+}
+
+/* El tono no se comunica solo por color: título y cuerpo ya dicen qué está en juego. */
+.caja[data-tono='peligro'] {
+  border-color: var(--color-peligro);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-acento);
+}
+
+.cuerpo {
+  margin: 0;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--esp-3);
+}
+
+.cancelar,
+.confirmar {
+  font-family: var(--fuente-ui);
+  padding: 0.5em 1.2em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie-alta);
+  color: var(--color-texto);
+}
+
+.confirmar {
+  background: var(--color-acento);
+  border-color: var(--color-acento);
+  color: var(--color-fondo);
+}

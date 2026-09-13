@@ -18,7 +18,7 @@ const campana: Campaign = {
     torre: { id: 'torre', name: 'Torre', background: 'torre', variants: { noche: 'torre.noche' }, canonPrompt: 'c' },
   },
   items: { llave: { id: 'llave', name: 'Llave', icon: 'llave_de_hierro', description: 'd' } },
-  flags: {}, milestones: {}, clocks: {}, endings: {},
+  flags: {}, memories: {}, milestones: {}, clocks: {}, endings: {},
 };
 
 const mundo: WorldContent = {

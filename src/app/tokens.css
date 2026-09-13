@@ -14,17 +14,36 @@
   --color-texto-suave: #a89f8e;
   --color-acento: #c9a24a;
   --color-acento-suave: #8a6d2b;
-  --color-placeholder: #4a443c; /* gris de las cajas de arte provisorio (Placeholder) */
+  /* Gris de las cajas de arte provisorio (Placeholder). Bajado desde #4a443c: con
+     --color-texto-suave encima daba 3,67:1 (tarea 12) — no llegaba a 4,5:1. */
+  --color-placeholder: #332f29;
+  --color-velo: rgb(0 0 0 / 65%); /* fondo semitransparente detrás de un modal o panel */
 
-  /* Colores semánticos */
+  /* Colores semánticos. --color-peligro se usa como BORDE (Dialogo, OpcionesModal): no lo
+     tocamos, para no desentonar ahí. Donde se necesita como TEXTO (Chips, CreacionScreen)
+     se usa --color-peligro-texto en su lugar — ver esa entrada más abajo. */
   --color-peligro: #b5443a;
   --color-exito: #5f9e5a;
   --color-aviso: #d19a3a;
 
-  /* Etiquetas de riesgo de una tirada (Seguro / Arriesgado / Peligroso) */
+  /* Texto de "peligro" (Chips en tono desventaja, error de creación de personaje). Mismo
+     valor que --color-peligroso a propósito, para que se lean como el mismo rojo.
+
+     Por qué no es #b5443a, el rojo original: como TEXTO no llega a 4,5:1 contra ningún
+     fondo, ni siquiera contra negro puro (tope 3,85:1). La claridad es lo único que la
+     regla obliga a mover, así que se conserva el tono exacto del original (hue 5°) y se
+     sube la saturación de 51 a 76, que es lo que le devuelve el carácter de rojo: un
+     primer intento subió solo la claridad y quedó un salmón desvaído.
+     4,81:1 sobre --color-superficie-alta, 6,00:1 sobre --color-fondo. */
+  --color-peligro-texto: #e96b60;
+
+  /* Etiquetas de riesgo de una tirada (Seguro / Arriesgado / Peligroso), sobre
+     --color-superficie-alta. --color-peligroso lleva el mismo valor que
+     --color-peligro-texto y por el mismo motivo, explicado ahí arriba;
+     --color-seguro y --color-arriesgado ya daban 4,5:1 o más. */
   --color-seguro: #5f9e5a;
   --color-arriesgado: #d19a3a;
-  --color-peligroso: #b5443a;
+  --color-peligroso: #e96b60;
 
   /* Tipografía */
   --fuente-juego: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;

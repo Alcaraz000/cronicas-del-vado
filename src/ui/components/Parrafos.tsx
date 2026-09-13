@@ -5,6 +5,17 @@ import styles from './Parrafos.module.css';
 
 export interface ParrafosProps {
   parrafos: ResolvedParagraph[];
+  /**
+   * Cuántos párrafos mostrar COMPLETOS. Sin esta prop (y sin `caracteres`) se muestran todos,
+   * como antes de la tarea 9 — así sigue portándose igual `FinScreen`, que no anima nada.
+   */
+  visibles?: number;
+  /**
+   * Caracteres a mostrar del párrafo EN CURSO (el de índice `visibles`), contados sobre
+   * `text`, no sobre el nombre del hablante: con 0 el párrafo en curso todavía no se dibuja
+   * (ni su nombre); apenas hay 1, el nombre aparece entero junto con ese primer carácter.
+   */
+  caracteres?: number;
 }
 
 /**
@@ -27,11 +38,17 @@ export function useNombresDePnj(): Record<string, string> {
  * que muestran prosa del motor (la columna de la escena y el fin), para que una línea de diálogo
  * se vea igual en las dos.
  */
-export function Parrafos({ parrafos }: ParrafosProps) {
+export function Parrafos({ parrafos, visibles, caracteres }: ParrafosProps) {
   const nombres = useNombresDePnj();
+  const completos = visibles === undefined ? parrafos : parrafos.slice(0, visibles);
+  // El párrafo en curso solo se agrega si ya tiene al menos un carácter revelado: con 0,
+  // ni el texto ni el nombre del hablante se dibujan todavía.
+  const enCurso = visibles !== undefined && (caracteres ?? 0) > 0 ? parrafos[visibles] : undefined;
+  const mostrar =
+    enCurso === undefined ? completos : [...completos, { ...enCurso, text: enCurso.text.slice(0, caracteres ?? 0) }];
   return (
     <>
-      {parrafos.map((p, i) => (
+      {mostrar.map((p, i) => (
         <p key={i} className={styles.parrafo}>
           {p.speaker !== undefined && <strong className={styles.hablante}>{nombres[p.speaker] ?? p.speaker}: </strong>}
           <span>{p.text}</span>

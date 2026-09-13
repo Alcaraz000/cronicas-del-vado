@@ -106,6 +106,22 @@ export const m_cripta = {
   text: [
     'La cripta es un pasillo de losas sueltas sobre un pozo negro. Un fallo acá te puede matar.',
     'Del otro lado brilla algo que podría ser oro.',
+    // Párrafo intercalado para la Tarea 10 (saltar lo leído): a propósito NO es el primero
+    // de la escena, sino el tercero de cuatro (viejo, viejo, NUEVO, viejo). Cambia recién en
+    // la segunda visita, mientras los otros tres quedan textualmente idénticos: así un test
+    // puede probar que el salto frena en MEDIO de la entrada, no solo al principio, y que no
+    // sigue de largo revelando el cuarto párrafo (que también es viejo, pero viene DESPUÉS
+    // del nuevo y no debería aparecer hasta que se lo lea).
+    {
+      variants: [
+        {
+          when: { visited: 'm_cripta', min: 1 },
+          text: 'Volviste a bajar: ahora ves una grieta nueva en la piedra, justo donde antes no habías mirado.',
+        },
+        { text: 'El aire acá abajo es húmedo y pesa, como si algo respirara despacio en la oscuridad.' },
+      ],
+    },
+    'El silencio pesa más que cualquier respuesta que puedas dar.',
   ],
   choices: [
     {
@@ -206,6 +222,9 @@ export const memoria: Campaign = {
     'run:secreto': 'Descubriste el pasadizo secreto.',
     'run:tesoro_a_la_vista': 'Sabés dónde está el tesoro.',
     'char:memoria.vio_la_cripta': 'Este personaje vio la cripta de la torre vieja.',
+  },
+  memories: {
+    'char:memoria.vio_la_cripta': 'Bajaste a la cripta de la torre vieja.',
   },
   milestones: { llegar_a_la_puerta: { label: 'Llegar a la puerta de la torre' } },
   clocks: { ronda: { max: 3, label: 'Rondas en la sala' } },

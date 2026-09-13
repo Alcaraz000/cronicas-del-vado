@@ -1,5 +1,6 @@
 import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { ScreenRouter } from '@/app/ScreenRouter';
+import { usePrefsCss } from '@/ui/hooks/usePrefsCss';
 import { S } from '@/ui/strings.es';
 import '@/app/tokens.css';
 
@@ -77,6 +78,7 @@ export function usePreloadErrorReload(): void {
 
 export function App() {
   usePreloadErrorReload();
+  usePrefsCss();
   return (
     <ErrorBoundary>
       <ScreenRouter />

@@ -4,6 +4,7 @@ import { npcs } from '@/content/campaigns/prueba/npcs';
 import { places } from '@/content/campaigns/prueba/places';
 import { items } from '@/content/campaigns/prueba/items';
 import { flags } from '@/content/campaigns/prueba/flags';
+import { memories } from '@/content/campaigns/prueba/memories';
 import { p_umbral, p_biblioteca, p_patio, p_patio_2, p_victoria, p_capilla } from '@/content/campaigns/prueba/scenes/acto1';
 import { p_escalera, p_cripta, p_fin_tesoro, p_fin_huida } from '@/content/campaigns/prueba/scenes/acto2';
 
@@ -27,6 +28,7 @@ export const campaign: Campaign = {
   places,
   items,
   flags,
+  memories,
   milestones: {
     entrar_a_la_torre: { label: 'Entrar a la torre' },
   },

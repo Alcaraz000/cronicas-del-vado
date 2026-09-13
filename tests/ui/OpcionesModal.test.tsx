@@ -50,6 +50,57 @@ describe('OpcionesModal', () => {
     expect(onCerrar).toHaveBeenCalledTimes(2);
   });
 
+  it('atrapa el foco como el resto de los modales: Tab desde el último vuelve al primero', () => {
+    // Era el único modal de la app que declaraba `aria-modal="true"` sin usar
+    // `useTrampaDeFoco`: Tab se escapaba a la página de atrás y Escape solo andaba con el foco
+    // adentro, porque el handler colgaba del propio diálogo y no del documento.
+    render(<OpcionesModal onCerrar={vi.fn()} />);
+
+    const enfocables = screen.getByRole('dialog').querySelectorAll<HTMLElement>('button, input, textarea');
+    const primero = enfocables[0];
+    const ultimo = enfocables[enfocables.length - 1];
+    expect(primero).toBe(screen.getByTestId('cerrar-opciones'));
+
+    ultimo?.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(primero);
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(ultimo);
+  });
+
+  it('Escape cierra aunque el foco se haya ido afuera del diálogo', () => {
+    const onCerrar = vi.fn();
+    render(<OpcionesModal onCerrar={onCerrar} />);
+
+    const afuera = document.createElement('button');
+    document.body.appendChild(afuera);
+    afuera.focus();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+
+    afuera.remove();
+  });
+
+  it('cambiar el tamaño de letra en Preferencias actualiza el store', () => {
+    render(<OpcionesModal onCerrar={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText(S.ajustes.preferencias.tamanoDeLetra.n125));
+
+    expect(useStore.getState().prefs.fontScale).toBe(1.25);
+  });
+
+  it('un cps intermedio (guardado importado) deja marcado "Normal", no ningún radio', () => {
+    act(() => {
+      useStore.setState((s) => ({ prefs: { ...s.prefs, cps: 20 } }));
+    });
+    render(<OpcionesModal onCerrar={vi.fn()} />);
+
+    expect(screen.getByLabelText(S.ajustes.preferencias.maquinaDeEscribir.normal)).toBeChecked();
+    expect(screen.getByLabelText(S.ajustes.preferencias.maquinaDeEscribir.instantaneo)).not.toBeChecked();
+  });
+
   it('muestra el guardado entero para copiar y lo ofrece como archivo', () => {
     act(() => {
       useStore.setState({ characters: [makeCharacter({ name: 'Bruna' })], activeCharacterId: 'pj_prueba' });

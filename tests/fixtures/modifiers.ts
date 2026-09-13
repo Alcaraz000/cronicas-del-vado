@@ -51,6 +51,7 @@ export const campanaModificadores: Campaign = {
     },
   },
   flags: { 'run:tiene_pista': 'El personaje encontró una pista en la sala.' },
+  memories: {},
   milestones: {},
   clocks: {},
   endings: { fin: { title: 'Fin' } },

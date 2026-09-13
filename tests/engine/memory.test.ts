@@ -42,6 +42,7 @@ const campania: Campaign = {
   },
   items: {},
   flags: {},
+  memories: {},
   milestones: {},
   clocks: {},
   endings: {},

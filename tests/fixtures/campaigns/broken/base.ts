@@ -111,6 +111,7 @@ export const campanaBase: Campaign = {
   places: { b_plaza: { id: 'b_plaza', name: 'La plaza', background: 'b_plaza', canonPrompt: 'Plaza empedrada bajo la lluvia.' } },
   items: { b_llave: { id: 'b_llave', name: 'Llave del guía', icon: 'llave', description: 'Abre un cofre.', advantageTags: ['sigilo'] } },
   flags: { 'run:b_hablo': 'Hablaste con el guía', 'char:base.recuerdo': 'Viste la luz de la cripta' },
+  memories: { 'char:base.recuerdo': 'Viste la luz que sale de la cripta.' },
   milestones: { b_llegar: { label: 'Llegar a la plaza' } },
   clocks: { b_pelea: { max: 2, label: 'Pelea' } },
   endings: { fin_a: { title: 'Final A' }, fin_b: { title: 'Final B', hidden: true } },

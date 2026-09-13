@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Campaign } from '@/content/schema';
+import type { LogEntry, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
 import { EscenaScreen } from '@/ui/screens/EscenaScreen';
 import { S } from '@/ui/strings.es';
@@ -53,13 +54,19 @@ const conArte: Campaign = {
   },
   items: {},
   flags: {},
+  memories: {},
   milestones: {},
   clocks: {},
   endings: {},
 };
 
-function montarEscena(campaign: Campaign): void {
-  const run = makeRun({ campaignId: campaign.id, contentVersion: campaign.contentVersion, sceneId: campaign.start });
+function montarEscena(campaign: Campaign, runOverrides: Partial<Run> = {}): void {
+  const run = makeRun({
+    campaignId: campaign.id,
+    contentVersion: campaign.contentVersion,
+    sceneId: campaign.start,
+    ...runOverrides,
+  });
   const character = makeCharacter({ run });
   useStore.setState((s) => ({
     characters: [character],
@@ -68,6 +75,40 @@ function montarEscena(campaign: Campaign): void {
     seen: {},
     ui: { ...s.ui, screen: 'escena', campaign, pending: null },
   }));
+}
+
+/**
+ * Lista de los elementos sobre los que se llamó `scrollIntoView`, en orden, más un
+ * `restaurar()`. jsdom no implementa `scrollIntoView` (por eso el código lo llama detrás de un
+ * `typeof === 'function'`), así que acá se instala uno que solo anota el elemento.
+ */
+interface ScrollEspiado extends Array<Element> {
+  restaurar: () => void;
+}
+
+function espiarScrollIntoView(): ScrollEspiado {
+  const vistos = [] as unknown as ScrollEspiado;
+  // Vía `Reflect` y no por asignación directa: en el tipo de `Element` la propiedad no es
+  // opcional, así que no se puede borrar para dejar el prototipo como estaba.
+  const original: unknown = Reflect.get(Element.prototype, 'scrollIntoView');
+  Reflect.set(Element.prototype, 'scrollIntoView', function (this: Element): void {
+    vistos.push(this);
+  });
+  vistos.restaurar = (): void => {
+    if (original === undefined) Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    else Reflect.set(Element.prototype, 'scrollIntoView', original);
+  };
+  return vistos;
+}
+
+/** Una entrada 'scene' de log con la prosa que se quiera probar revelando. */
+function escenaLog(paragraphs: string[]): LogEntry {
+  return {
+    kind: 'scene',
+    sceneId: minimal.start,
+    paragraphs: paragraphs.map((text) => ({ text })),
+    hashes: paragraphs.map((_, i) => `h${i}`),
+  };
 }
 
 describe('EscenaScreen — arte', () => {
@@ -106,5 +147,343 @@ describe('EscenaScreen — arte', () => {
     // Nada rompió: las opciones de la escena están y se pueden elegir.
     expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
     expect(screen.getByText('El claro')).toBeInTheDocument();
+  });
+});
+
+describe('EscenaScreen — la Ficha', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('la tecla C abre la Ficha y Esc la cierra', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'c' });
+    const dialogo = screen.getByRole('dialog');
+    expect(dialogo).toHaveAccessibleName(S.ficha.titulo);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('la tecla C no abre la Ficha si el foco está en un campo de texto', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(input, { key: 'c' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    input.remove();
+  });
+});
+
+describe('EscenaScreen — el revelado', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('con cps 0 el texto aparece entero y las opciones también', () => {
+    useStore.getState().setPrefs({ cps: 0 });
+    montarEscena(minimal, { log: [escenaLog(['Un texto que aparece entero de una.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.getByText('Un texto que aparece entero de una.')).toBeInTheDocument();
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('mientras se revela no hay opciones, y aparecen al terminar', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un texto largo que tarda en aparecer del todo, letra por letra.'])] });
+    render(<EscenaScreen />);
+
+    // Recién montado, con temporizadores falsos sin avanzar: nada de la opción está.
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+
+    act(() => { vi.advanceTimersByTime(10_000); });
+
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('un clic en la columna completa el párrafo en curso', () => {
+    montarEscena(minimal, {
+      log: [escenaLog(['Primero.', 'Segundo, bastante más largo, para notar que no se reveló solo.'])],
+    });
+    render(<EscenaScreen />);
+
+    // Antes del clic: con temporizadores falsos sin avanzar, el párrafo en curso no se ve.
+    expect(screen.queryByText('Primero.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('columna-texto'));
+
+    expect(screen.getByText('Primero.')).toBeInTheDocument();
+    expect(screen.queryByText('Segundo, bastante más largo, para notar que no se reveló solo.')).not.toBeInTheDocument();
+  });
+
+  it('Enter y Espacio hacen lo mismo que el clic', () => {
+    function completaConLaTecla(key: string): void {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo para completar con el teclado.'])] });
+      render(<EscenaScreen />);
+
+      expect(screen.queryByText('Un párrafo para completar con el teclado.')).not.toBeInTheDocument();
+      fireEvent.keyDown(window, { key });
+      expect(screen.getByText('Un párrafo para completar con el teclado.')).toBeInTheDocument();
+
+      cleanup();
+    }
+
+    completaConLaTecla('Enter');
+    completaConLaTecla(' ');
+  });
+
+  it('con movimiento reducido no hay revelado', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    montarEscena(minimal, { log: [escenaLog(['Todo de una porque hay movimiento reducido.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.getByText('Todo de una porque hay movimiento reducido.')).toBeInTheDocument();
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('con el foco en ninguna parte, Enter y Espacio cancelan la acción por defecto (la barra no scrollea)', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un párrafo cualquiera para revelar.'])] });
+    render(<EscenaScreen />);
+
+    // fireEvent.keyDown devuelve false cuando el handler llamó a preventDefault.
+    expect(fireEvent.keyDown(window, { key: ' ', cancelable: true })).toBe(false);
+    expect(fireEvent.keyDown(window, { key: 'Enter', cancelable: true })).toBe(false);
+  });
+
+  it('mientras el texto se revela, el teclado 1-9 de las opciones no hace nada (la lista ni se montó)', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un texto largo que todavía no terminó de aparecer del todo.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+
+    // Si el listener de OptionList estuviera montado, esto elegiría la primera opción
+    // habilitada a ciegas. Como la lista todavía no se dibujó, no debería pasar nada.
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+    expect(useStore.getState().characters[0]?.run?.sceneId).toBe(minimal.start);
+  });
+
+  it('al terminar de revelarse, el scroll va a donde nacen las opciones, no a la última línea', () => {
+    // `OptionList` y `RollPanel` se dibujan DEBAJO de `TextColumn`, y el autoscroll de la
+    // columna acaba de clavar la última línea de texto contra el borde de abajo: sin esto, en
+    // cuanto la escena es más larga que la pantalla las opciones nacen fuera de vista y hay que
+    // scrollear en cada escena para ver qué se puede hacer.
+    const vistos = espiarScrollIntoView();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un texto largo que tarda un rato en revelarse del todo.'])] });
+      render(<EscenaScreen />);
+
+      act(() => { vi.advanceTimersByTime(10_000); });
+
+      const opcion = screen.getByTestId('opcion-descansar');
+      const ultimo = vistos[vistos.length - 1];
+      expect(ultimo).toBeDefined();
+      expect(ultimo?.contains(opcion)).toBe(true);
+    } finally {
+      vistos.restaurar();
+    }
+  });
+});
+
+/**
+ * El `preventDefault()` de B2 cancelaba TODO Enter/Espacio que llegara a `window`, incluidos
+ * los que el navegador convierte en un click sobre el botón enfocado: con cualquier botón de la
+ * escena enfocado dejaban de funcionar las opciones, la barra, "Saltar lo leído" y —lo más
+ * grave— "Continuar" del panel de tirada, donde no hay atajo alternativo porque `OptionList`
+ * no está dibujada.
+ *
+ * jsdom no sintetiza ese click (no implementa la activación por teclado de un botón), así que
+ * lo que se puede y hay que fijar acá es el mecanismo exacto que se rompía: que el evento NO
+ * quede cancelado cuando el foco está en un control que se activa solo, y que el revelado no se
+ * lo quede. Con el evento vivo, el navegador hace lo suyo.
+ */
+describe('EscenaScreen — Enter y Espacio no le roban la tecla al botón enfocado', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0, reducedMotion: 'on' });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('con el foco en una opción, Enter es del botón: ni se cancela ni avanza el texto', () => {
+    montarEscena(minimal, { log: [escenaLog(['Primero.', 'Segundo.'])] });
+    render(<EscenaScreen />);
+
+    const opcion = screen.getByTestId('opcion-descansar');
+    opcion.focus();
+    expect(opcion).toHaveFocus();
+
+    expect(fireEvent.keyDown(opcion, { key: 'Enter', cancelable: true })).toBe(true);
+    expect(fireEvent.keyDown(opcion, { key: ' ', cancelable: true })).toBe(true);
+
+    // Y el click que el navegador sintetiza a partir de esa tecla sí elige la opción.
+    fireEvent.click(opcion);
+    expect(useStore.getState().characters[0]?.run?.sceneId).toBe('m_descanso');
+  });
+
+  it('con el foco en "Continuar" del panel de tirada, Enter es del botón', () => {
+    // El caso sin salida: con una tirada pendiente `OptionList` no se dibuja, así que las
+    // teclas 1-9 tampoco están. Si Enter tampoco activa el botón, el jugador de teclado se
+    // queda trabado en la tirada.
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.click(screen.getByTestId('opcion-trepar'));
+    const continuar = screen.getByRole('button', { name: S.tirada.continuar });
+    continuar.focus();
+
+    expect(fireEvent.keyDown(continuar, { key: 'Enter', cancelable: true })).toBe(true);
+
+    fireEvent.click(continuar);
+    expect(useStore.getState().ui.pending).toBeNull();
+  });
+
+  it('con el foco en "Saltar lo leído", la tecla es del botón y no del revelado', () => {
+    montarEscena(minimal, { log: [escenaLog(['Primero.', 'Segundo.'])] });
+    render(<EscenaScreen />);
+
+    // Un botón cualquiera de la barra permanente sirve igual para el caso: lo que se prueba es
+    // que un control enfocado se quede con su tecla.
+    const ficha = screen.getByRole('button', { name: S.barra.ficha });
+    ficha.focus();
+
+    expect(fireEvent.keyDown(ficha, { key: 'Enter', cancelable: true })).toBe(true);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('con el foco fuera de todo control, Espacio sigue avanzando el texto y sigue cancelado', () => {
+    // La otra dirección: lo que B2 vino a arreglar no se puede perder por el camino.
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+    vi.useFakeTimers();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo que se completa con la barra.'])] });
+      render(<EscenaScreen />);
+
+      expect(screen.queryByText('Un párrafo que se completa con la barra.')).not.toBeInTheDocument();
+
+      expect(fireEvent.keyDown(document.body, { key: ' ', cancelable: true })).toBe(false);
+      expect(screen.getByText('Un párrafo que se completa con la barra.')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+/**
+ * Los tres atajos de la pantalla de juego (1-9 de `OptionList`, C de la Ficha, Enter/Espacio
+ * del revelado) escuchan en `window`, así que no los tapa ningún modal por sí solo. Antes de
+ * la tarea 6 la confirmación mortal era `window.confirm`, que bloquea el hilo y no dejaba
+ * pasar nada; al reemplazarla por `Dialogo` esa protección se perdió, y `aria-modal="true"`
+ * pasó a afirmar algo que no era cierto. Estos tests fijan las dos direcciones: con un modal
+ * abierto el atajo NO dispara, y con el modal cerrado sí.
+ */
+describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0 });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  /** La escena en la que está la partida del store: si una tecla eligió por detrás, cambió. */
+  function escenaActual(): string | undefined {
+    return useStore.getState().characters[0]?.run?.sceneId;
+  }
+
+  it('con el modal cerrado, la tecla 1 elige la primera opción', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe('m_descanso');
+  });
+
+  it('con la Ficha abierta, la tecla 1 no elige nada', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe(minimal.start);
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+  });
+
+  it('al cerrar la Ficha el teclado vuelve: la tecla 1 elige de nuevo', () => {
+    // La otra mitad del bloqueo, y la que más caro sale si falla: si el modal no se
+    // descontara al cerrarse, el teclado quedaría muerto para el resto de la partida sin que
+    // nada lo delate.
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe('m_descanso');
+  });
+
+  it('con la confirmación de abandono abierta, la tecla 1 no elige por detrás', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.click(screen.getByRole('button', { name: S.barra.abandonar }));
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.barra.confirmarAbandonoTitulo);
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    // Ni la partida avanzó, ni el diálogo quedó flotando sobre otra escena.
+    expect(escenaActual()).toBe(minimal.start);
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.barra.confirmarAbandonoTitulo);
+  });
+
+  it('con la Ficha abierta, Enter y Espacio no siguen revelando el texto de abajo', () => {
+    vi.useFakeTimers();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo que no tiene que avanzar solo.'])] });
+      useStore.getState().setPrefs({ cps: 40 });
+      render(<EscenaScreen />);
+
+      fireEvent.keyDown(window, { key: 'c' });
+      expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+
+      fireEvent.keyDown(window, { key: 'Enter' });
+      fireEvent.keyDown(window, { key: ' ' });
+
+      expect(screen.queryByText('Un párrafo que no tiene que avanzar solo.')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

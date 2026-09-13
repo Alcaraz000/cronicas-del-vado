@@ -17,14 +17,14 @@
 .titulo {
   margin: 0;
   font-family: var(--fuente-juego);
-  font-size: 2rem;
+  font-size: calc(2rem * var(--escala-fuente));
   color: var(--color-acento);
 }
 
 .subtitulo {
   margin: 0;
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-texto-suave);
@@ -65,7 +65,7 @@
   border-radius: 999px;
   padding: 0.1em 0.6em;
   background: var(--color-superficie-alta);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
 .otros {
@@ -83,7 +83,7 @@
 
 .suave {
   color: var(--color-texto-suave);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
 /* Grilla de campañas */
@@ -111,7 +111,7 @@
 .tituloCampana {
   margin: 0;
   font-family: var(--fuente-juego);
-  font-size: 1.3rem;
+  font-size: calc(1.3rem * var(--escala-fuente));
 }
 
 .premisa {
@@ -124,7 +124,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--esp-1) var(--esp-2);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
@@ -154,7 +154,7 @@
 }
 
 .etiquetaDetalle {
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
@@ -180,11 +180,11 @@
   padding: 0.1em 0.6em;
   background: var(--color-superficie-alta);
   color: var(--color-aviso);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
 .mortales {
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
@@ -205,12 +205,12 @@
 }
 
 .aviso {
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-aviso);
 }
 
 .motivo {
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   font-style: italic;
   color: var(--color-texto-suave);
 }

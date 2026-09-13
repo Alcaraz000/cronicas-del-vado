@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useStore } from '@/state/store';
+import { useTrampaDeFoco } from '@/ui/hooks/useTrampaDeFoco';
 import { S } from '@/ui/strings.es';
 import styles from './OpcionesModal.module.css';
 
@@ -36,35 +37,41 @@ function descargar(json: string, nombre: string): boolean {
 }
 
 /**
- * Opciones (spec §6): un modal con exportar e importar el guardado.
+ * Opciones (spec §6): preferencias de lectura, más exportar e importar el guardado.
  *
- * No evalúa nada: `exportSave` arma el JSON y `importSave` lo valida con zod y migra.
- * La pantalla solo muestra el motivo cuando el store dice que no.
+ * Los cuatro controles de preferencias son grupos de radios (no `select`): con dos o tres
+ * valores nada más, conviene verlos todos de una. Cada uno lee y escribe directo con
+ * `setPrefs`, sin estado propio.
+ *
+ * `exportSave` arma el JSON y `importSave` lo valida con zod y migra; la pantalla solo
+ * muestra el motivo cuando el store dice que no.
+ *
+ * El foco lo atrapa `useTrampaDeFoco`, igual que `Cajon` y `Dialogo`: es lo que hace cierto
+ * el `aria-modal="true"` de abajo (Tab no se escapa, Esc cierra aunque el foco esté afuera,
+ * el foco vuelve a donde estaba) y lo que anota el modal para que los atajos de teclado de la
+ * pantalla de juego no sigan disparando por detrás. El botón de cerrar va primero en el
+ * marcado a propósito: la trampa enfoca el primer elemento enfocable al abrirse.
  */
 export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
   const exportSave = useStore((s) => s.exportSave);
   const importSave = useStore((s) => s.importSave);
+  const prefs = useStore((s) => s.prefs);
+  const setPrefs = useStore((s) => s.setPrefs);
 
   const tituloId = useId();
-  const cerrarRef = useRef<HTMLButtonElement>(null);
+  const grupoCps = useId();
+  const grupoFontScale = useId();
+  const grupoReducedMotion = useId();
+  const grupoShowOdds = useId();
+  const caja = useRef<HTMLDivElement>(null);
 
   const [guardado] = useState<string>(() => exportSave());
   const [pegado, setPegado] = useState('');
   const [aviso, setAviso] = useState<{ tono: 'error' | 'exito'; texto: string } | null>(null);
 
-  useEffect(() => {
-    cerrarRef.current?.focus();
-  }, []);
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>): void => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onCerrar();
-      }
-    },
-    [onCerrar],
-  );
+  // Este componente solo se monta cuando el modal está abierto: la pantalla que lo usa lo
+  // dibuja o no lo dibuja, no lo deja montado y cerrado.
+  useTrampaDeFoco(caja, true, onCerrar);
 
   const alDescargar = (): void => {
     const ok = descargar(guardado, S.ajustes.exportar.nombreArchivo(hoy()));
@@ -90,24 +97,19 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
       }}
     >
       <div
+        ref={caja}
         className={styles.caja}
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        onKeyDown={onKeyDown}
+        tabIndex={-1}
       >
         <header className={styles.cabecera}>
           <h2 id={tituloId} className={styles.titulo}>
             {S.ajustes.titulo}
           </h2>
-          <button
-            ref={cerrarRef}
-            type="button"
-            className={styles.secundario}
-            data-testid="cerrar-opciones"
-            onClick={onCerrar}
-          >
-            {S.ajustes.cerrar}
+          <button type="button" className={styles.secundario} data-testid="cerrar-opciones" onClick={onCerrar}>
+            {S.comun.cerrar}
           </button>
         </header>
 
@@ -116,6 +118,110 @@ export function OpcionesModal({ onCerrar }: OpcionesModalProps) {
             {aviso.texto}
           </p>
         )}
+
+        <section className={styles.seccion}>
+          <h3 className={styles.subtitulo}>{S.ajustes.preferencias.titulo}</h3>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.maquinaDeEscribir.leyenda}</legend>
+            {/* `cps` es `number` sin acotar en el guardado: cualquier valor que no sea 0
+                cuenta como "Normal", así un guardado importado con un cps intermedio
+                (p. ej. 20) no deja el grupo sin ninguna opción marcada. */}
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoCps}
+                checked={prefs.cps !== 0}
+                onChange={() => setPrefs({ cps: 40 })}
+              />
+              {S.ajustes.preferencias.maquinaDeEscribir.normal}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoCps}
+                checked={prefs.cps === 0}
+                onChange={() => setPrefs({ cps: 0 })}
+              />
+              {S.ajustes.preferencias.maquinaDeEscribir.instantaneo}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.tamanoDeLetra.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1}
+                onChange={() => setPrefs({ fontScale: 1 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n100}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1.25}
+                onChange={() => setPrefs({ fontScale: 1.25 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n125}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoFontScale}
+                checked={prefs.fontScale === 1.5}
+                onChange={() => setPrefs({ fontScale: 1.5 })}
+              />
+              {S.ajustes.preferencias.tamanoDeLetra.n150}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.movimiento.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoReducedMotion}
+                checked={prefs.reducedMotion === 'auto'}
+                onChange={() => setPrefs({ reducedMotion: 'auto' })}
+              />
+              {S.ajustes.preferencias.movimiento.segunElSistema}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoReducedMotion}
+                checked={prefs.reducedMotion === 'on'}
+                onChange={() => setPrefs({ reducedMotion: 'on' })}
+              />
+              {S.ajustes.preferencias.movimiento.reducidoSiempre}
+            </label>
+          </fieldset>
+
+          <fieldset className={styles.grupo}>
+            <legend>{S.ajustes.preferencias.probabilidades.leyenda}</legend>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoShowOdds}
+                checked={prefs.showOdds}
+                onChange={() => setPrefs({ showOdds: true })}
+              />
+              {S.ajustes.preferencias.probabilidades.si}
+            </label>
+            <label className={styles.opcion}>
+              <input
+                type="radio"
+                name={grupoShowOdds}
+                checked={!prefs.showOdds}
+                onChange={() => setPrefs({ showOdds: false })}
+              />
+              {S.ajustes.preferencias.probabilidades.no}
+            </label>
+          </fieldset>
+        </section>
 
         <section className={styles.seccion}>
           <h3 className={styles.subtitulo}>{S.ajustes.exportar.titulo}</h3>

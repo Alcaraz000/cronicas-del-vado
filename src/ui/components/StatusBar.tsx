@@ -1,4 +1,7 @@
-import { CONDITIONS, WOUND_LABELS, type ConditionId } from '@/content/catalog';
+import { useState } from 'react';
+import { WOUND_LABELS, type ConditionId } from '@/content/catalog';
+import { Dialogo } from '@/ui/components/Dialogo';
+import { nombresDeCondiciones } from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './StatusBar.module.css';
 
@@ -9,6 +12,8 @@ export interface StatusBarProps {
   fortuneMax: number;
   conditions: ConditionId[];
   onAbandon: () => void;
+  /** Abre la Ficha (tarea 5). Ver la ficha es seguro en cualquier momento: nunca se deshabilita. */
+  onOpenFicha: () => void;
   /**
    * true mientras hay una tirada pendiente. El store no limpia `run.pending` al
    * abandonar (tarea 13), así que la UI evita ese camino: en vez de ofrecer
@@ -28,14 +33,11 @@ export function StatusBar({
   fortuneMax,
   conditions,
   onAbandon,
+  onOpenFicha,
   abandonDisabled = false,
 }: StatusBarProps) {
-  const nombresCondiciones =
-    conditions.length === 0 ? S.barra.sinCondiciones : conditions.map((c) => CONDITIONS[c].name).join(', ');
-
-  const abandonar = (): void => {
-    if (window.confirm(S.barra.confirmarAbandono)) onAbandon();
-  };
+  const [confirmando, setConfirmando] = useState(false);
+  const nombresCondiciones = nombresDeCondiciones(conditions);
 
   return (
     <header className={styles.barra}>
@@ -49,15 +51,33 @@ export function StatusBar({
       <span className={styles.dato}>
         {S.barra.condiciones}: {nombresCondiciones}
       </span>
-      <button
-        type="button"
-        className={styles.abandonar}
-        onClick={abandonar}
-        disabled={abandonDisabled}
-        title={abandonDisabled ? S.barra.abandonarDeshabilitado : undefined}
-      >
-        {S.barra.abandonar}
-      </button>
+      <div className={styles.acciones}>
+        <button type="button" className={styles.ficha} onClick={onOpenFicha} title={S.barra.fichaTitulo}>
+          {S.barra.ficha}
+        </button>
+        <button
+          type="button"
+          className={styles.abandonar}
+          onClick={() => setConfirmando(true)}
+          disabled={abandonDisabled}
+          title={abandonDisabled ? S.barra.abandonarDeshabilitado : undefined}
+        >
+          {S.barra.abandonar}
+        </button>
+      </div>
+      <Dialogo
+        titulo={S.barra.confirmarAbandonoTitulo}
+        cuerpo={S.barra.confirmarAbandono}
+        confirmar={S.barra.abandonar}
+        cancelar={S.comun.cancelar}
+        tono="peligro"
+        abierto={confirmando}
+        onConfirmar={() => {
+          setConfirmando(false);
+          onAbandon();
+        }}
+        onCancelar={() => setConfirmando(false)}
+      />
     </header>
   );
 }

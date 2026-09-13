@@ -51,6 +51,7 @@ const campanaMinima: Campaign = {
   places: { plaza: { id: 'plaza', name: 'La plaza', background: 'plaza', canonPrompt: 'c' } },
   items: { llave: { id: 'llave', name: 'Llave de la campaña', icon: 'llave', description: 'd' } },
   flags: { 'run:x': 'Un flag' },
+  memories: {},
   milestones: {},
   clocks: {},
   endings: {},

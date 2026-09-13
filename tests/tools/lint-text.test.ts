@@ -29,7 +29,7 @@ const campana = (scenes: Scene[], start = 'inicio'): Campaign => ({
   id: 'lint', contentVersion: 1, title: 'Lint', premise: 'p', cover: 'c', levelRange: [1, 3], durationMin: [30, 45],
   lethalScenes: 0, lintProfile: 'smoke', start,
   scenes: Object.fromEntries(scenes.map((s) => [s.id, s])),
-  npcs: { ...mundo.npcs }, places: {}, items: {}, flags: {}, milestones: {}, clocks: {}, endings: {},
+  npcs: { ...mundo.npcs }, places: {}, items: {}, flags: {}, memories: {}, milestones: {}, clocks: {}, endings: {},
 });
 
 const ctx = (extra: Partial<LintContext> = {}): LintContext => ({ world: mundo, seed: 1, walks: 5, top: 5, ...extra });

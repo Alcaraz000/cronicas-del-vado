@@ -53,7 +53,7 @@
 .badge,
 .vista {
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
@@ -68,21 +68,14 @@
   margin-top: var(--esp-1);
   padding-left: 2em;
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
-.chip,
-.fuente,
 .riesgo,
 .odds {
   border-radius: 999px;
   padding: 0.1em 0.6em;
   background: var(--color-superficie-alta);
-}
-
-.fuente[data-cancelled='true'] {
-  text-decoration: line-through;
-  opacity: 0.7;
 }
 
 .riesgo[data-riesgo='seguro'] {
@@ -100,7 +93,7 @@
 .hint {
   margin: var(--esp-1) 0 0 2em;
   font-family: var(--fuente-ui);
-  font-size: var(--tam-ui-chico);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   font-style: italic;
   color: var(--color-texto-suave);
 }

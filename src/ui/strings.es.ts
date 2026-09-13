@@ -17,6 +17,11 @@ const TAGS_ES: Record<Tag, string> = {
   huida: 'Huida',
 };
 
+/** "+2", "-1", "+0": los chips de modificador siempre llevan signo explícito. */
+function conSigno(n: number): string {
+  return n >= 0 ? `+${n}` : `${n}`;
+}
+
 /**
  * Todas las cadenas de la interfaz en español. Ningún componente escribe texto
  * de UI "a mano": lo toma de acá. Las funciones son plantillas con parámetros.
@@ -24,6 +29,12 @@ const TAGS_ES: Record<Tag, string> = {
 export const S = {
   titulo: 'Crónicas del Vado — prototipo',
   tags: TAGS_ES,
+  /** Cadenas compartidas por más de una superficie (Cajon, Dialogo, y lo que venga). */
+  comun: {
+    cerrar: 'Cerrar',
+    cancelar: 'Cancelar',
+    confirmar: 'Confirmar',
+  },
   inicio: {
     continuar: 'Continuar',
     campanas: 'Campañas',
@@ -120,9 +131,16 @@ export const S = {
     fortuna: 'Fortuna',
     condiciones: 'Condiciones',
     sinCondiciones: 'sin condiciones',
+    ficha: 'Ficha',
+    fichaTitulo: 'Ver tu ficha de personaje (tecla C)',
     abandonar: 'Abandonar',
     abandonarDeshabilitado: 'No podés abandonar mientras hay una tirada en curso',
+    confirmarAbandonoTitulo: 'Abandonar la partida',
     confirmarAbandono: 'Si abandonás, la campaña se pierde. Tu personaje conserva lo suyo. ¿Abandonar?',
+  },
+  escena: {
+    saltarLeido: 'Saltar lo leído',
+    saltarLeidoTitulo: 'Adelanta hasta lo que todavía no leíste',
   },
   opciones: {
     titulo: 'Opciones',
@@ -139,6 +157,8 @@ export const S = {
       2: 'Estás Malherido: un Fallo acá te mata.',
       3: 'Estás Malherido: un Fallo acá te mata.',
     },
+    seguirIgual: 'Seguir igual',
+    volver: 'Volver',
   },
   tirada: {
     titulo: 'Tirada',
@@ -153,11 +173,38 @@ export const S = {
       failure: 'Fallo',
       fumble: 'Fallo grave',
     },
+    /**
+     * El sello de la banda nunca se distingue solo por color (spec de accesibilidad): cada
+     * banda además lleva un símbolo propio, así que un jugador que no distingue colores igual
+     * lee si le fue bien.
+     */
+    // `fumble` NO lleva la calavera: ese carácter ya es `S.opciones.mortal`, la marca de una
+    // opción que lleva a escena mortal, y las dos cosas conviven en la misma pantalla. Un
+    // icono que no distingue no aporta nada, y la fase se puso como criterio icono Y texto.
+    icono: {
+      crit: '✦',
+      success: '✓',
+      partial: '±',
+      failure: '✗',
+      fumble: '⊗',
+    },
     modo: {
       normal: 'Tirada normal: 2d6',
       advantage: 'Con ventaja: 3d6, se conservan los 2 mayores',
       disadvantage: 'Con desventaja: 3d6, se conservan los 2 menores',
       cancelled: 'Ventaja y desventaja se anulan: 2d6',
+    },
+    /**
+     * Texto de los chips que descomponen un modificador (tarea 6): atributo, dificultad
+     * y Veterano llevan su propio número con signo; una fuente de ventaja/desventaja lleva
+     * el símbolo según su `kind` y la etiqueta que ya trae del engine.
+     */
+    chip: {
+      atributo: (nombre: string, valor: number): string => `${nombre} ${conSigno(valor)}`,
+      dificultad: (nombre: string, valor: number): string => `${nombre} ${conSigno(valor)}`,
+      veterano: (valor: number): string => `Veterano ${conSigno(valor)}`,
+      fuente: (simbolo: string, etiqueta: string): string => `${simbolo} ${etiqueta}`,
+      simbolo: { advantage: '▲', disadvantage: '▼' },
     },
   },
   log: {
@@ -196,15 +243,84 @@ export const S = {
     motivoDebilidad: (tag: string, clase: string): string =>
       `No se puede: ${tag} es la Debilidad del ${clase}.`,
     motivoRepetida: 'Ya la tenés.',
+    // Lo que quedó escrito en el mundo (canon) y el mapa de finales de la campaña.
+    recuerda: 'Lo que el mundo recordará',
+    finales: 'Finales',
+    // Cuatro viñetas: a la vista dicen "acá hay un final que no viste". Un lector de pantalla
+    // leería cuatro viñetas y nada más, así que la fila lleva `finalOcultoEtiqueta` de
+    // `aria-label` y eso es lo que se anuncia en su lugar.
+    finalOculto: '● ● ● ●',
+    finalOcultoEtiqueta: 'Un final que todavía no descubriste',
+  },
+  ficha: {
+    titulo: 'Ficha de personaje',
+    clase: (nombre: string): string => `Clase: ${nombre}`,
+    poder: (nombre: string, descripcion: string): string => `Poder: ${nombre} — ${descripcion}`,
+    debilidad: (tag: string): string => `Debilidad: ${tag}`,
+    rasgos: 'Rasgos de origen',
+    habilidades: 'Habilidades',
+    sinHabilidades: 'Todavía ninguna.',
+    // "nivel N de M": M es el tope de LA CAMPAÑA (topeDeNivel), no el tope global del
+    // personaje. Es la cuenta que explica por qué rejugar una campaña ya superada no sube de nivel.
+    nivel: (nivel: number, tope: number): string => `nivel ${nivel} de ${tope}`,
+    xp: (xp: number, siguiente: number): string => `${xp} / ${siguiente} XP`,
+    objetos: 'Objetos de la partida',
+    sinObjetos: 'No estás llevando nada.',
+    reliquias: 'Reliquias',
+    sinReliquias: 'Ninguna reliquia, por ahora.',
+    cronica: {
+      titulo: 'Crónica',
+      finalCanonico: (titulo: string): string => `Final canónico: ${titulo}`,
+      sinFinalCanonico: 'Todavía no tenés un final canónico en esta campaña.',
+    },
+    recuerdos: {
+      titulo: 'Recuerdos',
+      gente: 'Gente que conociste',
+      lugares: 'Lugares en los que estuviste',
+      hechos: 'Lo que hiciste',
+      mundo: 'Cómo cambiaste el mundo',
+      reliquias: 'Reliquias que encontraste',
+      caidos: 'Caídos',
+    },
+    sinRecuerdos: 'Todavía no hay nada que recordar. Esto se llena solo, jugando.',
+    caido: (nombre: string, clase: string, nivel: number, campana: string): string =>
+      `${nombre}, ${clase} de nivel ${nivel}, murió en ${campana}`,
+    caidoSinCampana: (nombre: string, clase: string, nivel: number): string =>
+      `${nombre}, ${clase} de nivel ${nivel}`,
   },
   /**
-   * El modal de Opciones (spec §6), que por ahora es exportar e importar el guardado.
-   * Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de opciones
-   * de una escena; el texto que ve el jugador sí dice "Opciones".
+   * El modal de Opciones (spec §6): preferencias de lectura, más exportar e importar el
+   * guardado. Se llama `ajustes` y no `opciones` porque `S.opciones` ya es la lista de
+   * opciones de una escena; el texto que ve el jugador sí dice "Opciones".
    */
   ajustes: {
     titulo: 'Opciones',
-    cerrar: 'Cerrar',
+    // Para cerrar está `S.comun.cerrar`: es la misma palabra en el mismo botón de todos los
+    // modales, y tenerla dos veces solo abre la puerta a que un día digan cosas distintas.
+    preferencias: {
+      titulo: 'Preferencias',
+      maquinaDeEscribir: {
+        leyenda: 'Máquina de escribir',
+        normal: 'Normal (40 cps)',
+        instantaneo: 'Instantáneo',
+      },
+      tamanoDeLetra: {
+        leyenda: 'Tamaño de letra',
+        n100: '100 %',
+        n125: '125 %',
+        n150: '150 %',
+      },
+      movimiento: {
+        leyenda: 'Movimiento',
+        segunElSistema: 'Según el sistema',
+        reducidoSiempre: 'Reducido siempre',
+      },
+      probabilidades: {
+        leyenda: 'Mostrar probabilidades',
+        si: 'Sí',
+        no: 'No',
+      },
+    },
     exportar: {
       titulo: 'Exportar el guardado',
       ayuda: 'Bajate el archivo o copiá el texto: es todo tu perfil, con los personajes y el mundo.',

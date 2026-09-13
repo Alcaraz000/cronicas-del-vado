@@ -25,6 +25,38 @@
   padding-right: var(--esp-2);
 }
 
+/* `position: sticky` y no un botón al pie de la columna.
+
+   `.columna` es el contenedor que scrollea (overflow-y: auto + max-height) y el autoscroll
+   de `TextColumn` clava el final del log contra el borde de abajo en cada carácter que se
+   revela — o sea, todo el tiempo que este botón existe. Como primer hijo estático, el botón
+   queda arriba del scroll y fuera de vista apenas el log no entra en pantalla: en el prólogo
+   se ve, de la segunda escena en adelante no.
+
+   Moverlo al pie de `main` no lo arregla: el ancla del autoscroll vive DENTRO de `TextColumn`
+   y se alinea con el borde inferior del scrollport, así que cualquier cosa dibujada después
+   cae justo abajo del corte. Pegado con sticky, en cambio, el botón se queda contra el borde
+   superior de la columna esté donde esté el scroll, que es lo único que garantiza que se
+   pueda apretar. Por eso también deja de ser transparente: el texto pasa por debajo.
+
+   `z-index` sobre el texto que scrollea, y `--color-superficie` de fondo para taparlo. */
+.saltarLeido {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: var(--esp-2);
+  padding: 0.3em 0.8em;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  cursor: pointer;
+}
+
 @media (max-width: 800px) {
   .grid {
     grid-template-columns: 1fr;

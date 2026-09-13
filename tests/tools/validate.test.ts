@@ -16,6 +16,7 @@ import { rotaR08PnjRecuerda, rotaR08SinDefecto } from '../fixtures/campaigns/bro
 import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
 import { conReward, rewardValido, rotaR11RewardEfectoSinSemantica, rotaR11RewardFlagRun, rotaR11RewardLethal, rotaR11RewardObjetoNormal } from '../fixtures/campaigns/broken/r11';
+import { rotaR12FaltaLinea, rotaR12FaltaLineaDeMundo, rotaR12LineaCompartida, rotaR12LineaDeRun, rotaR12LineaHuerfana } from '../fixtures/campaigns/broken/r12';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -37,8 +38,8 @@ describe('validateCampaign: esquema y campaña base', () => {
     expect(issues[0]?.level).toBe('error');
     expect(issues[0]?.message).toContain('levelRange');
   });
-  it('RULES expone las once reglas en orden', () => {
-    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo', 'r11_reward']);
+  it('RULES expone las doce reglas en orden', () => {
+    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo', 'r11_reward', 'r12_memories']);
   });
   it('no muta la campaña', () => {
     const antes = JSON.stringify(campanaBase);
@@ -348,5 +349,36 @@ describe('campañas reales', () => {
     const campaign = await entry!.load();
     const issues = validateCampaign(campaign, { world: WORLD, profile: entry!.meta.lintProfile });
     expect(issues.filter((i) => i.level === 'error')).toEqual([]);
+  });
+});
+
+describe('r12_memories', () => {
+  it('flag de canon sin línea', () => {
+    const issues = soloRegla(rotaR12FaltaLinea, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('char:base.recuerdo');
+  });
+  it('flag de canon DEL MUNDO sin línea', () => {
+    // El otro prefijo de la regla. El canon del mundo es el que sobrevive al personaje: si
+    // `world:<campaña>.` se cayera del barrido, la campaña pasaría el validador con recuerdos
+    // que el jugador nunca va a poder leer.
+    const issues = soloRegla(rotaR12FaltaLineaDeMundo, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('world:base.puente_caido');
+  });
+  it('línea sin flag declarado', () => {
+    const issues = soloRegla(rotaR12LineaHuerfana, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('char:base.fantasma');
+  });
+  it('línea sobre un flag run:', () => {
+    const issues = soloRegla(rotaR12LineaDeRun, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('run:b_hablo');
+  });
+  it('línea sobre un espacio compartido del mundo', () => {
+    const issues = soloRegla(rotaR12LineaCompartida, 'r12_memories');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('char:met.b_guia');
   });
 });

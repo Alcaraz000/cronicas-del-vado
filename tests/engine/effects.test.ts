@@ -21,6 +21,7 @@ const campaign: Campaign = {
   places: {},
   items: {},
   flags: {},
+  memories: {},
   milestones: { entrar: { label: 'Entrar' } },
   clocks: { pelea: { max: 2, label: 'Pelea' } },
   endings: {},
