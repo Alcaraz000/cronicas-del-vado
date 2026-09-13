@@ -30,8 +30,10 @@ import type { Scene } from '@/content/schema';
  *    deriva el motor y acá solo se leerían.
  * 6. **`fin_heredero` no hace `give` de la reliquia**: la entrega `endings.fin_heredero.reward` en
  *    `campaign.ts` (y hoy `endRun` todavía no lo aplica — tarea abierta, biblia §13.1).
- * 7. Las cuatro escenas del clímax llevan `onEnter` con hito o reloj, que es lo que corta los bucles
- *    de `outcome` (`cl_dravos → cl_dravos`) en el test de contenido.
+ * 7. Las escenas del clímax que vuelven a sí mismas llevan `onEnter` con hito o reloj, que es lo que
+ *    corta los bucles de `outcome` (`cl_dravos → cl_dravos`) en el test de contenido. Desde la
+ *    Fase H, `cl_desenlace` ya no lleva `onEnter`: no vuelve a sí misma y su hito se mudó a los
+ *    cuatro finales.
  *
  * PASADA DE VOZ HECHA A MANO (outline §5/r08 c; r08 NO la frena porque los tres viven en `world/`):
  * ningún párrafo con `speaker` de **Halvar** (`cl_halvar`), de **Orell** o de **Ilse**
@@ -103,11 +105,23 @@ import type { Scene } from '@/content/schema';
  *     Ritmo medido sobre las 289 oraciones del lote: media **12,5**, mediana 12, máximo **30**, cero
  *     oraciones de 31 o más, y **las nueve de más de 22 palabras llevan dos puntos**, como pide §1.2
  *     de la guía de voz.
- * (e) **`cl_desenlace.subir_y_dejar_que_el_agua_decida` no hace `take` del `sello_del_vado`.** Las
- *     otras seis opciones de la escena sí lo hacen, así que esta es la única ruta en la que el
- *     jugador llega a un final **con la piedra todavía en la mochila** mientras el epílogo cuenta que
- *     la usó Ilse. La prosa lo tapa —subís y la dejás al lado del hueco—, pero la ficha dice otra
- *     cosa. **Le falta un `{ take: 'sello_del_vado' }`**, y es una línea.
+ * (e) **`cl_desenlace.subir_y_dejar_que_el_agua_decida` no hacía `take` del `sello_del_vado`.** Las
+ *     otras seis opciones de la escena sí lo hacen, así que esa era la única ruta en la que el
+ *     jugador llegaba a un final **con la piedra todavía en la mochila** mientras el epílogo contaba
+ *     que la usó Ilse. **SALDADO en la Fase H · tarea 2**: la opción hace el `take` y su `label` dice
+ *     que la piedra se queda abajo.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 2 — "que ceder cueste algo". Lo que cambió de estructura en este archivo:
+ *   1. `cl_halvar.bajar_al_sotano_sin_contestar` → `{ clock: 'sospecha', delta: 1 }` y `label` que
+ *      lo anuncia. Es el único tic de `sospecha` nuevo del clímax.
+ *   2. `cl_desenlace.subir_y_dejar_que_el_agua_decida` → `{ take: 'sello_del_vado' }`, la nota (e).
+ *   3. El hito `cerrar_la_cronica` se mudó de `cl_desenlace.onEnter` al `onEnter` de los CUATRO
+ *      finales: se marcaba antes de elegir el final, así que premiaba bajar una escalera. Ahora
+ *      marca haber cerrado algo, y una partida que se pierde en el clímax ya no se lo lleva.
+ * Ninguna opción se sacó, ninguna ganó `requires` y ningún `next` se movió: la cuenta `opc`/`libres`
+ * del outline §2 no cambia. `cl_dravos` no se tocó: es la única de las diez bisagra que ya estaba
+ * bien, porque no tiene ninguna opción sin tirada y sin `requires`.
  */
 
 // ---------------------------------------------------------------------------
@@ -659,12 +673,17 @@ export const cl_halvar = {
       },
     },
     {
+      // FASE H · tarea 2. Era la salida gratis del clímax diplomático. Dravos está declarado en
+      // `npcs` de esta escena y pasó la noche fichando conductas: irse de una negociación sin
+      // ofrecer nada y sin dar un motivo, delante del capitán, se ve. +1 de `sospecha`, con el
+      // sujeto nombrado, y el `label` lo anuncia.
       id: 'bajar_al_sotano_sin_contestar',
-      label: 'Bajar al sótano sin contestarle',
+      label: 'Bajar al sótano sin contestar, delante del capitán',
       outcome: {
         text: [
-          'No contestás. Corrés la trampilla con el pie y bajás. Atrás, sin levantar la voz, Halvar te explica lo caro que le sale a un hombre no contestar.',
+          'No contestás. Corrés la trampilla con el pie y bajás. Atrás, sin levantar la voz, Halvar te explica lo caro que le sale a un hombre no contestar. Dravos no te frena: se acomoda los guantes y dice que corresponde anotar la hora.',
         ],
+        effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'cl_desenlace',
       },
     },
@@ -724,7 +743,10 @@ export const cl_desenlace = {
   kind: 'normal',
   place: 'sotano_del_sello',
   npcs: ['ilse', 'berta', 'orell'],
-  onEnter: [{ milestone: 'cerrar_la_cronica' }],
+  // FASE H · tarea 2: el hito `cerrar_la_cronica` ya NO se marca acá. Se marcaba al entrar, es
+  // decir ANTES de elegir el final, así que premiaba haber bajado una escalera. Ahora vive en el
+  // `onEnter` de los cuatro finales: marca haber cerrado algo. `cl_desenlace` queda sin `onEnter`,
+  // y puede: no vuelve a sí misma, así que no necesita nada que corte el bucle.
   text: [
     'Bajás la escalera con el agua ya por encima del tercer escalón. El sótano es redondo y más viejo que el molino que tiene encima. El agua sube sin hacer ruido: te avisa por la ropa, no por el oído.',
     {
@@ -853,12 +875,17 @@ export const cl_desenlace = {
       },
     },
     {
+      // FASE H · tarea 2. Era la única de las siete sin ningún efecto —la nota (e) de la cabecera lo
+      // tenía diagnosticado— y por eso era la salida perfecta del jugador de cero tiradas: llegaba a
+      // un final con la piedra todavía en la mochila mientras el epílogo contaba que la usó Ilse.
+      // El `take` cierra la ficha y el `label` dice que la piedra se queda abajo.
       id: 'subir_y_dejar_que_el_agua_decida',
-      label: 'Subir y dejar que el agua decida',
+      label: 'Dejar la piedra donde está y que el agua decida',
       outcome: {
         text: [
           'Subís la escalera sin dar explicaciones y dejás la piedra abajo, al lado del hueco. Atrás, el agua sigue entrando por donde entra, y el hueco queda abierto.',
         ],
+        effects: [{ take: 'sello_del_vado' }],
         next: 'fin_crecida',
       },
     },
@@ -919,7 +946,7 @@ export const fin_hundido = {
   id: 'fin_hundido',
   kind: 'ending',
   place: 'sotano_del_sello',
-  onEnter: [{ set: 'char:vado.sello_hundido' }],
+  onEnter: [{ set: 'char:vado.sello_hundido' }, { milestone: 'cerrar_la_cronica' }],
   text: [
     'Encaja con un ruido corto, de piedra contra piedra, y después el sótano se queda sin ruido ninguno. El agua de los canales baja primero, en espiral, y se va por donde nadie la ve irse. Tardás en darte cuenta de que el frío de las piernas está bajando con ella.',
   ],
@@ -961,7 +988,11 @@ export const fin_dravos = {
   kind: 'ending',
   place: 'vado_oculto',
   variant: 'crecido',
-  onEnter: [{ set: 'char:vado.vendido' }, { set: 'world:vado.sello_perdido' }],
+  onEnter: [
+    { set: 'char:vado.vendido' },
+    { set: 'world:vado.sello_perdido' },
+    { milestone: 'cerrar_la_cronica' },
+  ],
   text: [
     'Cruzan antes del amanecer, con la piedra envuelta en el saco y el agua todavía alta. Los remos entran sin ruido: los envolvieron en trapo antes de bajar la barca. Desde el banco de grava se ve lo justo, cuatro hombres y una linterna tapada, y nadie apura a nadie.',
   ],
@@ -1003,7 +1034,11 @@ export const fin_crecida = {
   kind: 'ending',
   place: 'molino_de_tome',
   variant: 'inundado',
-  onEnter: [{ set: 'char:vado.vinculo_ilse' }, { set: 'world:vado.aldamar_inundada' }],
+  onEnter: [
+    { set: 'char:vado.vinculo_ilse' },
+    { set: 'world:vado.aldamar_inundada' },
+    { milestone: 'cerrar_la_cronica' },
+  ],
   text: [
     'Ilse sube con la piedra en las dos manos y no la baja otra vez. El piso del molino tiembla antes de que suba el agua: lo sentís en las rodillas, en los dientes, en el eje que arranca solo. Después el caz revienta hacia adentro.',
   ],
@@ -1049,7 +1084,11 @@ export const fin_heredero = {
   kind: 'ending',
   place: 'puente_viejo',
   variant: 'amanecer',
-  onEnter: [{ set: 'char:vado.heredero' }, { set: 'world:vado.sello_perdido' }],
+  onEnter: [
+    { set: 'char:vado.heredero' },
+    { set: 'world:vado.sello_perdido' },
+    { milestone: 'cerrar_la_cronica' },
+  ],
   text: [
     'Salís de la isla por el caz, contra la corriente, con la piedra atada al pecho donde iba la carta. El agua te empuja a cada paso y hay que ganarle el camino de a uno. Atrás, el molino sigue con la luz prendida y todavía no salió nadie a mirar el río.',
   ],

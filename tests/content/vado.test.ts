@@ -693,6 +693,177 @@ describe('vado: se juega de punta a punta hasta los cuatro finales (§8.14)', ()
   });
 });
 
+// ---------------------------------------------------------------------------
+// Fase H · tarea 2 — que ceder cueste algo
+// ---------------------------------------------------------------------------
+
+/** La opción `id` de la escena `sceneId`, o `undefined` si no existe. */
+function opcion(sceneId: string, choiceId: string): Choice | undefined {
+  return campaign.scenes[sceneId]?.choices.find((c) => c.id === choiceId);
+}
+
+/** Los efectos del `outcome` sin tirada de una opción. */
+function efectos(sceneId: string, choiceId: string): Effect[] {
+  return opcion(sceneId, choiceId)?.outcome?.effects ?? [];
+}
+
+/** Una opción es gratis si no tiene `requires`, no tiene tirada y su desenlace no tiene efectos. */
+function esGratis(choice: Choice): boolean {
+  return choice.requires === undefined && choice.roll === undefined && (choice.outcome?.effects ?? []).length === 0;
+}
+
+describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
+  it('ceder en la acusación cuesta la carta lacrada', () => {
+    const o = campaign.scenes['c1_acusacion']?.choices.find((c) => c.id === 'ceder');
+    expect(o?.outcome?.effects).toContainEqual({ take: 'carta_lacrada' });
+  });
+
+  it('rendirse en la refriega se paga con sospecha', () => {
+    const o = campaign.scenes['c1_refriega']?.choices.find((c) => c.id === 'rendirte');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('remar hasta la isla se paga con sospecha', () => {
+    const o = campaign.scenes['c2_orilla']?.choices.find((c) => c.id === 'remar_en_la_barca_de_tome');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('irse del sótano sin contestar se paga con sospecha', () => {
+    const o = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'bajar_al_sotano_sin_contestar');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('dejar que el agua decida entrega el sello', () => {
+    const o = campaign.scenes['cl_desenlace']?.choices.find((c) => c.id === 'subir_y_dejar_que_el_agua_decida');
+    expect(o?.outcome?.effects).toContainEqual({ take: 'sello_del_vado' });
+  });
+
+  it('orell_confia no se enciende por entrar a a2_ley_orell', () => {
+    expect(campaign.scenes['a2_ley_orell']?.onEnter ?? []).not.toContainEqual({ set: 'run:orell_confia' });
+  });
+
+  it('en la rama A orell_confia se gana con el éxito de la tirada, y ahí limpia orell_humillado', () => {
+    const o = opcion('a2_ley_orell', 'preguntarle_por_la_orden_escrita');
+    expect(o?.roll, 'la fuente de rama A tiene que ser una tirada').toBeDefined();
+    const exito = o?.roll?.outcomes.success.effects ?? [];
+    expect(exito).toContainEqual({ set: 'run:orell_confia' });
+    expect(exito).toContainEqual({ clear: 'run:orell_humillado' });
+    // El par mutuamente excluyente: ninguna banda enciende uno sin limpiar el otro.
+    for (const [i, banda] of desenlaces(o as Choice).entries()) {
+      const effects = banda.effects ?? [];
+      if (!effects.some((e) => 'set' in e && e.set === 'run:orell_confia')) continue;
+      expect(effects, `banda ${i}`).toContainEqual({ clear: 'run:orell_humillado' });
+    }
+  });
+
+  it('ninguna escena enciende orell_confia en su onEnter dentro del acto 2', () => {
+    for (const scene of escenas) {
+      if (scene.id === 'p_puente_amanecer') continue; // la fuente del prólogo, biblia §7.2
+      expect((scene.onEnter ?? []).some((e) => 'set' in e && e.set === 'run:orell_confia'), scene.id).toBe(false);
+    }
+  });
+
+  it('el encuentro del clímax no se cierra sin dados salvo que te hayas ganado algo antes', () => {
+    const dravos = campaign.scenes['cl_dravos'] as Scene;
+    for (const choice of dravos.choices) {
+      const gratis = choice.requires === undefined && choice.roll === undefined;
+      expect(gratis, `cl_dravos/${choice.id}`).toBe(false);
+    }
+  });
+
+  it('cerrar_la_cronica se marca al llegar a un final, no al entrar al desenlace', () => {
+    expect(campaign.scenes['cl_desenlace']?.onEnter ?? []).not.toContainEqual({ milestone: 'cerrar_la_cronica' });
+    for (const fin of ['fin_hundido', 'fin_dravos', 'fin_crecida', 'fin_heredero']) {
+      expect(campaign.scenes[fin]?.onEnter ?? [], fin).toContainEqual({ milestone: 'cerrar_la_cronica' });
+    }
+  });
+
+  it('ver_el_sello deja una sola vía gratuita por rama', () => {
+    const gratuitas: string[] = [];
+    for (const scene of escenas) {
+      if ((scene.onEnter ?? []).some((e) => 'milestone' in e && e.milestone === 'ver_el_sello')) {
+        gratuitas.push(`${scene.id}/onEnter`);
+      }
+      for (const choice of scene.choices) {
+        if (choice.requires !== undefined || choice.roll !== undefined) continue;
+        const effects = choice.outcome?.effects ?? [];
+        if (!effects.some((e) => 'milestone' in e && e.milestone === 'ver_el_sello')) continue;
+        if (effects.some((e) => 'clock' in e || 'wound' in e || 'take' in e)) continue; // ya cuesta algo
+        gratuitas.push(`${scene.id}/${choice.id}`);
+      }
+    }
+    // Rama B: el `onEnter` del sótano. Rama A: el mapa de las cartas. Y ninguna más.
+    expect(gratuitas.sort()).toEqual(['a2_fuera_sotano/onEnter', 'a2_ley_cartas/buscar_el_mapa']);
+  });
+
+  it('leer el sigilo delante de Dravos se paga con sospecha', () => {
+    expect(efectos('a2_ley_torre', 'leer_el_sigilo_de_la_mesa')).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('las seis opciones bisagra dejaron de salir gratis', () => {
+    const bisagras: [string, string][] = [
+      ['c1_acusacion', 'ceder'],
+      ['c1_refriega', 'rendirte'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa'],
+    ];
+    for (const [sceneId, choiceId] of bisagras) {
+      const choice = opcion(sceneId, choiceId);
+      expect(choice, `${sceneId}/${choiceId}`).toBeDefined();
+      expect(esGratis(choice as Choice), `${sceneId}/${choiceId}`).toBe(false);
+    }
+  });
+
+  /**
+   * Un costo escondido no es una decisión: es una trampa. El motor deriva el `badge` del `requires`
+   * (`resolve.ts::badgeDe`) y estas seis no tienen `requires`, así que el aviso tiene que estar en la
+   * etiqueta, en ficción y sin nombrar la mecánica (biblia §10).
+   */
+  it('cada costo nuevo se anuncia en la etiqueta', () => {
+    const avisos: [string, string, string][] = [
+      ['c1_acusacion', 'ceder', 'carta'],
+      ['c1_refriega', 'rendirte', 'delante de todos'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome', 'a la vista'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar', 'delante del capitán'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida', 'dejar la piedra'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa', 'delante de Dravos'],
+    ];
+    for (const [sceneId, choiceId, aviso] of avisos) {
+      const label = opcion(sceneId, choiceId)?.label ?? '';
+      expect(label.toLowerCase(), `${sceneId}/${choiceId}`).toContain(aviso.toLowerCase());
+      expect(label.length, `${sceneId}/${choiceId}`).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it('la opción libre sigue existiendo en las seis: ninguna ganó un requires', () => {
+    const bisagras: [string, string][] = [
+      ['c1_acusacion', 'ceder'],
+      ['c1_refriega', 'rendirte'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa'],
+    ];
+    for (const [sceneId, choiceId] of bisagras) {
+      expect(opcion(sceneId, choiceId)?.requires, `${sceneId}/${choiceId}`).toBeUndefined();
+      expect(opcion(sceneId, choiceId)?.roll, `${sceneId}/${choiceId}`).toBeUndefined();
+    }
+  });
+
+  it('a2_amanecer y c2_anochece no se tocaron: siguen sin cobrar nada', () => {
+    for (const sceneId of ['a2_amanecer', 'c2_anochece']) {
+      const scene = campaign.scenes[sceneId] as Scene;
+      for (const choice of scene.choices) {
+        const effects = choice.outcome?.effects ?? [];
+        expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha'), `${sceneId}/${choice.id}`).toBe(false);
+        expect(effects.some((e) => 'wound' in e), `${sceneId}/${choice.id}`).toBe(false);
+      }
+    }
+  });
+});
+
 /**
  * La reliquia de punta a punta (biblia §13.1, outline §5). Los tests unitarios de `applyReward`
  * (tests/engine/resolve.end.test.ts) arman un fixture que mete la reliquia en `campaign.items`, que

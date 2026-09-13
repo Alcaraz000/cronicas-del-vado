@@ -7,10 +7,23 @@ import type { Scene } from '@/content/schema';
  * `c1_cuerpo`, `c1_acusacion`, `c1_refriega` (encounter) · `a2_amanecer` · `a2_ley_orell`,
  * `a2_ley_torre`, `a2_ley_cartas`, `a2_ley_halvar`, `a2_ley_berta`, `a2_ley_guardia` (rest).
  *
- * La estructura quedó INTACTA respecto del esqueleto: no se tocó ni una `choice`, ni un `label`,
- * ni un `requires`, ni un `lockedHint`, ni un `roll`, ni un `effects`, ni un `next`, ni un
- * `onEnter`, ni un `npcs`, ni un `place`, ni un `redirect`. Lo único que entró acá es texto: los
- * `text` de escena, las bandas de las cinco tiradas y los `outcome.text` de las opciones libres.
+ * La estructura quedó INTACTA respecto del esqueleto hasta la Fase D: no se tocó ni una `choice`, ni
+ * un `label`, ni un `requires`, ni un `lockedHint`, ni un `roll`, ni un `effects`, ni un `next`, ni
+ * un `onEnter`, ni un `npcs`, ni un `place`, ni un `redirect`. Lo único que entró en la D es texto:
+ * los `text` de escena, las bandas de las cinco tiradas y los `outcome.text` de las opciones libres.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 2 — "que ceder cueste algo". Lo ÚNICO que cambió de estructura en este archivo,
+ * y las cuatro cosas son `effects` (ninguna opción se sacó, ninguna ganó `requires`, ningún `next`
+ * se movió, así que la cuenta `opc`/`libres` del outline §2 no se toca):
+ *   1. `c1_acusacion.ceder` → `{ take: 'carta_lacrada' }` y `label` que lo anuncia.
+ *   2. `c1_refriega.rendirte` → `{ clock: 'sospecha', delta: 1 }` y `label` que lo anuncia.
+ *   3. `a2_ley_orell.onEnter` deja de encender `run:orell_confia`; lo enciende el ÉXITO de
+ *      `preguntarle_por_la_orden_escrita`, con el `clear` del par en la misma banda. El `onEnter`
+ *      queda sin efectos y por eso ya no se declara.
+ *   4. `a2_ley_torre.leer_el_sigilo_de_la_mesa` → `{ clock: 'sospecha', delta: 1 }`: era la segunda
+ *      vía gratuita de la rama A al hito `ver_el_sello` y sobraba.
+ * Tics de `sospecha` nuevos en este archivo: DOS (2 y 4), los dos con sujeto que mira.
  *
  * Invariantes de este archivo, verificadas escena por escena contra la columna `opc`/`tir`:
  * - `c1_cuerpo` 7/5 · 1 tirada · `c1_acusacion` 7/4 · 0 · `c1_refriega` 6/4 · 3 ·
@@ -387,13 +400,18 @@ export const c1_acusacion = {
   ],
   choices: [
     {
+      // FASE H · tarea 2. Era la salida gratis del cuello 1 y ahora cuesta la `carta_lacrada`: la
+      // quinta manera de gastarla (biblia §5). El costo se anuncia en el `label`, porque el motor
+      // deriva el `badge` del `requires` y esta opción no tiene. Es la escena más pública de la
+      // campaña —Dravos, Berta y la ronda entera están en `npcs`—, así que al que se deja procesar
+      // sin jugar ninguna carta se la encuentran igual, y pierde el beneficio de haberla mostrado él.
       id: 'ceder',
-      label: 'Bajar la voz y dejar que te tomen nota',
+      label: 'Bajar la voz y dejar que te tomen la carta',
       outcome: {
         text: [
-          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. El chico del casco lo anota mal dos veces y te lo hace repetir. Cuando termina, el capitán ya está hablando de otra cosa.',
+          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. Antes de anotar nada te palpan la capa y sacan la carta lacrada. Dravos la lee sin pedirla y no la devuelve.',
         ],
-        effects: [{ set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
+        effects: [{ take: 'carta_lacrada' }, { set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_amanecer',
       },
     },
@@ -641,14 +659,19 @@ export const c1_refriega = {
       },
     },
     {
+      // FASE H · tarea 2. Para llegar acá ya elegiste correr o resistirte: rendirte de golpe en
+      // medio de la plaza, delante de Dravos y de la línea entera, es un cambio de conducta con
+      // testigos concretos, y por eso paga +1 de `sospecha` (biblia §7.1: el tic se nombra en la
+      // ficción y se le pone sujeto). El `label` lo anuncia con la fórmula de §10.
       id: 'rendirte',
-      label: 'Abrir las manos y rendirte',
+      label: 'Abrir las manos y rendirte delante de todos',
       outcome: {
         text: [
-          'Abrís las manos despacio, con los dedos separados, y las dejás donde todos las vean. La línea tarda en creerte. El capitán manda que no te peguen y dos lo obedecen tarde.',
+          'Abrís las manos despacio, con los dedos separados, y las dejás donde todos las vean. La línea tarda en creerte. El capitán manda que no te peguen, dos lo obedecen tarde, y el chico del casco anota la hora en que cambiaste de idea.',
         ],
         effects: [
           { clock: 'pelea', delta: 3 },
+          { clock: 'sospecha', delta: 1 },
           { set: 'run:con_la_ley' },
           { clear: 'run:contra_la_ley' },
         ],
@@ -808,9 +831,15 @@ export const a2_amanecer = {
 // ---------------------------------------------------------------------------
 
 /**
- * Puerta de la rama A y primera cuota de la confesión de Orell. El `onEnter` enciende
- * `run:orell_confia` (biblia §7.2: "la rama A entera") y limpia `run:orell_humillado`, que es su
- * par mutuamente excluyente.
+ * Puerta de la rama A y primera cuota de la confesión de Orell.
+ *
+ * FASE H · tarea 2: el `onEnter` **ya no regala** `run:orell_confia`. Lo regalaba a cualquiera que
+ * entrara por una opción libre de `a2_amanecer`, y ese flag es el que abre
+ * `cl_dravos.que_orell_lo_detenga`: el clímax se cerraba sin tirar un dado con un flag que no se
+ * había ganado nadie. Ahora la fuente de rama A es el **éxito** de `preguntarle_por_la_orden_escrita`,
+ * igual que en el prólogo, donde solo el éxito de `convencer_a_la_guardia` lo enciende. El `clear` de
+ * `run:orell_humillado` —su par mutuamente excluyente— viaja con el `set`, en la misma banda.
+ * La cuota de biblia §7.2 se respeta: sigue habiendo una fuente por acto para el flag de relación.
  *
  * Lleva uno de los tres cruces de rama de la campaña, con su `requires: { not: … }`, su `clear` del
  * bando viejo y su +1 de `sospecha`.
@@ -820,7 +849,6 @@ export const a2_ley_orell = {
   kind: 'normal',
   place: 'torre_de_dravos',
   npcs: ['orell'],
-  onEnter: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
   text: [
     'Adentro de la torre hace más frío que afuera. Orell te espera al pie de la escalera, con el gambesón todavía mojado del relevo. Huele a tinta fresca a una hora en que nadie debería estar escribiendo, y el olor viene de arriba, de la escalera.',
     {
@@ -872,10 +900,13 @@ export const a2_ley_orell = {
         difficulty: 'normal',
         tags: ['social'],
         outcomes: {
+          // La única fuente de `run:orell_confia` en la rama A (FASE H · tarea 2). El `clear` del par
+          // viaja con el `set`: nadie sale de acá debiéndole a Orell y teniéndolo en contra.
           success: {
             text: [
               'No le pedís verla: le preguntás quién la firmó. Orell mira la escalera, mira el banco y termina diciéndote en qué mesa están las cartas. No sube con vos.',
             ],
+            effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a2_ley_cartas',
           },
           partial: {
@@ -1008,13 +1039,18 @@ export const a2_ley_torre = {
       },
     },
     {
+      // FASE H · tarea 2. `ver_el_sello` tenía DOS puertas gratuitas en la rama A —esta y
+      // `a2_ley_cartas.buscar_el_mapa`— y una sola en la B. La que se cobra es esta, porque es la
+      // única de las dos que tiene testigo: Dravos está declarado en `npcs` de esta escena y
+      // `a2_ley_cartas` no declara a nadie, y la biblia §7.1 pide que cada tic de `sospecha` tenga un
+      // sujeto que mire. La vía gratuita de la rama A queda en el mapa de las cartas.
       id: 'leer_el_sigilo_de_la_mesa',
-      label: 'Leer el sigilo lacrado de la mesa',
+      label: 'Leer el sigilo lacrado delante de Dravos',
       outcome: {
         text: [
-          'El lacre verde no tiene armas: tiene un círculo con tres canales que le salen del centro, como los de un molino de agua. El mismo dibujo está repetido al pie de otras dos cartas.',
+          'El lacre verde no tiene armas: tiene un círculo con tres canales que le salen del centro, como los de un molino de agua. El mismo dibujo está repetido al pie de otras dos cartas. Dravos te deja mirar y después pregunta, sin levantar la cabeza, cuál te interesó.',
         ],
-        effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
+        effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_cartas',
       },
     },

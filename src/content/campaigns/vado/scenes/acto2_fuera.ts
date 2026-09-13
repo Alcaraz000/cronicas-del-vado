@@ -47,6 +47,13 @@ import type { Scene } from '@/content/schema';
  * ni un `requires`, ni un `lockedHint`, ni un `roll`, ni un `effects`, ni un `next`, ni un
  * `redirect`, ni un `onEnter`, ni un `npcs`, ni un `place`, ni un `variant`. Entró texto y nada más.
  *
+ * FASE H · TAREA 2 — "que ceder cueste algo". Lo único que cambió de estructura en este archivo es
+ * un `effects`: `c2_orilla.remar_en_la_barca_de_tome` paga +1 de `sospecha`, con su `label` nuevo.
+ * Ninguna opción se sacó ni ganó `requires`, así que la columna `opc`/`libres` de arriba sigue
+ * valiendo. `c2_anochece` NO se tocó a propósito: es escena de aviso, no de habilidad, y su
+ * asimetría correcta ya existe (`buscar_una_cuerda` entrega la `cuerda_de_molinero`, que es ventaja
+ * real en el vado crecido); cobrarle algo sería castigarla por hacer lo que tiene que hacer.
+ *
  * DEUDA DE PROSA SALDADA
  * · Variantes de memoria de la cuota (biblia §9.1), las cuatro en párrafos de NARRADOR, sin
  *   `speaker`, y las cuatro más cortas que su base:
@@ -988,13 +995,17 @@ export const c2_orilla = {
       },
     },
     {
+      // FASE H · tarea 2. Era una inconsistencia, no una excepción: las otras dos maneras de evitar
+      // el vado ya cuestan —esperar paga +1 de `sospecha`, el azud paga una Herida— y esta era la
+      // única gratis, siendo la menos discreta de las tres: el texto ya decía que del molino salió
+      // gente a mirar. Ahora paga el tic, con el sujeto que mira nombrado, y el `label` lo anuncia.
       id: 'remar_en_la_barca_de_tome',
-      label: 'Remar hasta la isla en la barca de Tomé',
+      label: 'Remar hasta la isla, a la vista del molino',
       outcome: {
         text: [
-          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás al pie de la isla mucho después de lo que pensabas. Del molino ya salió gente a mirar.',
+          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás al pie de la isla mucho después de lo que pensabas. Del molino ya salió gente a mirar: uno se queda mirándote hasta la grava y después entra a decirlo.',
         ],
-        effects: [{ set: 'run:dravos_sabe' }],
+        effects: [{ set: 'run:dravos_sabe' }, { clock: 'sospecha', delta: 1 }],
         next: 'c2_otra_orilla',
       },
     },
