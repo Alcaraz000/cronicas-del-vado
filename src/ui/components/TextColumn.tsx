@@ -57,7 +57,13 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
   }, [log.length, revelado?.caracteresVisibles]);
 
   return (
-    <div className={styles.columna} data-testid="columna-texto" onClick={() => revelado?.avanzar()}>
+    <div
+      className={styles.columna}
+      data-testid="columna-texto"
+      aria-live="polite"
+      aria-atomic="false"
+      onClick={() => revelado?.avanzar()}
+    >
       {log.map((entry, i) => (
         <Entrada key={i} entry={entry} revelado={i === log.length - 1 ? revelado : undefined} />
       ))}

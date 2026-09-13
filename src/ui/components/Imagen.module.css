@@ -20,4 +20,31 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Cada cambio de `id` monta un <img> nuevo (Imagen.tsx usa la URL como `key`), así que
+     esta animación arranca sola en cada fundido: un fundido de opacidad, no una transición
+     (que no dispara en el montaje de un nodo nuevo). */
+  animation: fundido 200ms ease-out;
+}
+
+@keyframes fundido {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Corte seco: lo decide `useReducedMotion()` en Imagen.tsx (combina la preferencia de la
+   app con la del sistema) además de esta media query, que cubre el caso en que el sistema
+   cambia de preferencia con el componente ya montado — mismo cinturón y tirantes que
+   Dados.module.css. */
+.imagen[data-reducida='true'] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imagen {
+    animation: none;
+  }
 }
