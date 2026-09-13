@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
 import type { Campaign } from '@/content/schema';
 import type { LogEntry, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
@@ -500,38 +501,9 @@ describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
  */
 describe('EscenaScreen — hoja inferior en móvil', () => {
   const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
-
-  /**
-   * Cuerpo del primer `@media (max-width: 800px) { ... }` de un CSS, contando llaves: adentro
-   * hay varias reglas propias, así que cortar en la primera '}' que aparece se queda corto.
-   */
-  function bloqueMovil(hoja: string): string {
-    const inicio = hoja.indexOf('@media (max-width: 800px)');
-    expect(inicio, 'no se encontró @media (max-width: 800px) en EscenaScreen.module.css').toBeGreaterThan(-1);
-    const apertura = hoja.indexOf('{', inicio);
-    let profundidad = 0;
-    let fin = apertura;
-    for (; fin < hoja.length; fin++) {
-      if (hoja[fin] === '{') profundidad++;
-      else if (hoja[fin] === '}') {
-        profundidad--;
-        if (profundidad === 0) break;
-      }
-    }
-    return hoja.slice(apertura + 1, fin);
-  }
-
-  /** Cuerpo de la regla cuyo selector es EXACTAMENTE `selector`, sin comentarios ni espacios. */
-  function cuerpoDe(bloque: string, selector: string): string | null {
-    for (const [, sel = '', cuerpo = ''] of bloque.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-      if (sel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '') === selector) return cuerpo;
-    }
-    return null;
-  }
+  const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
 
   it('en móvil la columna es una hoja con su propio scroll', () => {
-    const movil = bloqueMovil(css);
-
     const columna = cuerpoDe(movil, '.columna');
     expect(columna, '.columna no tiene una regla propia en el bloque de móvil').not.toBeNull();
     expect(columna).toMatch(/overflow-y\s*:\s*auto/);
@@ -546,8 +518,26 @@ describe('EscenaScreen — hoja inferior en móvil', () => {
     expect(grid).toMatch(/grid-template-rows\s*:\s*[\d.]+vh/);
   });
 
+  /**
+   * `.grid` mide `1fr` de la fila de abajo — pero un `fr` solo reparte espacio de verdad
+   * cuando su CONTENEDOR tiene una altura definida. `.pantalla` (arriba del todo) solo
+   * declaraba `min-height: 100vh`, nunca `height`, así que ante contenido largo el navegador
+   * calcula la altura automática de `.pantalla` ANTES de saber cuánto mide `.grid` — y para
+   * esa cuenta, un `fr` sin un contenedor de altura definida se comporta como `auto` (mide por
+   * contenido). Resultado, jugado en un teléfono real (375×812) y no visible en jsdom: `.grid`
+   * termina midiendo lo que el texto de la escena necesita, `.pantalla` crece para no
+   * cortarlo, y es la PÁGINA la que scrollea —fondo incluido— en vez de la hoja. `min-height: 0`
+   * en `.grid` y en `.columna` no alcanza para arreglar esto por sí solo: sin este
+   * `height: 100vh`, sigue sin haber ninguna altura real de la cual partir. Este test existe
+   * porque el anterior (`.columna`/`.grid`) pasaría igual si alguien borrara esta línea por
+   * parecer redundante con esos `min-height: 0` — y el bug volvería en silencio. */
+  it('en móvil `.pantalla` tiene una altura fija, no solo un mínimo: la fila `1fr` de `.grid` no tiene de qué repartirse sin esto', () => {
+    const pantalla = cuerpoDe(movil, '.pantalla');
+    expect(pantalla, '.pantalla no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(pantalla).toMatch(/height\s*:\s*100vh/);
+  });
+
   it('la hoja se despega del fondo: esquinas de arriba redondeadas y sombra hacia arriba', () => {
-    const movil = bloqueMovil(css);
     const columna = cuerpoDe(movil, '.columna');
     expect(columna).toMatch(/border-radius\s*:\s*var\(--radio\)/);
     expect(columna).toMatch(/background\s*:\s*var\(--color-superficie\)/);

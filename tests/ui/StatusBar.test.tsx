@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { StatusBar } from '@/ui/components/StatusBar';
 import { S } from '@/ui/strings.es';
+import { bloqueDeMedia, cuerpoDe as cuerpoDeBloque } from '../fixtures/css';
 
 describe('StatusBar', () => {
   afterEach(() => {
@@ -155,31 +156,7 @@ describe('StatusBar', () => {
     // tocar; lo único que este cambio saca en móvil es la línea de condiciones, la más larga y
     // la que menos falta hace con la barra siempre visible.
     const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
-
-    function bloqueMovil(hoja: string): string {
-      const inicio = hoja.indexOf('@media (max-width: 800px)');
-      expect(inicio, 'no se encontró @media (max-width: 800px) en StatusBar.module.css').toBeGreaterThan(-1);
-      const apertura = hoja.indexOf('{', inicio);
-      let profundidad = 0;
-      let fin = apertura;
-      for (; fin < hoja.length; fin++) {
-        if (hoja[fin] === '{') profundidad++;
-        else if (hoja[fin] === '}') {
-          profundidad--;
-          if (profundidad === 0) break;
-        }
-      }
-      return hoja.slice(apertura + 1, fin);
-    }
-
-    function cuerpoDeBloque(bloque: string, selector: string): string | null {
-      for (const [, sel = '', cuerpo = ''] of bloque.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-        if (sel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '') === selector) return cuerpo;
-      }
-      return null;
-    }
-
-    const movil = bloqueMovil(css);
+    const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
     const condiciones = cuerpoDeBloque(movil, '.condiciones');
     expect(condiciones, '.condiciones no tiene una regla propia en el bloque de móvil').not.toBeNull();
     expect(condiciones).toMatch(/display\s*:\s*none/);
