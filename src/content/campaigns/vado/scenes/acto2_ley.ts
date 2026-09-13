@@ -174,6 +174,22 @@ import type { Scene } from '@/content/schema';
  * y no tienen `effects`: son dos Fluff puras y el texto es lo único que las separa. Está bien y
  * cumple §2.5 con el texto escrito, pero conviene saber que si alguna vez se recortan outcomes de
  * esta escena, esas dos opciones se vuelven idénticas en pantalla y hay que colapsarlas.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
+ * `label`, ni un `requires`, ni un `roll`, ni un `effects`, ni un `next`: entró y salió texto.
+ * Criterio de recorte, en este orden: (1) la oración que repite lo que la escena ya dijo; (2) la
+ * que explica al jugador la opción que acaba de elegir; (3) el adjetivo y la subordinada que no
+ * agregan información. NO se tocaron: lo que el jugador necesita para decidir lo que sigue, las
+ * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
+ * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
+ *
+ * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
+ * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
+ * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
+ * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
+ * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
+ * los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -196,22 +212,22 @@ export const c1_cuerpo = {
       variants: [
         {
           when: { flag: 'run:cuerpo_hallado' },
-          text: 'Venís sabiendo. Lo que falta no es encontrarlo: es pararse al lado y ponerle el nombre a una cosa que el agua movió once días.',
+          text: 'Venís sabiendo. Lo que falta no es encontrarlo: es pararse al lado y ponerle nombre a una cosa que el agua movió once días.',
         },
         {
           text: 'Está entre la cuarta piedra y la quinta, atravesado contra la corriente, y el agua lo acomoda un poco cada vez que pasa.',
         },
       ],
     },
-    'Lo mirás desde tres pasos. La ropa se le hinchó y tira de las costuras; las manos están abiertas y blancas, con los dedos para arriba. Sobre el agua hay un olor dulce que no es de río y que llega en tandas, cuando el viento cambia.',
+    'Lo mirás desde tres pasos. La ropa se le hinchó y tira de las costuras; las manos están abiertas y blancas, con los dedos para arriba. Sobre el agua hay un olor dulce que no es de río y llega en tandas, cuando el viento cambia.',
     {
       variants: [
         {
           when: { flag: 'run:la_soga_cortada' },
-          text: 'La soga es la del pozo de la plaza: el corte fresco que le viste en el brocal está en esta punta. Le da dos vueltas al pecho y el nudo quedó del lado de afuera.',
+          text: 'La soga es la del pozo de la plaza: el corte fresco del brocal está en esta punta. Da dos vueltas al pecho y el nudo quedó afuera.',
         },
         {
-          text: 'Una soga le da dos vueltas al pecho y sigue bajo el agua hasta un hierro clavado en la piedra. El nudo quedó del lado de afuera: no se enredó solo.',
+          text: 'Una soga le da dos vueltas al pecho y sigue bajo el agua hasta un hierro clavado en la piedra. El nudo quedó afuera: no se enredó solo.',
         },
       ],
     },
@@ -238,14 +254,14 @@ export const c1_cuerpo = {
         outcomes: {
           success: {
             text: [
-              'Le abrís el delantal sin darlo vuelta. En el bolsillo hay un cincel con el filo volcado. Del cuello le cuelga un cordón de cuero con un engarce vacío del tamaño de una uña, y adentro del engarce queda polvo gris.',
+              'Le abrís el delantal sin darlo vuelta. En el bolsillo hay un cincel con el filo volcado. Del cuello le cuelga un cordón con un engarce vacío del tamaño de una uña, con polvo gris adentro.',
             ],
             effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
             next: 'c1_acusacion',
           },
           partial: {
             text: [
-              'Tenés que meterte hasta la cintura y la corriente te lo saca de la mano dos veces. Alcanzás a verle el cordón del cuello y el engarce vacío antes de soltarlo. Salís con el río adentro de las botas.',
+              'Te metés hasta la cintura y la corriente te lo saca de la mano dos veces. Alcanzás a verle el cordón y el engarce vacío antes de soltarlo. Salís con el río en las botas.',
             ],
             effects: [
               { set: 'run:vio_el_sello' },
@@ -256,7 +272,7 @@ export const c1_cuerpo = {
           },
           failure: {
             text: [
-              'Apoyás la rodilla en la cuarta piedra y la cuarta piedra se hunde un palmo. Terminás sentado contra él, con el río empujándolos a los dos. Lo soltás y salís sin haberle abierto el delantal.',
+              'Apoyás la rodilla en la cuarta piedra y se hunde un palmo. Terminás sentado contra él, con el río empujándolos a los dos. Salís sin haberle abierto el delantal.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'c1_acusacion',
@@ -269,7 +285,7 @@ export const c1_cuerpo = {
       label: 'Enterrarlo vos, con las manos',
       outcome: {
         text: [
-          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Te lleva lo que tarda en apagarse un farol. Del banco del norte, un hombre que carga sacos en una barca deja de cargar y mira la tierra removida.',
+          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Del banco del norte, un hombre que carga una barca deja de cargar.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }, { clock: 'sospecha', delta: 1 }],
         next: 'c1_acusacion',
@@ -280,7 +296,7 @@ export const c1_cuerpo = {
       label: 'Desatar la soga que lo tenía ahí',
       outcome: {
         text: [
-          'El nudo se hinchó y hay que abrirlo con el filo del cuchillo. Cuando cede, el cuerpo gira despacio y queda mirando río abajo, hacia el pueblo. El hierro sigue clavado en la piedra.',
+          'El nudo se hinchó y hay que abrirlo con el cuchillo. Cuando cede, el cuerpo gira y queda mirando río abajo. El hierro sigue clavado en la piedra.',
         ],
         next: 'c1_acusacion',
       },
@@ -290,7 +306,7 @@ export const c1_cuerpo = {
       label: 'Mirar la grava antes de que llueva más',
       outcome: {
         text: [
-          'La lluvia llenó la mitad de las marcas. Lo que queda son dos surcos de talones que bajan desde el camino y, al costado, pisadas hondas de alguien que caminaba para atrás.',
+          'La lluvia llenó la mitad de las marcas. Quedan dos surcos de talones que bajan del camino y, al costado, pisadas hondas de alguien que caminaba para atrás.',
         ],
         next: 'c1_acusacion',
       },
@@ -300,7 +316,7 @@ export const c1_cuerpo = {
       label: 'Taparlo y volver al pueblo a decirlo',
       outcome: {
         text: [
-          'Le tirás la capa encima y le trabás las puntas con dos piedras. El agua le levanta el borde igual. Subís el terraplén sin darte vuelta y encarás la plaza.',
+          'Le tirás la capa encima y le trabás las puntas con dos piedras. El agua le levanta el borde igual. Subís sin darte vuelta.',
         ],
         next: 'c1_acusacion',
       },
@@ -312,7 +328,7 @@ export const c1_cuerpo = {
       lockedHint: 'No es tu oficio despedir a un muerto.',
       outcome: {
         text: [
-          'Lo sacás del agua antes de decir nada, porque el rito se dice en tierra. Le cerrás los dedos, le ponés la grava encima a puñados y decís los nombres en el orden que te enseñaron. La lluvia tapa el ruido y no te ve nadie.',
+          'Lo sacás del agua antes de decir nada, porque el rito se dice en tierra. Le cerrás los dedos, le ponés grava a puñados y decís los nombres en el orden que te enseñaron.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }],
         next: 'c1_acusacion',
@@ -325,7 +341,7 @@ export const c1_cuerpo = {
       lockedHint: 'Nadie te enseñó el responso.',
       outcome: {
         text: [
-          'El responso es de tres voces y vos tenés una. Lo cantás igual, bajo, contra el ruido del agua. Te acordás de todos los renglones menos del último, que era el que perdonaba.',
+          'El responso es de tres voces y vos tenés una. Lo cantás igual, bajo, contra el agua. Te acordás de todos los renglones menos del último, que era el que perdonaba.',
         ],
         next: 'c1_acusacion',
       },
@@ -348,15 +364,15 @@ export const c1_acusacion = {
   npcs: ['dravos', 'orell', 'berta'],
   onEnter: [{ set: 'run:acusado' }],
   text: [
-    'Te suben a la plaza con la capa chorreando y la rueda de gente se arma sola. Bajo tantos pies el barro dejó de chapotear: hace un ruido de succión y lo oís cada vez que alguien cambia el peso de pie.',
+    'Te suben a la plaza con la capa chorreando y la rueda de gente se arma sola. Bajo tantos pies el barro hace un ruido de succión cada vez que alguien cambia el peso.',
     {
       variants: [
         {
           when: { flag: 'run:cuerpo_hallado' },
-          text: 'Lo que vos sabías desde antes lo sabe ahora la plaza entera. Nadie pregunta qué había en el vado: preguntan qué hacías vos ahí.',
+          text: 'Lo que vos sabías lo sabe ahora la plaza entera. Nadie pregunta qué había en el vado: preguntan qué hacías vos ahí.',
         },
         {
-          text: 'Nadie pregunta qué había en el vado. Preguntan, de a poco y sin levantar la voz, qué hacías vos ahí.',
+          text: 'Nadie pregunta qué había en el vado. Preguntan, sin levantar la voz, qué hacías vos ahí.',
         },
       ],
     },
@@ -370,14 +386,14 @@ export const c1_acusacion = {
               { visited: 'p_puente_amanecer', min: 1 },
             ],
           },
-          text: 'Al sargento lo tenés visto de esta misma noche, del otro lado de los barriles. Acá está tres pasos detrás del capitán y no se mueve de ahí.',
+          text: 'Al sargento lo tenés visto de esta misma noche, del otro lado de los barriles. Acá está tres pasos detrás del capitán y no se mueve.',
         },
         {
           when: { met: 'orell' },
           text: 'Al sargento de la cicatriz lo conocés de antes de esta noche. Él no, y no te busca la cara.',
         },
         {
-          text: 'Detrás del capitán hay un sargento de barba gris, con el gambesón gris y una cicatriz blanca que le parte la ceja. No se mueve de donde está y no te saca los ojos de encima.',
+          text: 'Detrás del capitán hay un sargento de barba gris, con el gambesón gris y una cicatriz que le parte la ceja. No se mueve y no te saca los ojos de encima.',
         },
       ],
     },
@@ -385,7 +401,7 @@ export const c1_acusacion = {
       speaker: 'dravos',
       variants: [
         {
-          text: '—Catorce hombres buscaron once días. Llega uno de afuera y lo encuentra antes de que se le seque la capa. —Se saca un guante y se lo pasa a la otra mano—. Nadie lo acusa todavía. Corresponde tomarle el nombre y retenerlo.',
+          text: '—Catorce hombres buscaron once días. Llega uno de afuera y lo encuentra antes de que se le seque la capa. —Se saca un guante—. Nadie lo acusa. Corresponde tomarle el nombre y retenerlo.',
         },
       ],
     },
@@ -393,11 +409,11 @@ export const c1_acusacion = {
       variants: [
         {
           when: { flag: 'run:pell_delato' },
-          text: 'En la segunda fila está el chico del casco grande, con la cara de quien ya dijo lo que vio y no sabe cómo volver a guardarlo.',
+          text: 'En la segunda fila está el chico del casco grande, con la cara de quien ya dijo lo que vio y no sabe cómo guardarlo.',
         },
         {
           when: { flag: 'run:pell_amigo' },
-          text: 'En la segunda fila está el chico del casco grande. Cuando el capitán pregunta quién más bajó al vado, el chico mira el barro y tarda.',
+          text: 'En la segunda fila está el chico del casco grande. Cuando el capitán pregunta quién más bajó al vado, mira el barro y tarda.',
         },
         {
           text: 'La rueda de gente se cierra un paso. Nadie dice nada todavía: esperan a ver de qué lado se acomoda la alcaldesa.',
@@ -408,7 +424,7 @@ export const c1_acusacion = {
       speaker: 'berta',
       variants: [
         {
-          text: '—Mirá, yo te mandé a buscar a un hombre y me trajiste un muerto, y son sesenta y cuatro casas las que están mirando esto. Hacé lo que te diga el capitán, que se ordena en dos días y nadie pierde nada, y bueno.',
+          text: '—Mirá, yo te mandé a buscar a un hombre y me trajiste un muerto, y son sesenta y cuatro casas mirando esto. Hacé lo que te diga el capitán, que se ordena en dos días, y bueno.',
         },
       ],
     },
@@ -431,7 +447,7 @@ export const c1_acusacion = {
       label: 'Bajar la voz y dejar que te palpen la capa',
       outcome: {
         text: [
-          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. Antes de anotar nada te palpan la capa por fuera y por dentro, y lo que encuentran no te lo devuelven. El chico del casco anota mal el nombre dos veces y te lo hace repetir.',
+          'Bajás la voz y decís el nombre, de dónde venís y para quién trabajás. Antes de anotar nada te palpan la capa por fuera y por dentro, y lo que encuentran no te lo devuelven.',
         ],
         effects: [{ take: 'carta_lacrada' }, { set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_amanecer',
@@ -442,7 +458,7 @@ export const c1_acusacion = {
       label: 'Correr antes de que te rodeen',
       outcome: {
         text: [
-          'Salís entre dos cuerpos antes de que la rueda termine de cerrarse y alguien te agarra la capa y se queda con un pedazo. Atrás, una voz de mujer grita que no tiren. Después es solo barro y pasos.',
+          'Salís entre dos cuerpos antes de que la rueda se cierre y alguien te agarra la capa y se queda con un pedazo. Atrás, una voz grita que no tiren. Después es barro y pasos.',
         ],
         effects: [
           { set: 'run:contra_la_ley' },
@@ -457,7 +473,7 @@ export const c1_acusacion = {
       label: 'Plantarte y no dejar que te toquen',
       outcome: {
         text: [
-          'Plantás los pies y abrís los brazos, y el primero que te toca se lleva el codo. La rueda se cierra encima. El capitán no levanta la voz: levanta dos dedos.',
+          'Plantás los pies y abrís los brazos, y el primero que te toca se lleva el codo. El capitán no levanta la voz: levanta dos dedos.',
         ],
         effects: [{ set: 'run:contra_la_ley' }, { clear: 'run:con_la_ley' }],
         next: 'c1_refriega',
@@ -468,7 +484,7 @@ export const c1_acusacion = {
       label: 'Callarte y escuchar quién dice qué',
       outcome: {
         text: [
-          'No decís nada y escuchás. El capitán habla de hombres y de días; la alcaldesa habla de casas y de plata; el sargento no habla. Los tres usan la palabra forastero y ninguno usa la palabra asesino.',
+          'El capitán habla de hombres y de días; la alcaldesa, de casas y de plata; el sargento no habla. Los tres dicen forastero y ninguno dice asesino.',
         ],
         next: 'a2_amanecer',
       },
@@ -480,7 +496,7 @@ export const c1_acusacion = {
       lockedHint: 'Orell no te dio nada que usar en su contra.',
       outcome: {
         text: [
-          'Decís delante de todos que el sargento te dejó cruzar de noche y que sabía lo del molino. Orell no lo niega, y eso es lo peor que le podía pasar. Cuando la plaza se afloja, él ya está mirando el agua y no te va a mirar más.',
+          'Decís que el sargento te dejó cruzar de noche y que sabía lo del molino. Orell no lo niega, y eso es lo peor que le podía pasar. Cuando la plaza se afloja, ya está mirando el agua.',
         ],
         effects: [
           { clear: 'run:orell_confia' },
@@ -497,7 +513,7 @@ export const c1_acusacion = {
       lockedHint: 'Orell no va a hablar por un desconocido.',
       outcome: {
         text: [
-          'Le buscás la cara y aguantás. El sargento se toma el silencio que se toma siempre y después dice cuatro palabras: «Llegó anoche. Lo anoté yo». Alcanza para que al capitán le convenga tomarte el nombre y nada más.',
+          'Le buscás la cara y aguantás. El sargento se toma su silencio y después dice cuatro palabras: «Llegó anoche. Lo anoté yo». Alcanza para que al capitán le convenga tomarte el nombre.',
         ],
         effects: [{ set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_amanecer',
@@ -510,7 +526,7 @@ export const c1_acusacion = {
       lockedHint: 'Ya no tenés la carta lacrada.',
       outcome: {
         text: [
-          'Le ponés la carta en la mano con el lacre para arriba. Dravos la lee entera y después mira a la alcaldesa más de lo que dura una mirada. No se la devuelve a nadie: se la guarda en el pecho. «Esto lo firmó ella. Corresponde archivarlo».',
+          'Le ponés la carta en la mano con el lacre para arriba. Dravos la lee y después mira a la alcaldesa más de lo que dura una mirada. Se la guarda en el pecho. «Esto lo firmó ella. Corresponde archivarlo».',
         ],
         effects: [
           { take: 'carta_lacrada' },
@@ -550,11 +566,11 @@ export const c1_refriega = {
           text: 'La línea se abrió y no se volvió a cerrar del todo. Del lado del pozo queda un hueco entre dos hombros, y los dos hombros lo saben.',
         },
         {
-          text: 'Son seis y se ponen en línea sin que nadie se lo mande: tapan la boca del callejón, el pozo y el barro del medio. El capitán se queda atrás, donde se ve todo.',
+          text: 'Son seis y se ponen en línea sin que nadie se lo mande: tapan el callejón, el pozo y el barro del medio. El capitán se queda atrás, donde se ve todo.',
         },
       ],
     },
-    'En el barro no se puede afirmar el pie: cada vez que cargás el peso, el talón se te va un dedo para atrás antes de agarrar.',
+    'En el barro no se puede afirmar el pie: cada vez que cargás el peso, el talón se te va un dedo para atrás.',
     {
       variants: [
         {
@@ -578,28 +594,28 @@ export const c1_refriega = {
         outcomes: {
           crit: {
             text: [
-              'Entrás con el hombro en la juntura de dos escudos y los dos escudos se separan. Uno queda sentado en el barro con las manos vacías. El callejón se te abre entero.',
+              'Entrás con el hombro en la juntura de dos escudos y los dos se separan. Uno queda sentado en el barro con las manos vacías. El callejón se te abre entero.',
             ],
             effects: [{ clock: 'pelea', delta: 2 }],
             next: 'c1_refriega',
           },
           success: {
             text: [
-              'Metés el antebrazo debajo de una barbada y empujás para arriba. El hombre suelta la lanza para no caerse. La línea se corre medio paso y ya no vuelve a donde estaba.',
+              'Metés el antebrazo debajo de una barbada y empujás para arriba. El hombre suelta la lanza para no caerse. La línea se corre medio paso y no vuelve.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }],
             next: 'c1_refriega',
           },
           partial: {
             text: [
-              'Pasás, y pasás pagando: alguien te cruza el asta de una lanza contra la boca del estómago y el aire se te va de una. Seguís adelante doblado.',
+              'Pasás pagando: alguien te cruza el asta de una lanza contra la boca del estómago y el aire se te va de una. Seguís adelante doblado.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
             next: 'c1_refriega',
           },
           failure: {
             text: [
-              'Rebotás contra dos hombros que estaban esperando el envión. El barro te devuelve de rodillas y un talón de bota te encuentra el muslo. Volvés al medio del círculo.',
+              'Rebotás contra dos hombros que estaban esperando el envión. El barro te devuelve de rodillas y un talón de bota te encuentra el muslo.',
             ],
             effects: [{ wound: 1 }],
             next: 'c1_refriega',
@@ -617,7 +633,7 @@ export const c1_refriega = {
         outcomes: {
           success: {
             text: [
-              'Gritás «se va por el caz, se va por el caz» con la voz que usan ellos. Tres cabezas giran para el agua. Cuando vuelven, el hueco que dejaron ya es tuyo.',
+              'Gritás «se va por el caz, se va por el caz» con la voz que usan ellos. Tres cabezas giran para el agua. Cuando vuelven, el hueco ya es tuyo.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }],
             next: 'c1_refriega',
@@ -631,7 +647,7 @@ export const c1_refriega = {
           },
           failure: {
             text: [
-              'El que tenés enfrente te deja terminar la orden y después te contesta con el canto del escudo. Te mordés la lengua. La línea no se movió ni un dedo.',
+              'El que tenés enfrente te deja terminar la orden y te contesta con el canto del escudo. Te mordés la lengua. La línea no se movió.',
             ],
             effects: [{ wound: 1 }],
             next: 'c1_refriega',
@@ -649,7 +665,7 @@ export const c1_refriega = {
         outcomes: {
           success: {
             text: [
-              'Tomás el terraplén de costado y te dejás ir sentado hasta el agua. El río está bajo y frío y te lleva veinte pasos antes de soltarte en los juncos. Arriba siguen gritando en la plaza.',
+              'Tomás el terraplén de costado y te dejás ir sentado hasta el agua. El río está bajo y frío y te lleva veinte pasos antes de soltarte en los juncos.',
             ],
             effects: [
               { clock: 'pelea', delta: 2 },
@@ -660,7 +676,7 @@ export const c1_refriega = {
           },
           partial: {
             text: [
-              'Saltás mal y entrás de espaldas. El agua te da vuelta una vez y te escupe contra un poste del embarcadero. Salís caminando, con todo el peso del río encima.',
+              'Saltás mal y entrás de espaldas. El agua te da vuelta una vez y te escupe contra un poste del embarcadero. Salís con todo el peso del río encima.',
             ],
             effects: [
               { clock: 'pelea', delta: 2 },
@@ -689,7 +705,7 @@ export const c1_refriega = {
       label: 'Abrir las manos y rendirte delante de todos',
       outcome: {
         text: [
-          'Abrís las manos despacio, con los dedos separados, y las dejás donde todos las vean. La línea tarda en creerte. El capitán manda que no te peguen, dos lo obedecen tarde, y el chico del casco anota la hora en que cambiaste de idea.',
+          'Abrís las manos despacio, con los dedos separados, y las dejás donde todos las vean. La línea tarda en creerte. El capitán manda que no te peguen y el chico del casco anota la hora en que cambiaste de idea.',
         ],
         effects: [
           { clock: 'pelea', delta: 3 },
@@ -707,7 +723,7 @@ export const c1_refriega = {
       lockedHint: 'La línea todavía está entera.',
       outcome: {
         text: [
-          'Volvés sobre el hueco antes de que lo tapen y lo abrís con el hombro y con la rodilla. El último que te queda enfrente elige no ser el que te para.',
+          'Volvés sobre el hueco antes de que lo tapen y lo abrís con el hombro y la rodilla. El último que te queda enfrente elige no ser el que te para.',
         ],
         effects: [
           { clock: 'pelea', delta: 2 },
@@ -724,7 +740,7 @@ export const c1_refriega = {
       lockedHint: 'Orell todavía no te debe nada.',
       outcome: {
         text: [
-          'Le buscás la cara al sargento por encima de las lanzas. Orell se mete en el medio y se queda ahí, de espaldas a vos. «Basta. Lo llevo yo». Nadie discute una orden dicha así.',
+          'Le buscás la cara al sargento por encima de las lanzas. Orell se mete en el medio, de espaldas a vos. «Basta. Lo llevo yo». Nadie discute una orden así.',
         ],
         effects: [
           { clock: 'pelea', delta: 3 },
@@ -756,7 +772,7 @@ export const a2_amanecer = {
   place: 'aldamar_plaza',
   onEnter: [{ milestone: 'elegir_bando' }],
   text: [
-    'De a poco la plaza se vacía, y los últimos en irse son los que no tenían nada que hacer ahí. Queda la luz gris de antes del sol. Tenés las manos tan frías que el pulgar no te encuentra el filo de la uña.',
+    'La plaza se vacía, y los últimos en irse son los que no tenían nada que hacer ahí. Queda la luz gris de antes del sol. Tenés las manos tan frías que el pulgar no encuentra la uña.',
     {
       variants: [
         {
@@ -768,7 +784,7 @@ export const a2_amanecer = {
         },
       ],
     },
-    'Desde donde estás se ven las tres salidas: la torre al final del puente, con luz arriba; el zaguán de la alcaldesa, entornado a una hora en que no debería estarlo; y el caz del molino, por donde se sale sin pasar delante de nadie.',
+    'Se ven las tres salidas: la torre con luz arriba; el zaguán de la alcaldesa, entornado a deshora; y el caz del molino, por donde se sale sin que te vean.',
   ],
   choices: [
     {
@@ -776,7 +792,7 @@ export const a2_amanecer = {
       label: 'Presentarte en la torre por tu propio pie',
       outcome: {
         text: [
-          'Cruzás el puente por el medio, despacio y con las manos a la vista. En la barricada no te preguntan nada: ya saben quién sos y ya saben adónde vas.',
+          'Cruzás el puente por el medio, con las manos a la vista. En la barricada no preguntan: ya saben adónde vas.',
         ],
         effects: [{ set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_ley_orell',
@@ -787,7 +803,7 @@ export const a2_amanecer = {
       label: 'Esperar el relevo y entrar con Orell',
       outcome: {
         text: [
-          'Aguantás bajo el arco a que baje el relevo y subís con ellos, en el medio de la fila. El sargento no dice que sí ni te manda volver.',
+          'Aguantás bajo el arco y subís con el relevo. El sargento no te manda volver.',
         ],
         effects: [{ set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_ley_orell',
@@ -798,7 +814,7 @@ export const a2_amanecer = {
       label: 'Buscar a Ilse antes de que abran la plaza',
       outcome: {
         text: [
-          'La encontrás en el patio, cargando el carro a oscuras. No te pregunta nada: apoya el saco, se pone la capa y sale primero.',
+          'La encontrás cargando el carro a oscuras. Apoya el saco, se pone la capa y sale primero.',
         ],
         effects: [
           { set: 'run:contra_la_ley' },
@@ -813,7 +829,7 @@ export const a2_amanecer = {
       label: 'Salir por el caz sin avisarle a nadie',
       outcome: {
         text: [
-          'Bajás por el borde del caz sin decirle a nadie adónde vas. Los tablones están resbalosos y el agua suena hueca abajo. Nadie te ve irte, o nadie lo dice.',
+          'Bajás por el borde del caz. Los tablones resbalan y el agua suena hueca. Nadie te ve irte.',
         ],
         effects: [{ set: 'run:contra_la_ley' }, { clear: 'run:con_la_ley' }],
         next: 'a2_fuera_fuga',
@@ -826,7 +842,7 @@ export const a2_amanecer = {
       lockedHint: 'Todavía no sabés que hay un sótano al que ir.',
       outcome: {
         text: [
-          'Las piernas te llevan antes que la cabeza: la trampilla, los ocho escalones, el olor a piedra fría abajo. No vas a buscar nada. Vas a confirmarlo.',
+          'Las piernas te llevan antes que la cabeza: la trampilla, los ocho escalones, el olor a piedra fría. No vas a buscar: vas a confirmar.',
         ],
         effects: [{ set: 'run:contra_la_ley' }, { clear: 'run:con_la_ley' }],
         next: 'a2_fuera_sotano',
@@ -839,7 +855,7 @@ export const a2_amanecer = {
       lockedHint: 'Pell no te debe ninguna confianza.',
       outcome: {
         text: [
-          'Al chico lo encontrás solo en el poste de los bandos. «La orden está. Escrita, digo. La segunda ordenanza dice que un bando se exhibe, y este no se exhibió, así que…». No lo termina, pero te señala la torre con la barbilla.',
+          'Al chico lo encontrás en el poste de los bandos. «La orden está. Escrita, digo. La segunda ordenanza dice que un bando se exhibe, y este no…». Te señala la torre.',
         ],
         effects: [{ set: 'run:con_la_ley' }, { clear: 'run:contra_la_ley' }],
         next: 'a2_ley_orell',
@@ -872,15 +888,15 @@ export const a2_ley_orell = {
   place: 'torre_de_dravos',
   npcs: ['orell'],
   text: [
-    'Adentro de la torre hace más frío que afuera. Orell te espera al pie de la escalera, con el gambesón todavía mojado del relevo. Huele a tinta fresca a una hora en que nadie debería estar escribiendo, y el olor viene de arriba, de la escalera.',
+    'Adentro de la torre hace más frío que afuera. Orell te espera al pie de la escalera. Huele a tinta fresca a una hora en que nadie debería estar escribiendo, y el olor viene de arriba.',
     {
       variants: [
         {
           when: { flag: 'run:cruzo_de_rama' },
-          text: 'Venís del otro lado y él lo sabe sin que se lo digas. No te lo cobra: te corre el banco con la bota para hacerte lugar.',
+          text: 'Venís del otro lado y él lo sabe sin que se lo digas. No te lo cobra: te corre el banco con la bota.',
         },
         {
-          text: 'Te hace sentar en el banco del cuerpo de guardia, donde se sientan los que esperan, y se queda parado al lado tuyo.',
+          text: 'Te hace sentar en el banco donde se sientan los que esperan, y se queda parado al lado tuyo.',
         },
       ],
     },
@@ -888,7 +904,7 @@ export const a2_ley_orell = {
       speaker: 'orell',
       variants: [
         {
-          text: '—Arriba está el capitán Dravos. Baja cuando termine. —Mira la escalera antes de seguir—. Hay una orden escrita de antes de que cerráramos el puente. No es la del puente. Eso no te lo puedo decir.',
+          text: '—Arriba está el capitán Dravos. Baja cuando termine. —Mira la escalera—. Hay una orden escrita de antes de que cerráramos el puente. No es la del puente. Eso no te lo puedo decir.',
         },
       ],
     },
@@ -899,7 +915,7 @@ export const a2_ley_orell = {
       label: 'Entrar con él a la sala de mando',
       outcome: {
         text: [
-          'Subís los escalones detrás de él, pisando donde pisa. Arriba la puerta está entornada y adentro hay alguien que no se levantó de la silla en toda la noche.',
+          'Subís los escalones detrás de él. Arriba la puerta está entornada y adentro hay alguien que no se levantó de la silla en toda la noche.',
         ],
         next: 'a2_ley_torre',
       },
@@ -909,7 +925,7 @@ export const a2_ley_orell = {
       label: 'Pedirle ver las cartas de la mesa',
       outcome: {
         text: [
-          'Le pedís ver lo que hay sobre la mesa y no te contesta que sí. Se corre del pie de la escalera, que es lo mismo y no compromete a nadie.',
+          'Le pedís ver lo que hay sobre la mesa y no te contesta que sí. Se corre del pie de la escalera, que es lo mismo.',
         ],
         next: 'a2_ley_cartas',
       },
@@ -926,21 +942,21 @@ export const a2_ley_orell = {
           // viaja con el `set`: nadie sale de acá debiéndole a Orell y teniéndolo en contra.
           success: {
             text: [
-              'No le pedís verla: le preguntás quién la firmó. Orell mira la escalera, mira el banco y termina diciéndote en qué mesa están las cartas. No sube con vos.',
+              'No le pedís verla: le preguntás quién la firmó. Orell mira la escalera, mira el banco y termina diciéndote en qué mesa están las cartas.',
             ],
             effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a2_ley_cartas',
           },
           partial: {
             text: [
-              'Preguntás dos veces y la segunda la escucha el del brasero, que sube a cargarlo sin que nadie se lo pida. Orell te deja pasar igual, y ya no es un favor callado.',
+              'Preguntás dos veces y la segunda la escucha el del brasero, que sube a cargarlo sin que se lo pidan. Orell te deja pasar, y ya no es un favor callado.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_cartas',
           },
           failure: {
             text: [
-              'Insistís con el nombre del capitán Dravos delante de dos hombres y el sargento se calla, que es como se enoja. El más joven de los dos anota la hora en la tablilla del relevo.',
+              'Insistís con el nombre del capitán delante de dos hombres y el sargento se calla, que es como se enoja. El más joven anota la hora en la tablilla del relevo.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_guardia',
@@ -953,7 +969,7 @@ export const a2_ley_orell = {
       label: 'Quedarte en el cuerpo de guardia',
       outcome: {
         text: [
-          'Te quedás en el banco. Entran dos del relevo, se sacan las botas y ninguno pregunta quién sos: alguien ya se los dijo.',
+          'Te quedás en el banco. Entran dos del relevo, se sacan las botas y ninguno pregunta quién sos.',
         ],
         next: 'a2_ley_guardia',
       },
@@ -965,7 +981,7 @@ export const a2_ley_orell = {
       lockedHint: 'Ya elegiste de qué lado estás, y no hay vuelta.',
       outcome: {
         text: [
-          'Salís por donde entraste y él no te pregunta adónde. Ilse está esperando donde dijo que iba a esperar. En la puerta, el hombre del relevo te mira salir y se acuerda de la hora.',
+          'Salís por donde entraste y él no pregunta adónde. Ilse espera donde dijo. El hombre del relevo te mira salir y se acuerda de la hora.',
         ],
         effects: [
           { set: 'run:cruzo_de_rama' },
@@ -983,7 +999,7 @@ export const a2_ley_orell = {
       lockedHint: 'Nadie te acusó de nada todavía.',
       outcome: {
         text: [
-          'Te lo dice sin adornos: un forastero, un muerto de once días y un nombre anotado dos veces la misma noche. Mientras habla, el del brasero carga dos veces el mismo carbón.',
+          'Te lo dice sin adornos: un forastero, un muerto de once días y un nombre anotado dos veces la misma noche. El del brasero carga el mismo carbón dos veces.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_torre',
@@ -1006,7 +1022,7 @@ export const a2_ley_torre = {
   place: 'torre_de_dravos',
   npcs: ['dravos'],
   text: [
-    'Arriba, la sala de mando es una mesa larga y todo lo demás es pared. El brasero está cargado de más y cada tanto revienta un carbón: mientras dura ese ruido, no se oye nada más de lo que pasa en la sala.',
+    'Arriba, la sala de mando es una mesa larga y todo lo demás es pared. El brasero está cargado de más y cada tanto revienta un carbón: mientras dura ese ruido no se oye nada más.',
     {
       variants: [
         {
@@ -1014,7 +1030,7 @@ export const a2_ley_torre = {
           text: 'Sobre la mesa hay menos papel que hace un rato. Los rollos del vado siguen donde estaban.',
         },
         {
-          text: 'Sobre la mesa hay cartas abiertas, rollos atados con cinta y un lacre verde que no es de esta guarnición. Debajo de la mesa hay un cofre con dos cerraduras.',
+          text: 'Sobre la mesa hay cartas abiertas, rollos atados con cinta y un lacre verde que no es de esta guarnición. Debajo hay un cofre con dos cerraduras.',
         },
       ],
     },
@@ -1022,7 +1038,7 @@ export const a2_ley_torre = {
       speaker: 'dravos',
       variants: [
         {
-          text: '—Sentate si querés. Hay once meses de sueldo atrasado en esa caja, y adentro de la caja no hay nada. —Vuelve a lo suyo—. Lo que falta entender no es quién mató al molinero. Es qué hace un pueblo cuando se le termina el paso.',
+          text: '—Sentate si querés. Hay once meses de sueldo atrasado en esa caja, y adentro no hay nada. —Vuelve a lo suyo—. Lo que falta entender no es quién mató al molinero: es qué hace un pueblo sin paso.',
         },
       ],
     },
@@ -1038,14 +1054,14 @@ export const a2_ley_torre = {
         outcomes: {
           success: {
             text: [
-              'Esperás el carbón que revienta y en ese ruido cruzás hasta el borde de la mesa. Sacás la de arriba de todo, la del lacre verde, y salís antes de que el capitán levante la cabeza.',
+              'Esperás el carbón que revienta y en ese ruido cruzás hasta la mesa. Sacás la de arriba de todo, la del lacre verde, y salís antes de que el capitán levante la cabeza.',
             ],
             effects: [{ give: 'carta_de_halvar' }],
             next: 'a2_ley_cartas',
           },
           partial: {
             text: [
-              'Te llevás la del lacre verde y también te llevás el codo contra el cuerno de tinta, que rueda y no se rompe. Dravos no se da vuelta. Al rato manda contar las cartas de la mesa.',
+              'Te llevás la del lacre verde y también el codo contra el cuerno de tinta, que rueda y no se rompe. Dravos no se da vuelta. Al rato manda contar las cartas.',
             ],
             effects: [{ give: 'carta_de_halvar' }, { clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_cartas',
@@ -1070,7 +1086,7 @@ export const a2_ley_torre = {
       label: 'Leer el sigilo lacrado delante de Dravos',
       outcome: {
         text: [
-          'El lacre verde no tiene armas: tiene un círculo con tres canales que le salen del centro, como los de un molino de agua. El mismo dibujo está repetido al pie de otras dos cartas. Dravos te deja mirar y después pregunta, sin levantar la cabeza, cuál te interesó.',
+          'El lacre verde no tiene armas: tiene un círculo con tres canales, como los de un molino. El mismo dibujo está al pie de otras dos cartas. Dravos pregunta, sin levantar la cabeza, cuál te interesó.',
         ],
         effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_cartas',
@@ -1081,7 +1097,7 @@ export const a2_ley_torre = {
       label: 'Pedir licencia para ir a ver a la alcaldesa',
       outcome: {
         text: [
-          'Lo pedís en voz alta, delante de los dos del relevo, para que quede dicho. Dravos no dice que sí: dice que corresponde, y que vayas antes de que la alcaldesa salga.',
+          'Lo pedís en voz alta, delante del relevo, para que quede dicho. Dravos no dice que sí: dice que corresponde, y que vayas antes de que salga.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1091,7 +1107,7 @@ export const a2_ley_torre = {
       label: 'Bajar al cuerpo de guardia sin decir nada',
       outcome: {
         text: [
-          'Bajás sin saludar. En la escalera te cruzás con el del brasero, que sube con el cubo y se pega a la pared para dejarte pasar.',
+          'Bajás sin saludar. En la escalera te cruzás con el del brasero, que se pega a la pared.',
         ],
         next: 'a2_ley_guardia',
       },
@@ -1103,7 +1119,7 @@ export const a2_ley_torre = {
       lockedHint: 'No viste la piedra: no tenés con qué encararlo.',
       outcome: {
         text: [
-          'Le nombrás la piedra del sótano en su propia sala. Dravos deja la pluma en el renglón donde iba y no la levanta más. «Entonces corresponde adelantar lo que estaba para pasado mañana». Manda que te acompañen hasta la puerta.',
+          'Le nombrás la piedra del sótano en su propia sala. Dravos deja la pluma y no la levanta más. «Entonces corresponde adelantar lo que estaba para pasado mañana». Manda que te acompañen.',
         ],
         effects: [{ set: 'run:dravos_sabe' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_berta',
@@ -1116,7 +1132,7 @@ export const a2_ley_torre = {
       lockedHint: 'Hay que haber servido para ofrecerse a un relevo.',
       outcome: {
         text: [
-          'Te ofrecés para la escolta de la barca del norte y decís la fórmula entera, como se dice. Dravos te hace cargar la valija de las cartas hasta la puerta, y en la puerta te quedás con una.',
+          'Te ofrecés para la escolta de la barca del norte y decís la fórmula entera. Dravos te hace cargar la valija de las cartas, y en la puerta te quedás con una.',
         ],
         effects: [{ give: 'carta_de_halvar' }],
         next: 'a2_ley_cartas',
@@ -1129,7 +1145,7 @@ export const a2_ley_torre = {
       lockedHint: 'No sabés qué grado tenía Dravos antes.',
       outcome: {
         text: [
-          'Le decís el grado que tenía antes de esta guarnición y el año en que lo perdió. Dravos no lo corrige. Por primera vez en la noche deja de reformular lo que decís antes de contestarte.',
+          'Le decís el grado que tenía antes de esta guarnición. Dravos no lo corrige. Por primera vez deja de reformular lo que decís antes de contestarte.',
         ],
         next: 'a2_ley_cartas',
       },
@@ -1154,20 +1170,20 @@ export const a2_ley_cartas = {
   kind: 'normal',
   place: 'torre_de_dravos',
   text: [
-    'Las cartas están en dos montones y los dos están ordenados por fecha. El papel del otro lado del río es más liso y más frío al tacto, y no se dobla: se quiebra en el pliegue.',
+    'Las cartas están en dos montones, los dos ordenados por fecha. El papel del otro lado del río es más liso y más frío al tacto, y no se dobla: se quiebra en el pliegue.',
     {
       variants: [
         {
           when: { flag: 'run:sabe_de_halvar' },
-          text: 'El nombre que te dieron en el pueblo está acá abajo, firmado con dos plumas distintas. Sabías que había un mercader del otro lado; no sabías que escribía tanto.',
+          text: 'El nombre que te dieron en el pueblo está acá abajo, firmado con dos plumas distintas. Sabías que había un mercader del otro lado; no que escribía tanto.',
         },
         {
-          text: 'Todas las de papel liso están firmadas con el mismo nombre, uno que no se usa de este lado del río: Halvar. Ninguna dice qué se compra.',
+          text: 'Todas las de papel liso están firmadas con el mismo nombre, uno que no se usa de este lado: Halvar. Ninguna dice qué se compra.',
         },
       ],
     },
-    'Abajo de todo hay rollos atados que no son cartas. La cinta de uno está gastada de abrirlo y volverlo a atar.',
-    'El lacre del pie no es un adorno: tres líneas nacen de un punto y se repiten, iguales, en cada carta.',
+    'Abajo hay rollos atados que no son cartas. La cinta de uno está gastada de abrirlo y volverlo a atar.',
+    'El lacre del pie no es un adorno: tres líneas nacen de un punto y se repiten en cada carta.',
   ],
   choices: [
     {
@@ -1181,21 +1197,21 @@ export const a2_ley_cartas = {
         outcomes: {
           success: {
             text: [
-              'Las leés por fecha y la historia se arma sola. Al octavo día el molinero mandó decir que la piedra del sótano estaba rota y que la rotura era suya. Debajo hay una copia en sucio de una orden de la torre, de dos renglones: que el molinero no hable.',
+              'Las leés por fecha y la historia se arma sola. Al octavo día el molinero mandó decir que la piedra del sótano estaba rota y que la rotura era suya. Debajo, una orden de la torre en sucio: que el molinero no hable.',
             ],
             effects: [{ milestone: 'la_verdad_de_tome' }],
             next: 'a2_ley_halvar',
           },
           partial: {
             text: [
-              'Sacás en limpio lo del molinero y la piedra rota, pero para leer una fecha tenés que acercar la carta al brasero. La dejás con una marca de dedo y la marca no sale.',
+              'Sacás en limpio lo del molinero y la piedra rota, pero para leer una fecha tenés que acercar la carta al brasero. Le dejás una marca de dedo que no sale.',
             ],
             effects: [{ milestone: 'la_verdad_de_tome' }, { clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_halvar',
           },
           failure: {
             text: [
-              'El orden de las fechas no es el orden de los montones y se te va media vela sin sacar nada en limpio. Cuando bajás, el cabo del brasero te pregunta cuánto rato estuviste arriba.',
+              'El orden de las fechas no es el de los montones y se te va media vela sin sacar nada. Al bajar, el cabo del brasero te pregunta cuánto estuviste arriba.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_berta',
@@ -1208,7 +1224,7 @@ export const a2_ley_cartas = {
       label: 'Buscar el mapa del vado entre los rollos',
       outcome: {
         text: [
-          'El rollo de la cinta gastada es un plano del vado con las siete piedras dibujadas una por una. La cuarta tiene una cruz y, al lado de la cruz, un círculo del que salen tres canales.',
+          'El rollo de la cinta gastada es un plano del vado con las siete piedras. La cuarta tiene una cruz y, al lado, un círculo del que salen tres canales.',
         ],
         effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
         next: 'a2_ley_halvar',
@@ -1219,7 +1235,7 @@ export const a2_ley_cartas = {
       label: 'Bajar al vado a verle la cara al mercader',
       outcome: {
         text: [
-          'Bajás por el terraplén con las cartas en la cabeza y el nombre en la boca. Media legua abajo hay una barca amarrada al banco de grava y alguien despierto adentro.',
+          'Bajás por el terraplén con el nombre en la boca. Media legua abajo hay una barca amarrada y alguien despierto adentro.',
         ],
         next: 'a2_ley_halvar',
       },
@@ -1229,7 +1245,7 @@ export const a2_ley_cartas = {
       label: 'Llevarle a Berta lo que acabás de leer',
       outcome: {
         text: [
-          'Doblás la que puede probar algo y te la llevás contra las costillas. La casa de la alcaldesa tiene la lámpara encendida a una hora en que ya debería estar apagada.',
+          'Doblás la que puede probar algo y te la llevás contra las costillas. La casa de la alcaldesa tiene la lámpara encendida a una hora en que debería estar apagada.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1247,21 +1263,21 @@ export const a2_ley_cartas = {
         outcomes: {
           crit: {
             text: [
-              'No es un escudo: es un plano. Los tres canales del lacre son los del piso de un sótano y el círculo del medio es el hueco donde va la piedra. Lo que está cerrando esa carta es la cosa que se vende.',
+              'No es un escudo: es un plano. Los tres canales son los del piso de un sótano y el círculo del medio es el hueco donde va la piedra. Lo que cierra esa carta es la cosa que se vende.',
             ],
             effects: [{ set: 'run:piedra_leida' }, { set: 'char:vado.sabe_del_sello' }],
             next: 'a2_ley_halvar',
           },
           success: {
             text: [
-              'Los tres canales del sigilo no son adorno: repiten un dibujo que se talla en el piso, alrededor de un hueco. Entendés para qué sirve una piedra así y entendés por qué el río viene subiendo.',
+              'Los tres canales del sigilo repiten un dibujo que se talla en el piso, alrededor de un hueco. Entendés para qué sirve una piedra así y por qué el río viene subiendo.',
             ],
             effects: [{ set: 'run:piedra_leida' }, { set: 'char:vado.sabe_del_sello' }],
             next: 'a2_ley_halvar',
           },
           partial: {
             text: [
-              'Tenés que raspar el lacre para verle el fondo y el lacre salta en tres pedazos. Entendés qué hace la piedra. También dejaste una carta que cualquiera va a encontrar abierta.',
+              'Tenés que raspar el lacre para verle el fondo y salta en tres pedazos. Entendés qué hace la piedra. También dejaste una carta abierta que cualquiera va a encontrar.',
             ],
             effects: [
               { set: 'run:piedra_leida' },
@@ -1272,7 +1288,7 @@ export const a2_ley_cartas = {
           },
           failure: {
             text: [
-              'Mirás el sigilo hasta que las líneas se te mueven solas y no cierra: son tres canales y un círculo y podrían ser cualquier cosa. Cuando volvés a mirarlo, ya no ves más que cera.',
+              'Mirás el sigilo hasta que las líneas se te mueven solas y no cierra: tres canales y un círculo podrían ser cualquier cosa. Cuando volvés a mirarlo ya no ves más que cera.',
             ],
             effects: [{ set: 'run:piedra_leida' }],
             next: 'a2_ley_berta',
@@ -1292,7 +1308,7 @@ export const a2_ley_cartas = {
       lockedHint: 'No viste esas runas, o no sabrías leerlas.',
       outcome: {
         text: [
-          'Volvés sobre la segunda línea, la que se repetía cada cinco signos. Acá está otra vez, en el margen de un plano, y esta vez tenés con qué compararla: dice qué se cierra y qué se abre.',
+          'Volvés sobre la segunda línea, la que se repetía cada cinco signos. Acá está entera, en el margen de un plano: dice qué se cierra y qué se abre.',
         ],
         effects: [{ set: 'char:vado.sabe_del_sello' }],
         next: 'a2_ley_halvar',
@@ -1305,7 +1321,7 @@ export const a2_ley_cartas = {
       lockedHint: 'Para vos esos números del margen no dicen nada.',
       outcome: {
         text: [
-          'Los números del margen no son cuentas: son días de camino y peajes de tres puentes, anotados como se anotan para no pagarlos. Uno de los tres puentes no está construido todavía.',
+          'Los números del margen no son cuentas: son días de camino y peajes de tres puentes, anotados para no pagarlos. Uno de los tres no está construido.',
         ],
         next: 'a2_ley_halvar',
       },
@@ -1326,15 +1342,15 @@ export const a2_ley_halvar = {
   place: 'vado_oculto',
   npcs: ['halvar'],
   text: [
-    'En el banco de grava del norte hay una barca chata amarrada a dos estacas, y la barca tiene brasero. De ahí sale un olor a clavo de olor y a vino caliente que en este barro no tiene ningún derecho a estar.',
+    'En el banco de grava del norte hay una barca chata amarrada a dos estacas, con brasero. Sale un olor a clavo de olor y a vino caliente que en este barro no tiene derecho.',
     {
       variants: [
         {
           when: { met: 'halvar' },
-          text: 'Al del abrigo verde lo tenés visto: los anillos, las dos trencitas de la barba. Te hace lugar como se le hace lugar a un conocido, y es la primera vez que hablan.',
+          text: 'Al del abrigo verde lo tenés visto: los anillos, las trencitas de la barba. Te hace lugar como a un conocido, y es la primera vez que hablan.',
         },
         {
-          text: 'Sale a cubierta un hombre grande de abrigo verde con piel en el cuello, anillos de plata en tres dedos y la barba rubia trenzada en dos. No te pregunta quién sos: te hace lugar.',
+          text: 'Sale a cubierta un hombre grande de abrigo verde, anillos de plata en tres dedos y la barba rubia trenzada. No te pregunta quién sos: te hace lugar.',
         },
       ],
     },
@@ -1342,7 +1358,7 @@ export const a2_ley_halvar = {
       speaker: 'halvar',
       variants: [
         {
-          text: '—Que llueva así, no me conviene. —Te alcanza un jarro sin preguntar—. Cerremos, amigo: son doce monedas por pasar a un hombre y su bulto, y dos peajes río arriba que no vas a pagar. Barato, no es. Caro tampoco.',
+          text: '—Que llueva así, no me conviene. —Te alcanza un jarro sin preguntar—. Cerremos, amigo: doce monedas por pasar a un hombre y su bulto, y dos peajes río arriba que no vas a pagar. Barato no es. Caro tampoco.',
         },
       ],
     },
@@ -1353,7 +1369,7 @@ export const a2_ley_halvar = {
       label: 'Escuchar la oferta hasta el final',
       outcome: {
         text: [
-          'Lo dejás terminar. Son doce monedas, una barca que sale antes del alba y una sola condición: que lo que cruce el río cruce envuelto y no se nombre.',
+          'Lo dejás terminar. Doce monedas, una barca antes del alba y una condición: que lo que cruce el río cruce envuelto y no se nombre.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1369,21 +1385,21 @@ export const a2_ley_halvar = {
         outcomes: {
           success: {
             text: [
-              'Le contás las estacas, el calado y las tres noches que lleva amarrado esperando, y le ponés precio a eso. Halvar se ríe con la boca cerrada y baja a ocho. Te da la mano sin sacarse el anillo.',
+              'Le contás las estacas, el calado y las tres noches que lleva amarrado, y le ponés precio. Halvar se ríe con la boca cerrada y baja a ocho. Te da la mano sin sacarse el anillo.',
             ],
             effects: [{ set: 'run:trato_con_halvar' }],
             next: 'a2_ley_guardia',
           },
           partial: {
             text: [
-              'Cierran en nueve y cierran fuerte, y para cerrar tenés que darle tu nombre y el de quien te mandó. Lo anota en el libro de rutas, en el renglón del día, con letra chiquita.',
+              'Cierran en nueve, y para cerrar tenés que darle tu nombre y el de quien te mandó. Lo anota en el libro de rutas, con letra chiquita.',
             ],
             effects: [{ set: 'run:trato_con_halvar' }, { clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_guardia',
           },
           failure: {
             text: [
-              'Pedís de más y lo pedís dos veces. «Hablar, siempre se puede», dice, y se vuelve al brasero. Antes de bajar le dice algo a su hombre, y el hombre te mira la cara el tiempo justo.',
+              'Pedís de más y lo pedís dos veces. «Hablar, siempre se puede», dice, y se vuelve al brasero. Antes de bajar le dice algo a su hombre, que te mira la cara.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_berta',
@@ -1396,7 +1412,7 @@ export const a2_ley_halvar = {
       label: 'Preguntarle por el molinero, de frente',
       outcome: {
         text: [
-          'Le preguntás por el molinero de frente y no se le mueve la cara. «Conocerlo, no lo conocí. Comprarle harina, sí, dos años». Después se acuerda de que tiene que atender el brasero.',
+          'No se le mueve la cara. «Conocerlo, no lo conocí. Comprarle harina, sí, dos años». Después atiende el brasero.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1406,7 +1422,7 @@ export const a2_ley_halvar = {
       label: 'Volver a la torre sin cerrar nada',
       outcome: {
         text: [
-          'Le devolvés el jarro por la mitad y subís el terraplén. Atrás, el hombre de la barca empieza a soltar una amarra y la vuelve a atar cuando ve que no bajás.',
+          'Le devolvés el jarro y subís el terraplén. Atrás, el de la barca suelta una amarra y la vuelve a atar.',
         ],
         next: 'a2_ley_guardia',
       },
@@ -1418,7 +1434,7 @@ export const a2_ley_halvar = {
       lockedHint: 'No sabés lo suficiente de él para apurarlo.',
       outcome: {
         text: [
-          'Le ponés la mano adelante antes de que termine la frase y él te la toma. Cerrado queda. Su hombre lo anota con tu nombre, porque acá todo lo que se cierra se escribe.',
+          'Le ponés la mano adelante antes de que termine y él te la toma. Su hombre lo anota con tu nombre: acá todo lo que se cierra se escribe.',
         ],
         effects: [{ set: 'run:trato_con_halvar' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_guardia',
@@ -1431,7 +1447,7 @@ export const a2_ley_halvar = {
       lockedHint: 'No tenés la carta de Halvar encima.',
       outcome: {
         text: [
-          'Le mostrás la fecha del pie y le tapás el resto con el pulgar. Halvar la lee dos veces y no dice qué leyó. «Cerremos ahora, amigo. Después de esa fecha, el precio se me pone raro».',
+          'Le mostrás la fecha del pie y tapás el resto con el pulgar. Halvar la lee dos veces y no dice qué leyó. «Cerremos ahora, amigo. Después de esa fecha el precio se me pone raro».',
         ],
         effects: [{ set: 'run:trato_con_halvar' }],
         next: 'a2_ley_berta',
@@ -1457,16 +1473,16 @@ export const a2_ley_berta = {
   place: 'casa_de_berta',
   npcs: ['berta', 'ilse'],
   text: [
-    'Golpeás una vez sola y la puerta ya estaba por abrirse. Adentro la casa está seca y caliente y los mapas del río tapan la pared en capas, uno encima del otro. Arriba, en la escalera, alguien levanta un saco, lo apoya y lo vuelve a levantar: es lo único que se oye además de la alcaldesa.',
+    'Golpeás una vez sola y la puerta ya estaba por abrirse. Adentro la casa está seca y caliente y los mapas del río tapan la pared en capas. Arriba, alguien levanta un saco, lo apoya y lo vuelve a levantar: es lo único que se oye.',
     {
       speaker: 'berta',
       variants: [
         {
-          text: '—Mirá, acá el problema no es de quién es la culpa: son sesenta y cuatro casas y dos inviernos, y las dos cosas se cuentan igual de rápido. Vos hiciste lo que te pagué por hacer. Dejá que el capitán haga lo suyo, y bueno.',
+          text: '—Mirá, acá el problema no es de quién es la culpa: son sesenta y cuatro casas y dos inviernos, y las dos cosas se cuentan igual de rápido. Vos hiciste lo que te pagué. Dejá que el capitán haga lo suyo, y bueno.',
         },
       ],
     },
-    'Ilse no bajó del todo. Está sentada tres escalones arriba con un saco de harina entre las botas, y cada vez que su madre dice «el capitán» lo corre un dedo para el costado.',
+    'Ilse no bajó del todo. Está tres escalones arriba con un saco de harina entre las botas, y cada vez que su madre dice «el capitán» lo corre un dedo.',
     {
       variants: [
         {
@@ -1491,7 +1507,7 @@ export const a2_ley_berta = {
         outcomes: {
           success: {
             text: [
-              'Subís dos escalones y te sentás, que era lo único que hacía falta. Ilse se saca del cuello un cordón con una esquirla de piedra gris del tamaño de una uña. «Se la arrancó él, con el cincel. Yo le sostuve la escalera».',
+              'Subís dos escalones y te sentás, que era lo único que hacía falta. Ilse se saca del cuello un cordón con una esquirla gris del tamaño de una uña. «Se la arrancó él con el cincel. Yo le sostuve la escalera».',
             ],
             effects: [
               { give: 'medallon_de_tome' },
@@ -1502,7 +1518,7 @@ export const a2_ley_berta = {
           },
           partial: {
             text: [
-              'Te lo cuenta parada y de apuro, con la madre hablando abajo: la esquirla, el cincel, la noche que le sostuvo la escalera. Te pone el cordón en la mano, y Berta pregunta desde abajo qué le acaba de dar.',
+              'Te lo cuenta parada y de apuro, con la madre hablando abajo: la esquirla, el cincel, la noche que le sostuvo la escalera. Te pone el cordón en la mano y Berta pregunta qué le dio.',
             ],
             effects: [
               { give: 'medallon_de_tome' },
@@ -1513,7 +1529,7 @@ export const a2_ley_berta = {
           },
           failure: {
             text: [
-              'Preguntás de más y preguntás desde abajo. Ilse se carga el saco al hombro y sube. «Esto pesa menos», dice desde arriba, y cierra la puerta. Berta lo escuchó todo, y a la mañana el capitán va a saber qué le fuiste a preguntar a su hija.',
+              'Preguntás de más y preguntás desde abajo. Ilse se carga el saco al hombro y sube. «Esto pesa menos», dice, y cierra la puerta. A la mañana el capitán va a saber qué le fuiste a preguntar a su hija.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_guardia',
@@ -1526,7 +1542,7 @@ export const a2_ley_berta = {
       label: 'Escuchar la versión de Berta sin cortarla',
       outcome: {
         text: [
-          'La dejás hablar hasta el final. Son once días, dos guardias que no entraron al molino y una bolsa apartada; lo dice en el mismo orden que la carta y con las mismas palabras.',
+          'La dejás hablar hasta el final. Once días, dos guardias que no entraron y una bolsa apartada: el mismo orden que la carta y las mismas palabras.',
         ],
         next: 'a2_ley_guardia',
       },
@@ -1536,7 +1552,7 @@ export const a2_ley_berta = {
       label: 'Acusarla en su propia casa, y quemarla',
       outcome: {
         text: [
-          'Se lo decís delante de la hija. Berta no se levanta ni sube la voz: junta los papeles de la mesa y los da vuelta. «Esto es un desastre», dice, y manda a alguien a la torre.',
+          'Se lo decís delante de la hija. Berta no se levanta ni sube la voz: junta los papeles y los da vuelta. «Esto es un desastre», dice, y manda a la torre.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_guardia',
@@ -1547,7 +1563,7 @@ export const a2_ley_berta = {
       label: 'Irte sin decir nada y dejarla hablando',
       outcome: {
         text: [
-          'Te levantás en la mitad de una frase y salís. La puerta queda abierta atrás y nadie la cierra hasta que estás en la calle.',
+          'Te levantás en la mitad de una frase y salís. La puerta queda abierta y nadie la cierra.',
         ],
         next: 'a2_ley_guardia',
       },
@@ -1559,7 +1575,7 @@ export const a2_ley_berta = {
       lockedHint: 'Ya elegiste de qué lado estás, y no hay vuelta.',
       outcome: {
         text: [
-          'Ilse baja el saco y no pregunta nada. En la puerta, Berta te saca la carta lacrada de la mano con dos dedos, como se recoge algo prestado. «Esto vuelve conmigo». Salen los dos al barro, y el sereno del pozo los ve salir juntos.',
+          'Ilse baja el saco y no pregunta nada. En la puerta, Berta te saca la carta lacrada con dos dedos, como se recoge algo prestado. «Esto vuelve conmigo». Salen los dos al barro y el sereno los ve.',
         ],
         effects: [
           { set: 'run:cruzo_de_rama' },
@@ -1578,7 +1594,7 @@ export const a2_ley_berta = {
       lockedHint: 'Todavía no sabés que hay algo que preguntar.',
       outcome: {
         text: [
-          'No preguntás qué pasó: preguntás qué hay abajo del molino. Ilse tarda un escalón entero en contestar. «Una piedra con canales. Y un hueco donde va». La forma del hueco vos ya la sabías.',
+          'Preguntás qué hay abajo del molino. Ilse tarda un escalón en contestar. «Una piedra con canales. Y un hueco donde va». La forma del hueco ya la sabías.',
         ],
         effects: [{ set: 'char:vado.sabe_del_sello' }],
         next: 'a2_ley_guardia',
@@ -1604,8 +1620,8 @@ export const a2_ley_guardia = {
   redirect: [{ when: { clock: 'sospecha', gte: 4 }, to: 'c2_anochece' }],
   onEnter: [{ take: 'farol_de_sebo' }, { heal: 1 }, { clock: 'sospecha', delta: 1 }],
   text: [
-    'Abajo, en el cuerpo de guardia, hay un banco largo, cuatro capas colgadas y un puchero que hierve desde hace dos relevos. Te dan un jarro: es agua con grasa y un pedazo de nabo, y te lo tomás entero.',
-    'El farol lo dejás colgado en el poste del relevo, porque adentro no se entra con fuego propio. En la tablilla de la guardia, abajo de todo, alguien escribió tu nombre y al lado la hora en que entraste.',
+    'Abajo, en el cuerpo de guardia, hay un banco largo, cuatro capas y un puchero que hierve desde dos relevos. Te dan un jarro con grasa.',
+    'El farol queda en el poste: adentro no se entra con fuego propio. En la tablilla está tu nombre y la hora.',
     {
       speaker: 'orell',
       variants: [
@@ -1621,7 +1637,7 @@ export const a2_ley_guardia = {
       label: 'Dormir lo que queda hasta el relevo',
       outcome: {
         text: [
-          'Dormís de un tirón y sin sueños. Te despertás con la boca seca y con la sensación de haber perdido algo que después no encontrás.',
+          'Dormís de un tirón y despertás con la boca seca.',
         ],
         next: 'c2_anochece',
       },
@@ -1631,7 +1647,7 @@ export const a2_ley_guardia = {
       label: 'Esperar despierto junto al brasero',
       outcome: {
         text: [
-          'No dormís. Escuchás dos relevos enteros: los que bajan hablan del agua y los que suben no hablan de nada.',
+          'No dormís. Dos relevos: los que bajan hablan del agua.',
         ],
         next: 'c2_anochece',
       },
@@ -1641,7 +1657,7 @@ export const a2_ley_guardia = {
       label: 'Volver a subir a la sala de mando',
       outcome: {
         text: [
-          'Subís otra vez, con la excusa de devolver el jarro. Arriba, la puerta de la sala de mando está entornada igual que antes.',
+          'Subís con la excusa del jarro. La sala sigue entornada.',
         ],
         next: 'a2_ley_torre',
       },
@@ -1651,7 +1667,7 @@ export const a2_ley_guardia = {
       label: 'Volver a golpear la puerta de Berta',
       outcome: {
         text: [
-          'Salís por la poterna y cruzás el puente al revés. En la casa de la alcaldesa la lámpara sigue encendida, y ya es tarde para que siga encendida.',
+          'Cruzás el puente al revés. Lo de Berta sigue encendido.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1663,7 +1679,7 @@ export const a2_ley_guardia = {
       lockedHint: 'Orell todavía no te presta ni la hora.',
       outcome: {
         text: [
-          'Orell descuelga una capa del perchero y te la tira sin mirarte. Está seca y huele a otro hombre. La tuya queda goteando en el gancho.',
+          'Orell te tira una capa seca.',
         ],
         effects: [{ removeCondition: 'empapado' }],
         next: 'c2_anochece',

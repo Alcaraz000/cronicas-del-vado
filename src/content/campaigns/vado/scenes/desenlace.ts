@@ -62,13 +62,15 @@ import type { Scene } from '@/content/schema';
  *   · `fin_heredero` tacto  — el caz empujándote el pecho a cada paso, contra la corriente
  *
  * Arranques (tres primeras palabras del texto base): `cl_molino` "Adentro el agua" · `cl_dravos`
- * "Esto ya no" · `cl_halvar` "Halvar corre una" · `cl_desenlace` "Bajás la escalera" · `fin_hundido`
- * "Encaja con un" · `fin_dravos` "Cruzan antes del" · `fin_crecida` "Ilse pone las" · `fin_heredero`
- * "Salís de la". Las ocho primeras palabras son distintas entre sí, ninguna está en la lista de
- * quemados de §2.7 y ninguna coincide con la de una escena a la que esta apunta.
+ * "El molino queda" · `cl_halvar` "Halvar corre una" · `cl_desenlace` "Bajás la escalera" ·
+ * `fin_hundido` "Encaja con un" · `fin_dravos` "Cruzan antes del" · `fin_crecida` "Ilse sube con" ·
+ * `fin_heredero` "Salís de la". Las ocho primeras palabras son distintas entre sí, ninguna está en
+ * la lista de quemados de §2.7 y ninguna coincide con la de una escena a la que esta apunta.
  *
- * Cupos gastados por este lote: `usted` ×2 (Pell en `cl_molino`; la variante por `run:mausi_informo`
- * gasta las mismas dos, así que una partida lee 2 y el total de campaña sube a 2 acá). Puteadas: 0
+ * Cupos gastados por este lote: `usted` ×2 (Pell en `cl_molino`, **uno por variante**: uno en la
+ * banda base y uno en la de `run:mausi_informo`. La versión anterior escribía dos en cada una y el
+ * linter, que cuenta lo escrito y no lo leído, veía 4 y hacía saltar el cupo de campaña a 10 de 8;
+ * la Fase H · tarea 4 sacó uno de cada variante y el total volvió a 8). Puteadas: 0
  * (Dravos, Halvar, Orell y Berta las tienen prohibidas por §1.4, Pell nunca termina una, e Ilse gasta
  * las suyas en el acto 2). Adverbios en -mente: 0. `muy`: 0. `de repente`/`de pronto`: 0.
  * `parece que`: 0. `como si fuera`: 0. `no podés evitar`: 0. Enumeración de tres: 1 (`fin_crecida`).
@@ -94,14 +96,15 @@ import type { Scene } from '@/content/schema';
  *     variantes condicionadas (memoria de Halvar, `run:dravos_sabe`, `run:mausi_informo`) que la
  *     tabla no le presupuesta acá sino en la línea global de variantes, tres bandas de tirada y
  *     **seis** `outcome.text` de opciones cuyo único cambio posible es el texto (§2.5 obliga a
- *     pagarlas). El piso real son ~480. **Hay que subir la celda o mover las variantes de flag del
- *     clímax (180 palabras en §3) a las celdas de las escenas que las llevan.**
+ *     pagarlas). El piso real eran ~480. **FASE H · tarea 4**: entra en la tolerancia (402 contra
+ *     331, +21 %) con seis desenlaces de 17 a 30 palabras. **Sigue en pie la recomendación: subir la
+ *     celda o mover las variantes de flag del clímax (180 palabras en §3) a las escenas que las llevan.**
  * (d) **Presupuesto medido, escena por escena** (palabras escritas, contando todas las variantes y
- *     sin contar `label` ni `lockedHint`): `cl_molino` 547/331 · `cl_dravos` 801/695 · `cl_halvar`
- *     579/515 · `cl_desenlace` 642/571 · `fin_hundido` 261/300 · `fin_dravos` 257/300 · `fin_crecida`
- *     287/300 · `fin_heredero` 252/300. Clímax 2.569 contra 2.112; finales 1.057 contra 1.200.
- *     **Total del lote 3.626 contra 3.312 (+9,5 %)**, en la misma franja que el lote 1 (+7,2 %) y por
- *     la misma causa: la tabla presupuesta las variantes y los outcomes aparte y después no alcanzan.
+ *     sin contar `label` ni `lockedHint`), DESPUÉS del recorte de la Fase H · tarea 4: `cl_molino`
+ *     402/331 · `cl_dravos` 698/695 · `cl_halvar` 507/515 · `cl_desenlace` 570/571 · `fin_hundido`
+ *     261/300 · `fin_dravos` 257/300 · `fin_crecida` 284/300 · `fin_heredero` 252/300. Clímax 2.177
+ *     contra 2.112; finales 1.054 contra 1.200. **Total del lote 3.231 contra 3.312 (−2,4 %)**;
+ *     antes del recorte eran 3.626 (+9,5 %).
  *     Ritmo medido sobre las 289 oraciones del lote: media **12,5**, mediana 12, máximo **30**, cero
  *     oraciones de 31 o más, y **las nueve de más de 22 palabras llevan dos puntos**, como pide §1.2
  *     de la guía de voz.
@@ -143,6 +146,22 @@ import type { Scene } from '@/content/schema';
  * Ninguna opción se sacó, ninguna ganó `requires` y ningún `next` se movió: la cuenta `opc`/`libres`
  * del outline §2 no cambia. `cl_dravos` no se tocó: es la única de las diez bisagra que ya estaba
  * bien, porque no tiene ninguna opción sin tirada y sin `requires`.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
+ * `label`, ni un `requires`, ni un `roll`, ni un `effects`, ni un `next`: entró y salió texto.
+ * Criterio de recorte, en este orden: (1) la oración que repite lo que la escena ya dijo; (2) la
+ * que explica al jugador la opción que acaba de elegir; (3) el adjetivo y la subordinada que no
+ * agregan información. NO se tocaron: lo que el jugador necesita para decidir lo que sigue, las
+ * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
+ * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
+ *
+ * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
+ * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
+ * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
+ * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
+ * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
+ * los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -158,15 +177,15 @@ export const cl_molino = {
   npcs: ['dravos', 'halvar', 'pell'],
   onEnter: [{ clock: 'pelea', delta: -3 }],
   text: [
-    'Adentro el agua te pasa el tobillo y está más tibia que la del río: lleva dos días encerrada entre estos tablones. La rueda gira sin carga. En el piso flotan sacos reventados y la harina hace grumos contra las paredes.',
+    'Adentro el agua te pasa el tobillo y está más tibia que la del río: lleva dos días encerrada acá. La rueda gira sin carga y la harina hace grumos en las paredes.',
     {
       variants: [
         {
           when: { met: 'halvar' },
-          text: 'Al mercader ya lo conocés: la barba clara trenzada en dos, los anillos, el maletín de cuero cruzado al pecho. Al lado del capitán tiene cara de hombre que vino a cobrar algo que ya es suyo.',
+          text: 'Al mercader ya lo conocés: la barba trenzada, los anillos, el maletín al pecho. Vino a cobrar algo que ya es suyo.',
         },
         {
-          text: 'Contra la pared del fondo hay una mesa seca sobre caballetes y dos hombres de pie. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota encima. El otro tiene la barba clara trenzada en dos y anillos de plata en tres dedos.',
+          text: 'Contra la pared hay una mesa seca sobre caballetes y dos hombres de pie. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota encima. El otro, barba trenzada y anillos de plata.',
         },
       ],
     },
@@ -174,10 +193,10 @@ export const cl_molino = {
       variants: [
         {
           when: { flag: 'run:dravos_sabe' },
-          text: 'El capitán levanta la cabeza antes de que termines de entrar. El lacre ya está derretido en la cuchara y el papel abierto sobre la mesa. Te esperaban, y eso cambia el orden de las cosas.',
+          text: 'El capitán levanta la cabeza antes de que termines de entrar. El lacre ya está derretido y el papel abierto. Te esperaban.',
         },
         {
-          text: 'Ninguno de los dos mira la puerta. Sobre la mesa hay un papel abierto y una cuchara de lacre todavía apagada. Al lado espera un saco de harina con algo del tamaño de un ladrillo adentro.',
+          text: 'Ninguno de los dos mira la puerta. Sobre la mesa hay un papel abierto y una cuchara de lacre apagada. Al lado, un saco con algo del tamaño de un ladrillo.',
         },
       ],
     },
@@ -186,10 +205,10 @@ export const cl_molino = {
       variants: [
         {
           when: { flag: 'run:mausi_informo' },
-          text: '—Su nombre subió a la torre el martes, usted sabe cómo es acá. Yo no lo mandé. —Se acomoda el casco—. La undécima ordenanza dice que usted no…',
+          text: '—Su nombre subió a la torre el martes. Yo no lo mandé. —Se acomoda el casco—. La undécima ordenanza dice que usted no…',
         },
         {
-          text: '—Pase. Digo, no pase. —Baja la lanza y la vuelve a subir—. La undécima ordenanza dice que usted no puede estar acá, y yo tampoco puedo, así que usted vio.',
+          text: '—Pase. Digo, no pase. —Baja la lanza y la vuelve a subir—. La undécima ordenanza dice que usted no puede estar acá, y yo tampoco.',
         },
       ],
     },
@@ -205,20 +224,20 @@ export const cl_molino = {
         outcomes: {
           success: {
             text: [
-              'Te metés entre los sacos reventados y aguantás la respiración contra la harina mojada. Halvar cuenta en voz alta: tres peajes hay entre su casa y el vado, y el del medio es de ellos.',
+              'Te metés entre los sacos y aguantás la respiración. Halvar cuenta en voz alta: entre su casa y el vado hay tres peajes y el del medio es de ellos.',
             ],
             next: 'cl_halvar',
           },
           partial: {
             text: [
-              'Escuchás la mitad. Dravos habla de once meses y de catorce hombres, y después baja la voz justo donde importa. Un saco cede bajo tu rodilla y el capitán deja de hablar.',
+              'Escuchás la mitad. Dravos habla de once meses y catorce hombres, y baja la voz donde importa. Un saco cede bajo tu rodilla y el capitán calla.',
             ],
             next: 'cl_halvar',
           },
           // El fallo enciende `run:dravos_sabe` (flags.ts: "el fallo de cl_molino.escuchar").
           failure: {
             text: [
-              'El tablón que pisás devuelve el agua de abajo y el ruido llena el molino. Halvar cierra el maletín sin apuro. El capitán se corre de la mesa y te deja ver lo que hay encima.',
+              'El tablón que pisás devuelve el agua y el ruido llena el molino. Halvar cierra el maletín. El capitán se corre y te deja ver qué hay encima.',
             ],
             effects: [{ set: 'run:dravos_sabe' }],
             next: 'cl_dravos',
@@ -243,7 +262,7 @@ export const cl_molino = {
       label: 'Encarar a Dravos y quedarte sin puerta atrás',
       outcome: {
         text: [
-          'Salís al claro del piso y decís lo que viniste a decir. Dravos no levanta la voz ni llama a nadie: dobla el papel en dos y busca los guantes. Pell se corre a la puerta y se queda ahí, con la lanza cruzada.',
+          'Salís al claro y decís lo que viniste a decir. Pell se corre a la puerta y se queda ahí, con la lanza cruzada.',
         ],
         effects: [{ addCondition: 'perseguido' }],
         next: 'cl_dravos',
@@ -254,7 +273,7 @@ export const cl_molino = {
       label: 'Sentarte a la mesa con Halvar',
       outcome: {
         text: [
-          'Corrés un cajón con el pie y te sentás sin que nadie te ofrezca asiento. Halvar te mira las botas mojadas y después las manos. «Amigo», dice, y te hace lugar.',
+          'Corrés un cajón con el pie y te sentás sin que te ofrezcan. Halvar te mira las botas. «Amigo», dice.',
         ],
         next: 'cl_halvar',
       },
@@ -264,7 +283,7 @@ export const cl_molino = {
       label: 'Llamar a Pell aparte',
       outcome: {
         text: [
-          'Lo llevás dos pasos hacia la puerta. El chico te contesta mirando la mesa, y esa es toda la respuesta. Atrás, el capitán dice su nombre completo y Pell vuelve a su sitio.',
+          'Lo llevás dos pasos hacia la puerta. Contesta mirando la mesa, y esa es toda la respuesta.',
         ],
         next: 'cl_dravos',
       },
@@ -277,7 +296,7 @@ export const cl_molino = {
       lockedHint: 'Dravos ya sabe que estás acá: no hay sorpresa.',
       outcome: {
         text: [
-          'Entrás hablando y les sacás el silencio de encima. La cuchara del lacre queda a mitad de camino. Halvar cierra el libro con un dedo adentro: después lo va a abrir.',
+          'Entrás hablando y la cuchara del lacre queda a mitad de camino. Halvar cierra el libro con un dedo adentro.',
         ],
         next: 'cl_halvar',
       },
@@ -289,7 +308,7 @@ export const cl_molino = {
       lockedHint: 'Nadie te acusó de nada todavía.',
       outcome: {
         text: [
-          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte, y que eso ahorra trabajo. Después le pide la cuerda al chico.',
+          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte. Le pide la cuerda al chico.',
         ],
         effects: [{ set: 'run:dravos_sabe' }],
         next: 'cl_dravos',
@@ -302,7 +321,7 @@ export const cl_molino = {
       lockedHint: 'Ilse no está en el molino.',
       outcome: {
         text: [
-          '«La escalera la conozco mejor que vos», te contesta antes de que termines, y ya está bajando. Se lleva el farol pegado al cuerpo para que la luz no se vea desde la mesa.',
+          '«La escalera la conozco mejor que vos», te contesta, y ya está bajando con el farol pegado al cuerpo.',
         ],
         next: 'cl_halvar',
       },
@@ -341,14 +360,14 @@ export const cl_dravos = {
       variants: [
         {
           when: { clock: 'pelea', gte: 2 },
-          text: 'El capitán está de rodillas en el agua y hay una mano que no le cierra del todo. No pide nada. Atrás, el mercader mira la puerta y calcula cuánto le cuesta quedarse.',
+          text: 'El capitán está de rodillas en el agua y hay una mano que no le cierra. No pide nada. Atrás, el mercader calcula cuánto le cuesta quedarse.',
         },
         {
           when: { clock: 'pelea', gte: 1 },
-          text: 'Dravos se corre de la mesa y busca el sitio donde el piso no cede. La muela suelta gira despacio, sin nada que moler, y el agua le llega a él también.',
+          text: 'Dravos se corre de la mesa y busca donde el piso no cede. La muela gira sin nada que moler y el agua le llega a él también.',
         },
         {
-          text: 'Esto ya no se arregla con el papel. El molino queda partido en dos: la mesa seca y el palmo de agua donde estás vos. El eje de la rueda chilla una vez por vuelta y el ruido se te mete por los dientes.',
+          text: 'El molino queda partido en dos: la mesa seca y el palmo de agua donde estás vos. El eje chilla una vez por vuelta y el ruido se te mete por los dientes.',
         },
       ],
     },
@@ -364,7 +383,7 @@ export const cl_dravos = {
           text: '—Acá adentro nadie va a gritar. Corresponde terminar esto y firmar antes de que aclare.',
         },
         {
-          text: '—Lo que acaba de entrar por esa puerta es un problema de orden, nada más. Once meses sin paga tienen catorce hombres. Hay que resolverlo antes de que baje el agua.',
+          text: '—Lo que entró por esa puerta es un problema de orden. Once meses sin paga tienen catorce hombres. Hay que resolverlo antes de que baje el agua.',
         },
       ],
     },
@@ -372,7 +391,7 @@ export const cl_dravos = {
       variants: [
         {
           when: { flag: 'run:orell_confia' },
-          text: 'En el umbral está el sargento, con la ballesta colgada del hombro, y no entra. Mira el agua y no a vos.',
+          text: 'En el umbral está el sargento, con la ballesta al hombro, y no entra. Mira el agua y no a vos.',
         },
         { text: 'Afuera, en el umbral, el chico se quedó sin decidirse.' },
       ],
@@ -389,21 +408,21 @@ export const cl_dravos = {
         outcomes: {
           success: {
             text: [
-              'Lo cruzás contra el canto de la mesa antes de que saque los guantes. El papel se va al agua y el capitán atrás. Se levanta escupiendo harina y no dice una palabra.',
+              'Lo cruzás contra el canto de la mesa antes de que saque los guantes. El papel se va al agua y el capitán atrás. Se levanta escupiendo harina.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }],
             next: 'cl_dravos',
           },
           partial: {
             text: [
-              'Entran los dos al agua y ahí abajo no hay orden que valga. Le arrancás el saco del brazo y él te encuentra la oreja con el codo.',
+              'Entran los dos al agua y ahí no hay orden que valga. Le arrancás el saco y él te encuentra la oreja con el codo.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
             next: 'cl_dravos',
           },
           failure: {
             text: [
-              'Calculás mal el palmo de agua y el pie se te queda atrás. Dravos se corre medio paso y te deja pasar de largo. La esquina de la mesa te encuentra las costillas.',
+              'Calculás mal el palmo de agua y el pie se te queda atrás. Dravos se corre y te deja pasar de largo. La esquina de la mesa te encuentra las costillas.',
             ],
             effects: [{ wound: 1 }],
             next: 'cl_dravos',
@@ -422,21 +441,21 @@ export const cl_dravos = {
         outcomes: {
           success: {
             text: [
-              'Soltás la traba del eje con las dos manos. La muela baja de golpe, muerde el borde de la mesa y se lleva los caballetes. El capitán queda del otro lado de una piedra que gira.',
+              'Soltás la traba del eje con las dos manos. La muela baja de golpe y se lleva los caballetes. El capitán queda del otro lado de una piedra que gira.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }],
             next: 'cl_dravos',
           },
           partial: {
             text: [
-              'Tenés que colgarte de la palanca con todo el cuerpo y el eje cede tarde. La muela agarra el saco y no a él. Te quedás sin aire contra el tablón, con las manos abiertas.',
+              'Te colgás de la palanca con todo el cuerpo y el eje cede tarde. La muela agarra el saco y no a él. Quedás sin aire contra el tablón.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }, { addCondition: 'exhausto' }],
             next: 'cl_dravos',
           },
           failure: {
             text: [
-              'La traba no es la que pensabas. El eje sigue y la correa de cuero te lleva la mano contra el brocal: la sacás con un dedo que no va a doblarse esta noche.',
+              'La traba no es la que pensabas. El eje sigue y la correa te lleva la mano contra el brocal: la sacás con un dedo que no dobla.',
             ],
             effects: [{ wound: 1 }],
             next: 'cl_dravos',
@@ -455,28 +474,28 @@ export const cl_dravos = {
           // Único `crit` de la escena (cupo de r04): cierra el encuentro de una.
           crit: {
             text: [
-              'Lo decís para el chico del umbral y no para él: once meses, catorce sueldos y una piedra vendida del otro lado del río. Pell baja la lanza. Dravos lo ve bajarla, y ahí se le termina.',
+              'Lo decís para el chico del umbral y no para él: once meses, catorce sueldos y una piedra vendida del otro lado. Pell baja la lanza, Dravos lo ve, y se le termina.',
             ],
             effects: [{ clock: 'pelea', delta: 3 }],
             next: 'cl_desenlace',
           },
           success: {
             text: [
-              'Nombrás la orden escrita y le decís la fecha. El capitán reformula lo que dijiste, como hace siempre, y esta vez le sale torcido: repite tus palabras y no encuentra dónde ponerlas.',
+              'Nombrás la orden escrita y le decís la fecha. El capitán reformula lo que dijiste, como siempre, y le sale torcido: repite tus palabras y no sabe dónde ponerlas.',
             ],
             effects: [{ clock: 'pelea', delta: 2 }],
             next: 'cl_dravos',
           },
           partial: {
             text: [
-              'Te escucha entero, que es peor que si te cortara. Cuando terminás, se acomoda el puño del sobretodo y queda a la vista el hilo rojo del puño. No te contesta nada.',
+              'Te escucha entero, que es peor que si te cortara. Después se acomoda el puño y queda a la vista el hilo rojo. No te contesta.',
             ],
             effects: [{ clock: 'pelea', delta: 1 }],
             next: 'cl_dravos',
           },
           failure: {
             text: [
-              'La voz se te va en la mitad de la frase. Dravos espera a que se termine sola y mira la puerta cerrada. Dice que el agua va a subir igual, se discuta o no.',
+              'La voz se te va en la mitad de la frase. Dravos espera a que se termine sola. Dice que el agua va a subir igual, se discuta o no.',
             ],
             effects: [{ addCondition: 'asustado' }],
             next: 'cl_dravos',
@@ -499,21 +518,21 @@ export const cl_dravos = {
         outcomes: {
           success: {
             text: [
-              'Tirás el cajón atrás tuyo y buscás la trampilla con el pie. El agua de abajo está más fría y te recibe entera. Arriba, alguien pregunta adónde fuiste y nadie contesta.',
+              'Tirás el cajón atrás tuyo y buscás la trampilla con el pie. El agua de abajo está más fría y te recibe entera. Arriba preguntan adónde fuiste y nadie contesta.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'cl_desenlace',
           },
           partial: {
             text: [
-              'Bajás a los tropezones y te llevás medio escalón con vos. Alguien te sigue con el farol en alto, sin correr, contando los escalones como los cuenta el que ya bajó por acá.',
+              'Bajás a los tropezones y te llevás medio escalón con vos. Alguien te sigue con el farol en alto, sin correr, como el que ya bajó.',
             ],
             effects: [{ addCondition: 'perseguido' }, { wound: 1 }],
             next: 'cl_desenlace',
           },
           failure: {
             text: [
-              'La trampilla no cede: hay agua apoyada del otro lado. El capitán te agarra de la capa y te devuelve al piso de arriba, de rodillas, sin sacarte los ojos de encima.',
+              'La trampilla no cede: hay agua apoyada del otro lado. El capitán te agarra de la capa y te devuelve arriba, de rodillas.',
             ],
             effects: [{ wound: 1 }],
             next: 'cl_dravos',
@@ -528,7 +547,7 @@ export const cl_dravos = {
       lockedHint: 'No tenés el sello encima.',
       outcome: {
         text: [
-          'Ponés la piedra sobre la mesa, dentro del saco, y sacás la mano despacio. Halvar cuenta lo suyo sin mirarte. Dravos mira cómo lo cuenta y no dice nada.',
+          'Ponés la piedra sobre la mesa, dentro del saco, y sacás la mano. Halvar cuenta lo suyo sin mirarte. Dravos mira cómo lo cuenta.',
         ],
         effects: [{ take: 'sello_del_vado' }, { set: 'run:trato_con_halvar' }, { clock: 'pelea', delta: 3 }],
         next: 'cl_desenlace',
@@ -542,7 +561,7 @@ export const cl_dravos = {
       lockedHint: 'Todavía está en pie.',
       outcome: {
         text: [
-          'Le das una vez más y se termina ahí. El capitán no se cubre la cara: se cubre la mano con la que firma. Sigue respirando contra el agua y lo dejás así.',
+          'Le das una vez más y se termina ahí. El capitán no se cubre la cara: se cubre la mano con la que firma. Lo dejás respirando contra el agua.',
         ],
         effects: [{ clock: 'pelea', delta: 1 }],
         next: 'cl_desenlace',
@@ -555,7 +574,7 @@ export const cl_dravos = {
       lockedHint: 'Orell no va a levantar la mano por vos.',
       outcome: {
         text: [
-          'El sargento entra dos pasos y dice un rango, no un nombre. —Capitán. Baje eso. —Corre el agua con la bota y se para al lado tuyo—. Dos relevos vienen atrás mío.',
+          'El sargento entra dos pasos y dice un rango, no un nombre. —Capitán. Baje eso. —Se para al lado tuyo—. Dos relevos vienen atrás.',
         ],
         effects: [{ clock: 'pelea', delta: 3 }],
         next: 'cl_desenlace',
@@ -569,7 +588,7 @@ export const cl_dravos = {
       lockedHint: 'Ese eje no lo traba cualquiera con el hombro.',
       outcome: {
         text: [
-          'Metés el hombro en el eje y lo parás con el cuerpo. El molino entero se queja una vez. Algo en el hombro se queja también, y más bajo.',
+          'Metés el hombro en el eje y lo parás con el cuerpo. El molino se queja una vez. Algo en el hombro se queja más bajo.',
         ],
         effects: [{ clock: 'pelea', delta: 1 }, { wound: 1 }],
         next: 'cl_dravos',
@@ -596,7 +615,7 @@ export const cl_dravos = {
       lockedHint: 'Solo un Mago le hace callar una runa.',
       outcome: {
         text: [
-          'Le decís a la piedra el nombre que tenía antes del molino y la piedra se calla un latido. En ese latido el agua se queda quieta y el eje no chilla. A Dravos se le termina la noche ahí. Cuando el ruido vuelve estás de rodillas en el agua, con la nariz sangrando.',
+          'Le decís a la piedra el nombre que tenía antes del molino y se calla un latido. En ese latido el agua se queda quieta. A Dravos se le termina la noche ahí. Cuando el ruido vuelve estás de rodillas, con la nariz sangrando.',
         ],
         effects: [{ addCondition: 'agotado' }, { wound: 1 }, { clock: 'pelea', delta: 3 }],
         next: 'cl_desenlace',
@@ -621,16 +640,16 @@ export const cl_halvar = {
   npcs: ['halvar', 'dravos'],
   onEnter: [{ milestone: 'enfrentar_a_dravos' }],
   text: [
-    'Halvar corre una silla con el pie y te la ofrece mojada. Sobre la mesa hay un libro abierto y una cuchara de lacre en el brasero. Al costado espera el saco de harina con la piedra adentro. El lacre caliente huele a miel quemada, y ese olor le gana al del río.',
+    'Halvar corre una silla con el pie y te la ofrece mojada. Sobre la mesa hay un libro abierto y una cuchara de lacre en el brasero, y al costado el saco con la piedra. El lacre huele a miel quemada y le gana al del río.',
     {
       variants: [
         {
           when: { flag: 'run:con_la_ley' },
-          text: 'Venís del lado de la ley y los dos lo saben: uno te sienta como testigo y el otro como socio, y ninguno de los dos se equivoca del todo.',
+          text: 'Venís del lado de la ley y los dos lo saben: uno te sienta de testigo y el otro de socio.',
         },
         {
           when: { flag: 'run:contra_la_ley' },
-          text: 'Llegaste por abajo, del sótano y del agua, con las manos como las tenés. Para esta mesa eso no cambia nada: lo que mueve el precio es lo que traés, no por dónde entraste.',
+          text: 'Llegaste por abajo, del sótano y del agua. Para esta mesa no cambia nada: lo que mueve el precio es lo que traés.',
         },
         { text: 'Nadie pregunta cómo entraste ni por dónde. En esta mesa lo único que se pregunta es qué traés.' },
       ],
@@ -639,7 +658,7 @@ export const cl_halvar = {
       speaker: 'halvar',
       variants: [
         {
-          text: '—Cerremos, amigo. Tres peajes hay entre mi casa y este vado, y el del medio lo cobro yo. Poco me cuesta sumarte a la lista. Mucho me cuesta, digamos, tener que restarte.',
+          text: '—Cerremos, amigo. Tres peajes hay entre mi casa y este vado y el del medio lo cobro yo. Poco me cuesta sumarte a la lista. Mucho me cuesta restarte.',
         },
       ],
     },
@@ -647,7 +666,7 @@ export const cl_halvar = {
       speaker: 'dravos',
       variants: [
         {
-          text: '—Lo que hay que entender es que esto ya está hecho. Falta el lacre. Falta que alguien se quede callado once meses, que es lo que se le debe a un hombre acá.',
+          text: '—Lo que hay que entender es que esto ya está hecho. Falta el lacre y falta que alguien se calle once meses, que es lo que se le debe a un hombre acá.',
         },
       ],
     },
@@ -663,19 +682,19 @@ export const cl_halvar = {
         outcomes: {
           success: {
             text: [
-              'Le ponés precio a lo que él ya daba por regalado, y no bajás la voz para hacerlo. Halvar tacha una cifra del libro y anota otra. A Dravos la tachadura le interesa más que la cifra.',
+              'Le ponés precio a lo que él daba por regalado, y no bajás la voz. Halvar tacha una cifra y anota otra. A Dravos la tachadura le interesa más que la cifra.',
             ],
             next: 'cl_desenlace',
           },
           partial: {
             text: [
-              'La cifra sube, y sube tanto que el capitán se queda mirando el libro. Halvar vuelve a poner la cuchara en el brasero: ahora hay apuro, y el apuro no es tuyo.',
+              'La cifra sube tanto que el capitán se queda mirando el libro. Halvar vuelve a poner la cuchara en el brasero: ahora hay apuro, y no es tuyo.',
             ],
             next: 'cl_desenlace',
           },
           failure: {
             text: [
-              'Pedís de más y se te nota de dónde sale el número. Halvar cierra el libro. El capitán deja de reformular lo que decís, que es la única señal que da antes de terminar una conversación.',
+              'Pedís de más y se te nota de dónde sale el número. Halvar cierra el libro. El capitán deja de reformular lo que decís, que es la única señal que da.',
             ],
             effects: [{ set: 'run:dravos_sabe' }],
             next: 'cl_dravos',
@@ -694,19 +713,19 @@ export const cl_halvar = {
         outcomes: {
           success: {
             text: [
-              'Das vuelta el libro y leés en voz alta los peajes del año que viene, con las fechas. Están anotados para un vado que ya no se cruza. Halvar deja los dedos quietos sobre la tapa.',
+              'Das vuelta el libro y leés en voz alta los peajes del año que viene. Están anotados para un vado que ya no se cruza. Halvar deja los dedos quietos en la tapa.',
             ],
             next: 'cl_desenlace',
           },
           partial: {
             text: [
-              'Sacás la cuenta a medias, y a medias alcanza: la casa de Halvar gana más con el río arriba que con la piedra abajo. Él te corrige dos números, y al corregirlos te da la razón.',
+              'Sacás la cuenta a medias, y alcanza: la casa de Halvar gana más con el río arriba que con la piedra abajo. Te corrige dos números y al corregirlos te da la razón.',
             ],
             next: 'cl_desenlace',
           },
           failure: {
             text: [
-              'Leés el renglón al revés de como está escrito y decís lo que no dice. Halvar te saca el libro de las manos sin que se note que te lo saca. Dravos se pone los guantes mientras el otro te explica el error.',
+              'Leés el renglón al revés y decís lo que no dice. Halvar te saca el libro sin que se note. Dravos se pone los guantes mientras el otro te explica el error.',
             ],
             next: 'cl_dravos',
           },
@@ -719,7 +738,7 @@ export const cl_halvar = {
       label: 'Cerrar el trato y cobrar tu parte',
       outcome: {
         text: [
-          'Decís que sí con una palabra sola y la palabra alcanza. Halvar te cuenta tu parte ahí mismo, sobre la mesa mojada. El lacre baja sobre el papel con tu nombre al lado del de él.',
+          'Decís que sí con una palabra sola y alcanza. Halvar te cuenta tu parte sobre la mesa mojada. El lacre baja con tu nombre al lado del de él.',
         ],
         effects: [{ set: 'run:trato_con_halvar' }, { set: 'run:dravos_sabe' }],
         next: 'cl_desenlace',
@@ -734,7 +753,7 @@ export const cl_halvar = {
       label: 'Bajar al sótano sin contestar, delante del capitán',
       outcome: {
         text: [
-          'No contestás. Corrés la trampilla con el pie y bajás. Atrás, sin levantar la voz, Halvar te explica lo caro que le sale a un hombre no contestar. Dravos no te frena: se acomoda los guantes y dice que corresponde anotar la hora.',
+          'No contestás. Corrés la trampilla con el pie y bajás. Atrás, Halvar te explica lo caro que sale no contestar. Dravos no te frena: dice que corresponde anotar la hora.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'cl_desenlace',
@@ -748,7 +767,7 @@ export const cl_halvar = {
       lockedHint: 'No tenés la carta de Halvar encima.',
       outcome: {
         text: [
-          'Abrís la carta y leés la fecha antes que el nombre. La cesión del paso está firmada once días antes de que a vos te llegara la otra carta. Halvar no lo niega: te corrige la fecha por una peor.',
+          'Abrís la carta y leés la fecha antes que el nombre. La cesión del paso está firmada once días antes de que te llegara la otra. Halvar no lo niega: te corrige la fecha por una peor.',
         ],
         effects: [{ take: 'carta_de_halvar' }, { set: 'run:berta_miente' }],
         next: 'cl_desenlace',
@@ -762,7 +781,7 @@ export const cl_halvar = {
       lockedHint: 'No es tu oficio invocar un juicio del templo.',
       outcome: {
         text: [
-          'Nombrás el juicio del templo y decís en cuántos días baja un juez desde el otro lado. Halvar hace la cuenta de lo que cuesta esperar y, por primera vez, no contesta enseguida.',
+          'Nombrás el juicio del templo y decís en cuántos días baja un juez. Halvar hace la cuenta de lo que cuesta esperar y no contesta enseguida.',
         ],
         next: 'cl_desenlace',
       },
@@ -774,7 +793,7 @@ export const cl_halvar = {
       lockedHint: 'Ilse no está en el molino.',
       outcome: {
         text: [
-          '«Pesá lo que estás comprando», dice, y no espera a que Halvar termine. «Sesenta y cuatro casas, una rueda y un vado. Ponelo en arrobas, si te sirve más.»',
+          '«Pesá lo que estás comprando», dice, y no espera a que Halvar termine. «Sesenta y cuatro casas, una rueda y un vado. Ponelo en arrobas.»',
         ],
         next: 'cl_desenlace',
       },
@@ -801,19 +820,19 @@ export const cl_desenlace = {
   // `onEnter` de los cuatro finales: marca haber cerrado algo. `cl_desenlace` queda sin `onEnter`,
   // y puede: no vuelve a sí misma, así que no necesita nada que corte el bucle.
   text: [
-    'Bajás la escalera con el agua ya por encima del tercer escalón. El sótano es redondo y más viejo que el molino que tiene encima. El agua sube sin hacer ruido: te avisa por la ropa, no por el oído.',
+    'Bajás la escalera con el agua por encima del tercer escalón. El sótano es redondo y más viejo que el molino. El agua sube sin ruido: te avisa por la ropa, no por el oído.',
     {
       variants: [
         {
           when: { flag: 'run:sello_escondido' },
-          text: 'La piedra la subieron de la cadena del azud antes que vos: alguien siguió el hierro con la mano hasta el fondo. Está al borde del hueco del piso, llena de limo, con la cara tallada para arriba.',
+          text: 'La piedra la subieron de la cadena antes que vos: alguien siguió el hierro hasta el fondo. Está al borde del hueco, llena de limo, con la cara tallada para arriba.',
         },
         {
           when: { endingSeen: 'fin_crecida' },
-          text: 'El zócalo lo encontrás sin buscarlo. Las manos se acuerdan del canal en espiral, y de que el hueco es más chico de lo que uno espera.',
+          text: 'El zócalo lo encontrás sin buscarlo. Las manos se acuerdan del canal en espiral y de que el hueco es más chico de lo que uno espera.',
         },
         {
-          text: 'En el piso hay canales tallados en espiral que bajan hasta un hueco central del tamaño de dos puños. Al lado del zócalo está la piedra, fuera del saco, con la cara tallada para arriba.',
+          text: 'En el piso hay canales en espiral que bajan hasta un hueco del tamaño de dos puños. Al lado del zócalo está la piedra, fuera del saco, con la cara para arriba.',
         },
       ],
     },
@@ -822,10 +841,10 @@ export const cl_desenlace = {
       variants: [
         {
           when: { flag: 'run:berta_miente' },
-          text: '—Mirá, ya sé que lo sabés, así que no te voy a hacer el número otra vez. Firmé antes de escribirte. Somos sesenta y cuatro casas y ninguna aguanta dos inviernos sin paso, y bueno.',
+          text: '—Mirá, ya sé que lo sabés, así que no te hago el número otra vez. Firmé antes de escribirte. Somos sesenta y cuatro casas y ninguna aguanta dos inviernos sin paso, y bueno.',
         },
         {
-          text: '—Mirá, lo que hay que mirar son los días. Sin molino y sin paso, Aldamar se vacía en dos inviernos, y no hay bolsa de plata que alcance para eso. Nosotros no elegimos nada, y bueno.',
+          text: '—Mirá, lo que hay que mirar son los días. Sin molino y sin paso, Aldamar se vacía en dos inviernos, y no hay bolsa de plata que alcance. Nosotros no elegimos nada, y bueno.',
         },
       ],
     },
@@ -833,7 +852,7 @@ export const cl_desenlace = {
       speaker: 'ilse',
       variants: [
         {
-          text: '—Bajala o soltala. Las dos cosas juntas no se pueden. —Tiene el farol en una mano y la escalera en la otra, y no suelta ninguna de las dos.',
+          text: '—Bajala o soltala. Las dos cosas juntas no se pueden. —Tiene el farol en una mano y la escalera en la otra, y no suelta ninguna.',
         },
       ],
     },
@@ -852,28 +871,28 @@ export const cl_desenlace = {
         outcomes: {
           crit: {
             text: [
-              'Ponés la esquirla en su lugar antes que la piedra, con dos dedos. La piedra baja encima como si volviera de un viaje corto. El canal se llena de una. El agua empieza a irse por donde vino.',
+              'Ponés la esquirla en su lugar antes que la piedra, con dos dedos. La piedra baja encima como si volviera de un viaje corto. El agua empieza a irse.',
             ],
             effects: [{ take: 'sello_del_vado' }, { take: 'medallon_de_tome' }],
             next: 'fin_hundido',
           },
           success: {
             text: [
-              'Levantás la piedra con las dos manos y la bajás derecha al hueco. La esquirla entra con ella, por el borde, y algo abajo la termina de acomodar. El agua para de subir.',
+              'Levantás la piedra con las dos manos y la bajás derecha al hueco. La esquirla entra con ella y algo abajo la termina de acomodar. El agua para de subir.',
             ],
             effects: [{ take: 'sello_del_vado' }, { take: 'medallon_de_tome' }],
             next: 'fin_hundido',
           },
           partial: {
             text: [
-              'Entra, pero te cuesta tres intentos y el último lo hacés de rodillas en el agua. Queda apoyada y no asentada. Cuando sacás las manos te tiemblan los brazos como a un viejo.',
+              'Entra, pero te cuesta tres intentos y el último de rodillas. Queda apoyada y no asentada. Cuando sacás las manos te tiemblan los brazos como a un viejo.',
             ],
             effects: [{ take: 'sello_del_vado' }, { addCondition: 'exhausto' }],
             next: 'fin_hundido',
           },
           failure: {
             text: [
-              'Se te va de las manos a mitad de camino y el agua se la lleva un palmo. La levantás del fondo con los dedos entumecidos y la encajás torcida. Entra torcida y ahí se queda.',
+              'Se te va de las manos y el agua se la lleva un palmo. La levantás del fondo con los dedos entumecidos y la encajás torcida. Ahí se queda.',
             ],
             effects: [{ take: 'sello_del_vado' }, { addCondition: 'empapado' }],
             next: 'fin_hundido',
@@ -888,7 +907,7 @@ export const cl_desenlace = {
       label: 'Dejar que la guardia cruce con la piedra',
       outcome: {
         text: [
-          'Te corrés del hueco y dejás que suban con ella. Nadie te empuja y nadie te agradece. Arriba, alguien cuenta en voz alta, y lo que cuenta no son monedas: son hombres.',
+          'Te corrés del hueco y dejás que suban con ella. Nadie te empuja y nadie te agradece. Arriba alguien cuenta en voz alta, y no son monedas: son hombres.',
         ],
         effects: [{ take: 'sello_del_vado' }],
         next: 'fin_dravos',
@@ -905,21 +924,21 @@ export const cl_desenlace = {
         outcomes: {
           success: {
             text: [
-              'Le ponés la piedra en las manos y no le decís qué hacer con ella. Ilse la pesa una vez, como pesa un saco, y sube sola los escalones que haga falta subir.',
+              'Le ponés la piedra en las manos y no le decís qué hacer. La pesa una vez, como pesa un saco, y sube sola los escalones que haga falta.',
             ],
             effects: [{ take: 'sello_del_vado' }],
             next: 'fin_crecida',
           },
           partial: {
             text: [
-              'Tarda en aceptarla y vos tardás en soltarla, y las cuatro manos quedan un momento abajo del mismo peso. Después se la lleva. No te mira mientras sube.',
+              'Tarda en aceptarla y vos tardás en soltarla, y las cuatro manos quedan un momento abajo del mismo peso. Después se la lleva sin mirarte.',
             ],
             effects: [{ take: 'sello_del_vado' }],
             next: 'fin_crecida',
           },
           failure: {
             text: [
-              'No te contesta lo que le preguntás. Te saca la piedra de las manos antes de que termines la frase. Sube la escalera de dos en dos, con el farol bajo el brazo.',
+              'No te contesta. Te saca la piedra de las manos antes de que termines la frase. Sube de dos en dos, con el farol bajo el brazo.',
             ],
             effects: [{ take: 'sello_del_vado' }],
             next: 'fin_crecida',
@@ -936,7 +955,7 @@ export const cl_desenlace = {
       label: 'Dejar la piedra donde está y que el agua decida',
       outcome: {
         text: [
-          'Subís la escalera sin dar explicaciones y dejás la piedra abajo, al lado del hueco. Atrás, el agua sigue entrando por donde entra, y el hueco queda abierto.',
+          'Subís la escalera sin dar explicaciones y dejás la piedra al lado del hueco. Atrás, el agua sigue entrando y el hueco queda abierto.',
         ],
         effects: [{ take: 'sello_del_vado' }],
         next: 'fin_crecida',
@@ -951,7 +970,7 @@ export const cl_desenlace = {
       lockedHint: 'No sabés qué es esa piedra ni para qué sirve.',
       outcome: {
         text: [
-          'La metés contra las costillas, donde iba la carta, y buscás la boca del caz. Nadie te sigue. Cuando el río sube, nadie mira para abajo.',
+          'La metés contra las costillas, donde iba la carta, y buscás la boca del caz. Nadie te sigue: cuando el río sube, nadie mira para abajo.',
         ],
         next: 'fin_heredero',
       },
@@ -963,7 +982,7 @@ export const cl_desenlace = {
       lockedHint: 'Orell no va a mover un dedo por vos.',
       outcome: {
         text: [
-          '—Vos abajo, yo arriba. —El sargento deja la ballesta en el agua y agarra la manivela con las dos manos—. Dos vueltas mías por cada una tuya, y sin hablar.',
+          '—Vos abajo, yo arriba. —El sargento deja la ballesta en el agua y agarra la manivela—. Dos vueltas mías por cada una tuya, y sin hablar.',
         ],
         effects: [{ take: 'sello_del_vado' }],
         next: 'fin_hundido',
@@ -976,7 +995,7 @@ export const cl_desenlace = {
       lockedHint: 'No cerraste ningún trato con Halvar.',
       outcome: {
         text: [
-          'Subís vos con la piedra y se la ponés en la mano, no en la mesa. Te paga lo hablado, sin descontar nada, y anota el vado en el libro de rutas del año que viene.',
+          'Subís vos con la piedra y se la ponés en la mano, no en la mesa. Te paga lo hablado y anota el vado en el libro del año que viene.',
         ],
         effects: [{ take: 'sello_del_vado' }],
         next: 'fin_dravos',

@@ -96,6 +96,22 @@ import type { Scene } from '@/content/schema';
  * (e) Los tres registros de `design/` (`cupos.md`, `arranques.md`, `detalles-sensoriales.md`) **no
  *     existen todavía en el repositorio**: la carpeta `design/` tiene solo la biblia y el outline.
  *     Todo lo que este lote gastó queda anotado arriba, para volcarlo cuando se creen.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
+ * `label`, ni un `requires`, ni un `roll`, ni un `effects`, ni un `next`: entró y salió texto.
+ * Criterio de recorte, en este orden: (1) la oración que repite lo que la escena ya dijo; (2) la
+ * que explica al jugador la opción que acaba de elegir; (3) el adjetivo y la subordinada que no
+ * agregan información. NO se tocaron: lo que el jugador necesita para decidir lo que sigue, las
+ * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
+ * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
+ *
+ * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
+ * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
+ * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
+ * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
+ * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
+ * los 22 errores de presupuesto que quedaron en 0.
  */
 
 /**
@@ -137,7 +153,7 @@ export const a1_plaza = {
           text: 'Volvés a la plaza y el barro ya tiene tus pisadas encima de las otras. Contás las luces de nuevo: siguen tres.',
         },
         {
-          text: 'Al fondo, pasado el agua, está el bulto negro del molino con la rueda quieta. Las tres luces son la taberna, la casa de la alcaldesa y una ventana alta que no sabés de quién es.',
+          text: 'Al fondo, pasado el agua, está el bulto negro del molino con la rueda quieta. Las tres luces son la taberna, la casa de la alcaldesa y una ventana alta que no sabés de quién.',
         },
       ],
     },
@@ -151,7 +167,7 @@ export const a1_plaza = {
               { flag: 'run:pista_molino' },
             ],
           },
-          text: 'Ya no te queda noche para una cuarta puerta. Lo que no preguntaste no lo vas a preguntar, y con lo que averiguaste vas a salir a buscarlo.',
+          text: 'Ya no te queda noche para una cuarta puerta. Lo que no preguntaste no lo vas a preguntar: salís con lo que averiguaste.',
         },
         {
           text: 'A esta hora el pueblo tiene tres puertas: la taberna, el llamador de bronce de la alcaldesa y el molino, que está del otro lado y no tiene puerta que golpear.',
@@ -162,11 +178,11 @@ export const a1_plaza = {
       variants: [
         {
           when: { flag: 'run:mausi_informo' },
-          text: 'Un guardia joven cruza la plaza al paso y se queda parado donde se ve la puerta del Ancla Seca. No mira para acá ni una vez.',
+          text: 'Un guardia joven cruza la plaza y se para donde se ve la puerta del Ancla Seca. No mira para acá ni una vez.',
         },
         {
           when: { flag: 'run:orell_humillado' },
-          text: 'En la boca del puente hay un hombre de gambesón gris parado de cara al pueblo. No se mueve de ahí en todo el rato que estás.',
+          text: 'En la boca del puente hay un hombre de gambesón gris de cara al pueblo. No se mueve en todo el rato que estás.',
         },
         {
           when: { flag: 'run:orell_confia' },
@@ -205,7 +221,7 @@ export const a1_plaza = {
       label: 'Mirar el pozo de la plaza',
       outcome: {
         text: [
-          'El pozo tiene brocal de piedra y polea de madera, y no tiene soga. La cortaron cerca del nudo, de un tajo limpio, y el cabo quedó colgando un palmo. Una soga de pozo es de todos.',
+          'El pozo tiene brocal de piedra y polea de madera, y no tiene soga. La cortaron cerca del nudo, de un tajo limpio, y el cabo quedó colgando. Una soga de pozo es de todos.',
         ],
         effects: [{ set: 'run:la_soga_cortada' }],
         next: 'a1_plaza',
@@ -217,7 +233,7 @@ export const a1_plaza = {
       label: 'Leer el poste de bandos',
       outcome: {
         text: [
-          'El bando lo firma el capitán Dravos y lo clavaron con cuatro clavos nuevos: el puente queda cerrado hasta nueva orden. Abajo está la pena para el que cruce por otro lado, y para el forastero es el doble.',
+          'El bando lo firma el capitán Dravos y lo clavaron con cuatro clavos nuevos: el puente cerrado hasta nueva orden. Abajo, la pena para el que cruce por otro lado, y para el forastero el doble.',
         ],
         next: 'a1_plaza',
       },
@@ -229,7 +245,7 @@ export const a1_plaza = {
       lockedHint: 'Todavía no tenés nada que preguntarle adentro.',
       outcome: {
         text: [
-          'Cruzás la plaza de vuelta con las mismas preguntas y una más. Golpear dos veces la misma puerta en una noche también dice algo de vos.',
+          'Cruzás la plaza con las mismas preguntas y una más. Golpear dos veces la misma puerta en una noche dice algo de vos.',
         ],
         next: 'a1_berta_despacho',
       },
@@ -243,7 +259,7 @@ export const a1_plaza = {
       lockedHint: 'No sabés a qué hora hace la ronda el chico.',
       outcome: {
         text: [
-          'El chico hace la ronda por el lado del caz y tarda siempre lo mismo. Lo dejás pasar, contás hasta donde contaste la otra vez y entrás por atrás, con el agua tapándote los pies.',
+          'El chico hace la ronda por el caz y tarda siempre lo mismo. Lo dejás pasar, contás hasta donde contaste la otra vez y entrás por atrás, con el agua en los pies.',
         ],
         next: 'a1_molino_trampilla',
       },
@@ -268,7 +284,7 @@ export const a1_taberna = {
   npcs: ['mausi', 'orell'],
   onEnter: [{ set: 'run:pista_taberna' }],
   text: [
-    'Bajo la viga maestra cuelga un ancla de hierro comida de óxido. Nadie levanta la cabeza. El humo del hogar baja y te deja en la boca un gusto a grasa de cordero y a cerveza agria.',
+    'Bajo la viga maestra cuelga un ancla comida de óxido. Nadie levanta la cabeza. El humo del hogar baja y te deja en la boca un gusto a grasa de cordero y cerveza agria.',
     {
       variants: [
         {
@@ -276,7 +292,7 @@ export const a1_taberna = {
           text: 'Al sargento lo tenés ubicado antes de sacarte el agua de encima. Sin ballesta y con la espalda contra la pared, sigue haciendo la misma guardia.',
         },
         {
-          text: 'En la mesa del rincón hay un hombre de barba gris corta y una cicatriz blanca en la ceja izquierda. Gambesón abierto, jarra por la mitad. Está fuera de servicio y sigue sentado de cara a la puerta.',
+          text: 'En la mesa del rincón hay un hombre de barba gris corta y una cicatriz blanca en la ceja izquierda. Gambesón abierto, jarra por la mitad. Está fuera de servicio y sigue de cara a la puerta.',
         },
       ],
     },
@@ -288,7 +304,7 @@ export const a1_taberna = {
           text: '—¿Otra vez? Sentate, que te la lleno. —No pregunta si querés—. Yo no digo nada, ¿eh?, pero el que entra dos veces la misma noche anda buscando algo.',
         },
         {
-          text: '—Sentate donde quieras, que hoy sobra sitio. ¿Venís del camino? Se te ve. —Te pone una jarra delante sin preguntar—. Yo no digo nada, ¿eh?, pero hace once días que sirvo la mitad de las jarras.',
+          text: '—Sentate donde quieras, que hoy sobra sitio. ¿Venís del camino? Se te ve. —Te pone una jarra sin preguntar—. Yo no digo nada, ¿eh?, pero hace once días que sirvo la mitad de las jarras.',
         },
       ],
     },
@@ -296,14 +312,14 @@ export const a1_taberna = {
       variants: [
         {
           when: { all: [{ flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }] },
-          text: 'Ya no te queda noche para volver acá. Mausi deja el trapo, se para enfrente y te pregunta a vos, que es al revés de como venía siendo.',
+          text: 'Ya no te queda noche para volver acá. Mausi deja el trapo, se para enfrente y te pregunta a vos, al revés de como venía siendo.',
         },
         {
           when: { any: [{ flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }] },
           text: 'El de la mesa del rincón va por la tercera jarra y el rincón ya no está tan callado.',
         },
         {
-          text: 'En el rincón del hogar, un viejo canta para adentro una copla que en el segundo verso cuenta piedras y no dice el nombre de nadie.',
+          text: 'En el rincón del hogar, un viejo canta para adentro una copla que en el segundo verso cuenta piedras y no nombra a nadie.',
         },
       ],
     },
@@ -321,7 +337,7 @@ export const a1_taberna = {
         outcomes: {
           success: {
             text: [
-              'Preguntás por el molinero sin levantar la voz, con el lacre a la vista. Mausi cuelga la jarra del gancho y te hace pasar por el hueco del mostrador.',
+              'Preguntás por el molinero sin levantar la voz, con el lacre a la vista. Mausi cuelga la jarra y te hace pasar por el hueco del mostrador.',
               {
                 speaker: 'mausi',
                 variants: [{ text: '—Atrás. Acá hay orejas y yo tengo veinte jarras que servir.' }],
@@ -331,14 +347,14 @@ export const a1_taberna = {
           },
           partial: {
             text: [
-              'Te contesta fuerte, para que la oiga la sala: que el molinero debía plata en tres casas y que ella no es la última en cobrar. Al rato, el que le acarrea la leña cruza la plaza sin capa y con un papel doblado.',
+              'Te contesta fuerte, para que la oiga la sala: que el molinero debía plata en tres casas y que ella no es la última en cobrar. Al rato, el que le acarrea la leña cruza la plaza con un papel doblado.',
             ],
             effects: [{ set: 'run:mausi_informo' }],
             next: 'a1_plaza',
           },
           failure: {
             text: [
-              'Insistís, y el nombre de Tomé queda dando vueltas entre las mesas. Mausi se seca las manos en el delantal, no contesta y te llena el vaso igual. Mañana en la torre van a saber quién vino a preguntar.',
+              'Insistís, y el nombre de Tomé queda dando vueltas entre las mesas. Mausi se seca las manos, no contesta y te llena el vaso igual. Mañana en la torre van a saber quién vino a preguntar.',
             ],
             effects: [{ set: 'run:mausi_informo' }, { clock: 'sospecha', delta: 1 }],
             next: 'a1_plaza',
@@ -358,21 +374,21 @@ export const a1_taberna = {
         outcomes: {
           success: {
             text: [
-              'Esperás a que baje al sótano por una barrica y das vuelta el libro sobre la barra. Entre los fiados del pueblo hay una cuenta sola, en letra que no es de acá, a nombre de un tal Halvar, del otro lado del río.',
+              'Esperás a que baje al sótano por una barrica y das vuelta el libro. Entre los fiados del pueblo hay una cuenta sola, en letra que no es de acá, a nombre de un tal Halvar, del otro lado del río.',
             ],
             effects: [{ set: 'run:sabe_de_halvar' }],
             next: 'a1_taberna_trastienda',
           },
           partial: {
             text: [
-              'Alcanzás a leer el nombre antes de que la tapa te gane la mano: Halvar, del otro lado, y una cuenta que no la paga nadie de acá. Mausi no dice nada delante de la gente. Le hace una seña al de la puerta.',
+              'Alcanzás a leer el nombre antes de que la tapa te gane la mano: Halvar, y una cuenta que no paga nadie de acá. Mausi no dice nada delante de la gente: le hace una seña al de la puerta.',
             ],
             effects: [{ set: 'run:sabe_de_halvar' }, { clock: 'sospecha', delta: 1 }],
             next: 'a1_taberna_trastienda',
           },
           failure: {
             text: [
-              'El libro está atado al mostrador con un cordel y el cordel canta. Mausi no se da vuelta. Le pregunta al de la mesa del rincón si quiere otra, y el de la mesa del rincón te mira a vos.',
+              'El libro está atado al mostrador con un cordel y el cordel canta. Mausi no se da vuelta: le pregunta al del rincón si quiere otra, y el del rincón te mira a vos.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a1_plaza',
@@ -390,7 +406,7 @@ export const a1_taberna = {
       label: 'Pedirle a Mausi pasar a la trastienda',
       outcome: {
         text: [
-          'Levanta la tabla de la barra con la cadera y no deja de servir.',
+          'Levanta la tabla de la barra con la cadera sin dejar de servir.',
           {
             speaker: 'mausi',
             variants: [{ text: '—Andá, pero no me muevas las barricas. Y dejá la puerta como está.' }],
@@ -410,7 +426,7 @@ export const a1_taberna = {
             speaker: 'mausi',
             variants: [
               {
-                text: '—El invierno pasado el molino tuvo luz una semana entera, ¿eh?, y no molió un grano. Yo no digo nada, pero un molino que no muele no gasta sebo. —Se va con cuatro jarras en una mano.',
+                text: '—El invierno pasado el molino tuvo luz una semana, ¿eh?, y no molió un grano. Yo no digo nada, pero un molino que no muele no gasta sebo. —Se va con cuatro jarras en una mano.',
               },
             ],
           },
@@ -431,7 +447,7 @@ export const a1_taberna = {
             speaker: 'mausi',
             variants: [{ text: '—¿De tres vueltas? Esa la ata él y nadie más.' }],
           },
-          'Deja la jarra a medio llenar. Es la primera vez en la noche que la ves dejar algo a medias. Nadie saca de un molino un bulto largo atado en tres vueltas si adentro hay alguien vivo.',
+          'Deja la jarra a medio llenar, y es la primera vez en la noche que la ves dejar algo a medias. Nadie saca de un molino un bulto largo atado en tres vueltas si adentro hay alguien vivo.',
         ],
         effects: [{ set: 'run:cuerpo_hallado' }],
         next: 'a1_plaza',
@@ -450,7 +466,7 @@ export const a1_taberna = {
             speaker: 'mausi',
             variants: [
               {
-                text: '—Ese lacre ya lo vi este mes. —Se le va la mano y la jarra rebalsa—. Yo no digo nada, ¿eh?, pero el de la capa buena pasó por acá antes que vos, con un papel igual, y ese venía con la plata contada.',
+                text: '—Ese lacre ya lo vi este mes. —Se le va la mano y la jarra rebalsa—. Yo no digo nada, ¿eh?, pero el de la capa buena pasó antes que vos, con un papel igual, y venía con la plata contada.',
               },
             ],
           },
@@ -475,7 +491,7 @@ export const a1_taberna_trastienda = {
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
   text: [
-    'Barricas vacías puestas de canto, una pila de leña que no se secó nunca y una puerta de tablas que da al patio. El piso es de tierra apisonada y cede un poco bajo el pie, como si abajo hubiera agua.',
+    'Barricas vacías puestas de canto, una pila de leña que no se secó nunca y una puerta de tablas que da al patio. El piso es de tierra apisonada y cede bajo el pie, como si abajo hubiera agua.',
     {
       speaker: 'mausi',
       variants: [
@@ -501,7 +517,7 @@ export const a1_taberna_trastienda = {
       label: 'Revisar las barricas vacías',
       outcome: {
         text: [
-          'Once barricas y todas vacías. Una no huele a cerveza: huele a harina, y el polvo del fondo está seco hace días.',
+          'Once barricas vacías. Una no huele a cerveza: huele a harina, y el polvo del fondo está seco.',
         ],
         next: 'a1_taberna',
       },
@@ -511,7 +527,7 @@ export const a1_taberna_trastienda = {
       label: 'Salir por la puerta de atrás',
       outcome: {
         text: [
-          'Salís al patio y del patio al camino de tablones que baja al agua. La puerta queda como estaba.',
+          'Salís al patio y al camino de tablones que baja al agua. La puerta queda abierta.',
         ],
         next: 'a1_molino',
       },
@@ -521,7 +537,7 @@ export const a1_taberna_trastienda = {
       label: 'Escuchar el caz antes de cruzar el patio',
       outcome: {
         text: [
-          'Te quedás quieto en el patio hasta que el ruido se ordena. El río va por un lado. Más corto y más adentro, el agua del caz se mete debajo del molino, y el molino suena lleno.',
+          'Te quedás quieto hasta que el ruido se ordena: el río por un lado y, más adentro, el caz metiéndose debajo del molino. El molino suena lleno.',
         ],
         next: 'a1_molino',
       },
@@ -544,12 +560,12 @@ export const a1_orell_mesa = {
   place: 'taberna_ancla_seca',
   npcs: ['orell'],
   text: [
-    'Orell no levanta la vista cuando te parás al lado de la mesa. Al lado de la jarra está el gancho de la ballesta, suelto. Lo abre y lo cierra con el pulgar mientras mira la puerta. El fierro hace un ruido chico que se oye por debajo de todo lo demás.',
+    'Orell no levanta la vista cuando te parás al lado de la mesa. Junto a la jarra está el gancho de la ballesta: lo abre y lo cierra con el pulgar mientras mira la puerta. Hace un ruido chico por debajo de todo.',
     {
       speaker: 'orell',
       variants: [
         {
-          text: '—Sentate si querés. Fuera de servicio no contesto nada. —Corre la jarra dos dedos para hacerte lugar—. Tampoco te voy a mentir.',
+          text: '—Sentate si querés. Fuera de servicio no contesto nada. —Corre la jarra—. Tampoco te voy a mentir.',
         },
       ],
     },
@@ -566,7 +582,7 @@ export const a1_orell_mesa = {
             speaker: 'orell',
             variants: [
               {
-                text: '—Del otro lado hay un mercader con dos barcas. Halvar, se llama. Viene desde antes de que cerráramos el puente. —Deja la jarra a medio tomar—. Eso te lo puedo decir.',
+                text: '—Del otro lado hay un mercader con dos barcas, Halvar, desde antes de que cerráramos el puente. —Deja la jarra—. Eso te lo puedo decir.',
               },
             ],
           },
@@ -580,16 +596,15 @@ export const a1_orell_mesa = {
       label: 'Recordarle lo del puente y ofrecerle la mano',
       outcome: {
         text: [
-          'Se lo decís derecho y le dejás la mano sobre la mesa.',
           {
             speaker: 'orell',
             variants: [
               {
                 when: { flag: 'run:orell_humillado' },
-                text: '—Aquella noche había un chico mirando. —Te da la mano—. Queda saldado. No lo repitas.',
+                text: '—Aquella noche había un chico mirando. —Te da la mano—. Queda saldado.',
               },
               {
-                text: '—Estabas en tu derecho de preguntar. Yo estaba en el mío. —Te da la mano—. Dos relevos por noche, y ninguno decide nada.',
+                text: '—Estabas en tu derecho. Yo estaba en el mío. —Te da la mano—. Ninguno de los dos decide nada.',
               },
             ],
           },
@@ -607,11 +622,11 @@ export const a1_orell_mesa = {
             speaker: 'orell',
             variants: [
               {
-                text: '—La firma es del capitán Dravos. La fecha, de hace doce días. —Levanta la jarra y no toma—. Lo que dice el bando es lo que hay.',
+                text: '—La firma es del capitán Dravos, de hace doce días. —Levanta la jarra y no toma—. El bando dice lo que dice.',
               },
             ],
           },
-          'La cuenta la hacés vos: el puente se cerró antes de que Tomé faltara.',
+          'El puente se cerró antes de que Tomé faltara.',
         ],
         next: 'a1_taberna',
       },
@@ -621,7 +636,7 @@ export const a1_orell_mesa = {
       label: 'Dejarlo tomar en paz',
       outcome: {
         text: [
-          'No preguntás nada. Terminan las jarras casi juntos y él se levanta primero, y al pasar te corre la banqueta para que no la pise el que viene atrás.',
+          'No preguntás nada. Al levantarse te corre la banqueta.',
         ],
         next: 'a1_taberna',
       },
@@ -646,16 +661,16 @@ export const a1_posada = {
   npcs: ['mausi'],
   onEnter: [{ removeCondition: 'all' }],
   text: [
-    'Arriba hay tres cuartos y dos tienen la puerta abierta, que es como decir vacíos. El tuyo tiene un jergón, una palangana y una vela corta. La manta pesa, y del lado de la pared está fría, y esa frialdad tarda en irse cuando te acostás.',
+    'Arriba hay tres cuartos y dos con la puerta abierta, que es como decir vacíos. El tuyo tiene un jergón, una palangana y una vela corta. La manta pesa y del lado de la pared está fría, y esa frialdad tarda en irse.',
     {
       speaker: 'mausi',
       variants: [
         {
-          text: '—Te dejo agua caliente en la puerta y no me la vuelques. —Cuelga tu capa del respaldo, a secar—. Dormí lo que puedas. Acá se madruga porque el río madruga.',
+          text: '—Te dejo agua caliente y no me la vuelques. —Cuelga tu capa a secar—. Dormí lo que puedas: acá se madruga porque el río madruga.',
         },
       ],
     },
-    'Te sacás lo mojado y lo colgás cerca de la vela. Por la ventana chica se ve el poste de bandos, y nada más.',
+    'Te sacás lo mojado y lo colgás cerca de la vela. Por la ventana se ve el poste de bandos y nada más.',
   ],
   choices: [
     {
@@ -663,7 +678,7 @@ export const a1_posada = {
       label: 'Dormir hasta que afloje la lluvia',
       outcome: {
         text: [
-          'No afloja. Dormís de a pedazos y te despierta el ruido de la lluvia cuando cambia de sitio en el techo. Cuando bajás, la plaza está igual y falta menos noche.',
+          'No afloja. Dormís de a pedazos: te despierta la lluvia cada vez que cambia de sitio en el techo. Al bajar, falta menos noche.',
         ],
         next: 'a1_plaza',
       },
@@ -678,7 +693,7 @@ export const a1_posada = {
       label: 'Salir derecho al molino, sin dormir',
       outcome: {
         text: [
-          'Bajás por la escalera de atrás, sin vela. El patio está abierto y el agua suena más cerca que hace un rato.',
+          'Bajás por la escalera de atrás, sin vela. El agua suena más cerca que hace un rato.',
         ],
         next: 'a1_molino',
       },
@@ -693,7 +708,7 @@ export const a1_posada = {
       label: 'Revisar tus cosas antes de acostarte',
       outcome: {
         text: [
-          'Ponés todo sobre el jergón y lo contás. Está lo que traías y no está lo que ya gastaste. La carta, si todavía la tenés, vuelve al trapo encerado, contra las costillas.',
+          'Ponés todo sobre el jergón y lo contás. Está lo que traías y no lo gastado. La carta, si la tenés, vuelve al trapo encerado.',
         ],
         next: 'a1_plaza',
       },
@@ -721,8 +736,8 @@ export const a1_ronda = {
   npcs: ['dravos', 'orell'],
   onEnter: [{ set: 'run:dravos_sabe' }],
   text: [
-    'Salen de dos calles a la vez y la plaza se cierra sola. Son seis con farol y dos sin. La lluvia repica en los yelmos con un ruido chico y parejo, y ese ruido te llega antes que ellos.',
-    'Adelante va uno sin farol, con sobreveste índigo y una traba de plata en el hombro. No se moja igual que los otros. Dos pasos atrás está el sargento de la barba gris, y mira el barro.',
+    'Salen de dos calles a la vez y la plaza se cierra sola. Seis con farol y dos sin. La lluvia repica en los yelmos con un ruido chico y parejo que llega antes.',
+    'Adelante va uno sin farol, con sobreveste índigo y una traba de plata en el hombro. No se moja igual que los otros. Dos pasos atrás, el sargento de barba gris mira el barro.',
     {
       speaker: 'orell',
       variants: [{ text: '—Capitán Dravos. Es el del camino del norte.' }],
@@ -731,7 +746,7 @@ export const a1_ronda = {
       speaker: 'dravos',
       variants: [
         {
-          text: '—De noche, bajo la lluvia, preguntando por un hombre que no está. —Se pone los guantes sin apuro—. Corresponde aclarar eso. Catorce hombres tiene esta guarnición y los catorce ya saben cómo sos de cara.',
+          text: '—De noche, bajo la lluvia, preguntando por un hombre que no está. —Se pone los guantes sin apuro—. Corresponde aclarar eso. Los catorce hombres de esta guarnición ya te vieron la cara.',
         },
       ],
     },
@@ -748,20 +763,20 @@ export const a1_ronda = {
         outcomes: {
           success: {
             text: [
-              'Contestás lo justo y no te movés del sitio. Dravos repite tu respuesta con otras palabras y no encuentra el hueco. Le hace una seña al sargento: te llevan caminando, y nadie te toca el brazo.',
+              'Contestás lo justo y no te movés. Dravos repite tu respuesta con otras palabras y no encuentra el hueco. Te llevan caminando, y nadie te toca.',
             ],
             next: 'c1_cuerpo',
           },
           partial: {
             text: [
-              'Aguantás las tres primeras preguntas. En la cuarta se te va la voz un tono y él se detiene ahí, sin subir la suya. —Corresponde que veas una cosa antes de seguir hablando. —Te sacan de la plaza entre cuatro.',
+              'Aguantás las tres primeras preguntas. En la cuarta se te va la voz un tono y él se detiene. —Corresponde que veas una cosa antes de seguir hablando. —Te sacan entre cuatro.',
             ],
             effects: [{ addCondition: 'asustado' }],
             next: 'c1_cuerpo',
           },
           failure: {
             text: [
-              'Se te nota antes de que abras la boca. Un guardia te pone la mano en el hombro y la sacás de un tirón. El cabo de la lanza te entra abajo de las costillas y el aire se te va de una. Dravos no levanta la voz ni una vez.',
+              'Un guardia te pone la mano en el hombro y la sacás de un tirón. El cabo de la lanza te entra abajo de las costillas y el aire se te va de una. Dravos no levanta la voz.',
             ],
             effects: [{ wound: 1 }],
             next: 'c1_cuerpo',
@@ -774,7 +789,7 @@ export const a1_ronda = {
       label: 'Escaparte entre las casas',
       outcome: {
         text: [
-          'Salís por el callejón de atrás del pozo, que es el único sin farol. Te siguen sin correr. El que no corre es porque sabe adónde da ese callejón.',
+          'Salís por el callejón del pozo, el único sin farol. Te siguen sin correr: el que no corre sabe adónde da.',
         ],
         effects: [{ addCondition: 'perseguido' }],
         next: 'c1_cuerpo',
@@ -785,7 +800,7 @@ export const a1_ronda = {
       label: 'Dejar que te lleven sin decir nada',
       outcome: {
         text: [
-          'No decís nada y no te resistís. Te llevan por el camino del río y no hacia la torre, y eso lo entendés recién cuando el barro se vuelve grava.',
+          'No decís nada. Te llevan por el camino del río y no hacia la torre. Lo entendés cuando el barro se vuelve grava.',
         ],
         next: 'c1_cuerpo',
       },
@@ -795,12 +810,11 @@ export const a1_ronda = {
       label: 'Preguntarle a Dravos por el molinero',
       outcome: {
         text: [
-          'Le preguntás por el molinero antes de que te pregunten a vos.',
           {
             speaker: 'dravos',
             variants: [
               {
-                text: '—El molinero. —Lo dice como quien lee un renglón—. Hay que ver primero y preguntar después. Corresponde hacerlo en ese orden.',
+                text: '—El molinero. —Lo dice como quien lee un renglón—. Primero ver, después preguntar. Corresponde ese orden.',
               },
             ],
           },
@@ -815,7 +829,7 @@ export const a1_ronda = {
       lockedHint: 'Orell todavía no te debe nada.',
       outcome: {
         text: [
-          'Mirás al sargento y el sargento tarda. Después da un paso adelante y dice que respondés vos, pero que vas con él. Dravos no discute delante de los hombres.',
+          'El sargento tarda. Después da un paso y dice que respondés vos, pero vas con él. Dravos no discute delante de los hombres.',
         ],
         next: 'c1_cuerpo',
       },
