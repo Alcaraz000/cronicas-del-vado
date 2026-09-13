@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { Campaign, Scene } from '@/content/schema';
 import type { RenderedChoice } from '@/engine/types';
 import { minimal } from '../fixtures/campaigns/minimal';
-import { agregar, porNumeroDePartida, resumir } from '../../tools/lib/simulate/agregado';
+import { PISO_TIRADAS_CODICIOSA, agregar, porNumeroDePartida, resumir } from '../../tools/lib/simulate/agregado';
 import { fusionarConMundo } from '../../tools/lib/simulate/campana';
 import { MAX_PASOS_POR_DEFECTO, parseArgs, rutaInforme } from '../../tools/lib/simulate/cli';
 import { alcanzablesSinMemoria, opcionesDeMemoria, todasLasOpciones, usaMemoria } from '../../tools/lib/simulate/grafo';
@@ -323,6 +323,35 @@ describe('agregado e informe', () => {
     expect(agregado.global.escenas.media).toBe(39);
     expect(agregado.global.escenasDistintas.media).toBe(27);
     expect(agregado.global.enObjetivo).toBe(1);
+  });
+
+  it('la cuarta aserción (piso de tiradas de la codiciosa) hace ok: false cuando no se llega al piso', () => {
+    // Oleada final de la Fase H, hallazgo D: `ok` es lo que fija el código de salida del comando
+    // (tools/lib/simulate/agregado.ts), y hasta ahora ningún test comprobaba que la cuarta
+    // aserción realmente lo apague — el test de proceso deriva su expectativa del propio stdout,
+    // así que pasaría igual si el piso no se evaluara nunca. Se aíslan las otras tres aserciones
+    // (cobertura completa de las 3 escenas de `minimal`, sin muertes, los cuatro finales
+    // presentes en las cuatro clases) para que la única que falle sea la de las tiradas.
+    const partida = (clase: (typeof CLASES)[number]): ResultadoPartida => ({
+      clase, nivel: 1, politica: 'codiciosa', carrera: 0, partida: 1,
+      desenlace: { kind: 'ending', endingId: 'm_fin' },
+      escenas: ['m_inicio', 'm_descanso', 'm_final'], opciones: [], palabras: 0, heridas: 0,
+      tiradas: 1, fallos: 0, fallosCrudos: 0, fortunaGastada: 0, poderUsado: false, hitos: [],
+      flags: [], nivelAntes: 1, nivelDespues: 1, xpDespues: 0, logRecortado: false,
+    });
+    const carrera: ResultadoCarrera = {
+      clase: 'guerrero', nivel: 1, politica: 'codiciosa', carrera: 0,
+      partidas: CLASES.map((clase) => partida(clase)),
+      xpFinal: 0, nivelFinal: 1, flagsPersonaje: [], flagsMundo: [],
+    };
+    const agregado = agregar(minimal, [carrera]);
+    // Las otras tres, en verde: si alguna de estas fallara, `ok: false` no probaría nada del piso.
+    expect(agregado.aserciones.escenasInalcanzables).toEqual([]);
+    expect(agregado.aserciones.muerteNivel1Codiciosa).toBe(0);
+    expect(agregado.aserciones.finalesFaltantesPorClase).toEqual([]);
+    // La cuarta, debajo del piso (PISO_TIRADAS_CODICIOSA = 3; acá la media da 1).
+    expect(agregado.aserciones.tiradasMediaCodiciosa).toBeLessThan(PISO_TIRADAS_CODICIOSA);
+    expect(agregado.aserciones.ok).toBe(false);
   });
 
   it('porNumeroDePartida agrupa por posición dentro de la carrera', () => {
