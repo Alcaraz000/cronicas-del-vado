@@ -4,7 +4,7 @@ import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
 import { fortuneMax } from '@/engine/progression';
 import { render as renderScene } from '@/engine/resolve';
-import type { RenderedScene } from '@/engine/types';
+import type { LogEntry, RenderedScene, SeenMap } from '@/engine/types';
 import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { precargarImagen } from '@/ui/assets';
@@ -15,10 +15,19 @@ import { useNombresDePnj } from '@/ui/components/Parrafos';
 import { RollPanel } from '@/ui/components/RollPanel';
 import { StatusBar } from '@/ui/components/StatusBar';
 import { TextColumn } from '@/ui/components/TextColumn';
+import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
+import { useRevelado } from '@/ui/hooks/useRevelado';
 import { S } from '@/ui/strings.es';
 import { esCampoDeTexto } from '@/ui/teclado';
 import { CargandoScreen } from './CargandoScreen';
 import styles from './EscenaScreen.module.css';
+
+// Referencias estables para cuando todavía no hay partida (`gs === null`): `useRevelado` es
+// un hook, tiene que llamarse siempre antes del `return` temprano de más abajo, con algo que
+// pasarle. Un array/objeto literal nuevo en cada render dispararía su efecto de reinicio sin
+// parar (ver el comentario de cabecera de `useRevelado.ts`).
+const LOG_VACIO: LogEntry[] = [];
+const SEEN_VACIO: SeenMap = {};
 
 /** Id de archivo del fondo (con la variante, si la escena declara una), resuelto vía `Place`. */
 function fondoIdDe(campaign: Campaign, rendered: RenderedScene): string {
@@ -65,6 +74,7 @@ export function EscenaScreen() {
   const campaign = useStore((s) => s.ui.campaign);
   const pending = useStore((s) => s.ui.pending);
   const showOdds = useStore((s) => s.prefs.showOdds);
+  const cps = useStore((s) => s.prefs.cps);
   const gs = useStore(useShallow(selectGameState));
   const choose = useStore((s) => s.choose);
   const beginRoll = useStore((s) => s.beginRoll);
@@ -81,6 +91,14 @@ export function EscenaScreen() {
   );
 
   const nombres = useNombresDePnj();
+
+  const reducida = useReducedMotion();
+  const revelado = useRevelado({
+    log: gs?.run.log ?? LOG_VACIO,
+    seen: gs?.seen ?? SEEN_VACIO,
+    cps,
+    instantaneo: cps === 0 || reducida,
+  });
 
   // Al entrar a la escena, se piden de antemano los fondos de las escenas a las que puede
   // llevar: simple caché del navegador, sin bloquear el render ni evaluar reglas.
@@ -104,6 +122,19 @@ export function EscenaScreen() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  // Enter y Espacio hacen lo mismo que un clic en la columna de texto: completan el párrafo
+  // en curso (o pasan al siguiente si ya estaba completo). Misma guarda que la tecla C.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (esCampoDeTexto(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      revelado.avanzar();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [revelado]);
 
   const onPick = useCallback(
     (choiceId: string): void => {
@@ -148,18 +179,19 @@ export function EscenaScreen() {
           )}
         </aside>
         <main className={styles.columna}>
-          <TextColumn log={gs.run.log} />
-          {pending !== null ? (
-            <RollPanel
-              pending={pending}
-              powerName={CLASSES[gs.character.classId].power.name}
-              onReroll={rerollDie}
-              onPower={usePower}
-              onContinue={commitRoll}
-            />
-          ) : (
-            <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
-          )}
+          <TextColumn log={gs.run.log} revelado={revelado} />
+          {revelado.terminado &&
+            (pending !== null ? (
+              <RollPanel
+                pending={pending}
+                powerName={CLASSES[gs.character.classId].power.name}
+                onReroll={rerollDie}
+                onPower={usePower}
+                onContinue={commitRoll}
+              />
+            ) : (
+              <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
+            ))}
         </main>
       </div>
     </div>

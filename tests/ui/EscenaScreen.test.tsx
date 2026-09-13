@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Campaign } from '@/content/schema';
+import type { LogEntry, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
 import { EscenaScreen } from '@/ui/screens/EscenaScreen';
 import { S } from '@/ui/strings.es';
@@ -59,8 +60,13 @@ const conArte: Campaign = {
   endings: {},
 };
 
-function montarEscena(campaign: Campaign): void {
-  const run = makeRun({ campaignId: campaign.id, contentVersion: campaign.contentVersion, sceneId: campaign.start });
+function montarEscena(campaign: Campaign, runOverrides: Partial<Run> = {}): void {
+  const run = makeRun({
+    campaignId: campaign.id,
+    contentVersion: campaign.contentVersion,
+    sceneId: campaign.start,
+    ...runOverrides,
+  });
   const character = makeCharacter({ run });
   useStore.setState((s) => ({
     characters: [character],
@@ -69,6 +75,16 @@ function montarEscena(campaign: Campaign): void {
     seen: {},
     ui: { ...s.ui, screen: 'escena', campaign, pending: null },
   }));
+}
+
+/** Una entrada 'scene' de log con la prosa que se quiera probar revelando. */
+function escenaLog(paragraphs: string[]): LogEntry {
+  return {
+    kind: 'scene',
+    sceneId: minimal.start,
+    paragraphs: paragraphs.map((text) => ({ text })),
+    hashes: paragraphs.map((_, i) => `h${i}`),
+  };
 }
 
 describe('EscenaScreen — arte', () => {
@@ -144,5 +160,93 @@ describe('EscenaScreen — la Ficha', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     input.remove();
+  });
+});
+
+describe('EscenaScreen — el revelado', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('con cps 0 el texto aparece entero y las opciones también', () => {
+    useStore.getState().setPrefs({ cps: 0 });
+    montarEscena(minimal, { log: [escenaLog(['Un texto que aparece entero de una.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.getByText('Un texto que aparece entero de una.')).toBeInTheDocument();
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('mientras se revela no hay opciones, y aparecen al terminar', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un texto largo que tarda en aparecer del todo, letra por letra.'])] });
+    render(<EscenaScreen />);
+
+    // Recién montado, con temporizadores falsos sin avanzar: nada de la opción está.
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+
+    act(() => { vi.advanceTimersByTime(10_000); });
+
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('un clic en la columna completa el párrafo en curso', () => {
+    montarEscena(minimal, {
+      log: [escenaLog(['Primero.', 'Segundo, bastante más largo, para notar que no se reveló solo.'])],
+    });
+    render(<EscenaScreen />);
+
+    // Antes del clic: con temporizadores falsos sin avanzar, el párrafo en curso no se ve.
+    expect(screen.queryByText('Primero.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('columna-texto'));
+
+    expect(screen.getByText('Primero.')).toBeInTheDocument();
+    expect(screen.queryByText('Segundo, bastante más largo, para notar que no se reveló solo.')).not.toBeInTheDocument();
+  });
+
+  it('Enter y Espacio hacen lo mismo que el clic', () => {
+    function completaConLaTecla(key: string): void {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo para completar con el teclado.'])] });
+      render(<EscenaScreen />);
+
+      expect(screen.queryByText('Un párrafo para completar con el teclado.')).not.toBeInTheDocument();
+      fireEvent.keyDown(window, { key });
+      expect(screen.getByText('Un párrafo para completar con el teclado.')).toBeInTheDocument();
+
+      cleanup();
+    }
+
+    completaConLaTecla('Enter');
+    completaConLaTecla(' ');
+  });
+
+  it('con movimiento reducido no hay revelado', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    montarEscena(minimal, { log: [escenaLog(['Todo de una porque hay movimiento reducido.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.getByText('Todo de una porque hay movimiento reducido.')).toBeInTheDocument();
+    expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
+  });
+
+  it('mientras el texto se revela, el teclado 1-9 de las opciones no hace nada (la lista ni se montó)', () => {
+    montarEscena(minimal, { log: [escenaLog(['Un texto largo que todavía no terminó de aparecer del todo.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+
+    // Si el listener de OptionList estuviera montado, esto elegiría la primera opción
+    // habilitada a ciegas. Como la lista todavía no se dibujó, no debería pasar nada.
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
+    expect(useStore.getState().characters[0]?.run?.sceneId).toBe(minimal.start);
   });
 });

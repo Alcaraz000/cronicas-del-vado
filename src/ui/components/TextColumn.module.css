@@ -7,6 +7,8 @@
   font-family: var(--fuente-juego);
   font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
   line-height: var(--interlineado-juego);
+  /* Un clic acá completa el párrafo en curso del revelado (tarea 9). */
+  cursor: pointer;
 }
 
 .escena {

@@ -78,6 +78,25 @@ describe('useRevelado', () => {
     expect(result.current.caracteresVisibles).toBe(0);
   });
 
+  it('dos entradas de escena con contenido idéntico pero objetos distintos reinician el revelado', () => {
+    // El caso real: una ronda de combate (o una opción de `a1_plaza`) que vuelve a la MISMA
+    // escena con el MISMO texto. El motor arma un objeto de log nuevo siempre (nunca reusa
+    // la referencia de la entrada anterior), así que dos entradas de contenido idéntico deben
+    // reiniciar el revelado igual que si el contenido fuera distinto. Si la señal de "entrada
+    // nueva" volviera a ser una huella por contenido, este caso NO se detectaría: es
+    // exactamente el bug que quedó abierto tras la tarea 8.
+    const primera = escena(['ab'], ['h1']);
+    const { result, rerender } = renderHook((props: { log: LogEntry[] }) =>
+      useRevelado({ log: props.log, seen: {}, cps: 40, instantaneo: false }), { initialProps: { log: [primera] } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    // Mismo contenido exacto ('ab', ['h1']), pero un objeto NUEVO: no es `primera`.
+    const segundaConElMismoContenido = escena(['ab'], ['h1']);
+    rerender({ log: [segundaConElMismoContenido] });
+    expect(result.current.terminado).toBe(false);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
   it('si la última entrada no lleva prosa, no hay nada que revelar', () => {
     const log: LogEntry[] = [
       escena(['ab'], ['h1']),
@@ -88,10 +107,16 @@ describe('useRevelado', () => {
   });
 
   it('ofrece saltar leído solo si el párrafo en curso ya se leyó antes', () => {
+    // Los logs van en un `const` FUERA del callback de `renderHook`: si estuvieran adentro,
+    // cada render (p. ej. el que dispara el efecto de reinicio al montar) armaría un array
+    // nuevo, `log[log.length - 1]` sería una referencia nueva en cada vuelta, y el efecto de
+    // reinicio (atado a esa identidad) entraría en bucle infinito.
     const seen: SeenMap = { m_inicio: ['h1'] };
-    const sinLeer = renderHook(() => useRevelado({ log: [escena(['ab'], ['hX'])], seen, cps: 40, instantaneo: false }));
+    const logSinLeer = [escena(['ab'], ['hX'])];
+    const sinLeer = renderHook(() => useRevelado({ log: logSinLeer, seen, cps: 40, instantaneo: false }));
     expect(sinLeer.result.current.puedeSaltarLeido).toBe(false);
-    const leido = renderHook(() => useRevelado({ log: [escena(['ab'], ['h1'])], seen, cps: 40, instantaneo: false }));
+    const logLeido = [escena(['ab'], ['h1'])];
+    const leido = renderHook(() => useRevelado({ log: logLeido, seen, cps: 40, instantaneo: false }));
     expect(leido.result.current.puedeSaltarLeido).toBe(true);
   });
 
@@ -106,9 +131,10 @@ describe('useRevelado', () => {
   });
 
   it('si toda la entrada ya se leyó, saltar leído la muestra entera', () => {
+    // Mismo motivo que el test anterior: el log es un `const` fuera del callback.
     const seen: SeenMap = { m_inicio: ['h1', 'h2'] };
-    const { result } = renderHook(() =>
-      useRevelado({ log: [escena(['uno', 'dos'], ['h1', 'h2'])], seen, cps: 40, instantaneo: false }));
+    const log = [escena(['uno', 'dos'], ['h1', 'h2'])];
+    const { result } = renderHook(() => useRevelado({ log, seen, cps: 40, instantaneo: false }));
     act(() => { result.current.saltarLeido(); });
     expect(result.current.terminado).toBe(true);
   });

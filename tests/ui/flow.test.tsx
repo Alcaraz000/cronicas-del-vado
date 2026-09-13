@@ -52,7 +52,11 @@ function reiniciarStore(): void {
     activeCharacterId: null,
     world: { flags: [], fallen: [] },
     seen: {},
-    prefs: { cps: 40, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
+    // cps: 0 (instantáneo): este archivo prueba el FLUJO del juego, no el ritmo del
+    // revelado (tarea 9) — con cps > 0 y temporizadores reales, esperar a que cada escena
+    // termine de tipearse letra por letra antes de que aparezcan las opciones haría estos
+    // tests lentos y, con textos largos, directamente los haría fallar por timeout.
+    prefs: { cps: 0, showOdds: true, fontScale: 1, reducedMotion: 'auto' },
     ui: { screen: 'inicio', campaign: null, pending: null, error: null, endSummary: null, ganancia: null, subidaPendiente: null },
   });
 }
