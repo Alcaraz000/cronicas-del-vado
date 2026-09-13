@@ -217,6 +217,28 @@ describe('RollPanel', () => {
     expect(screen.getByRole('button', { name: S.tirada.continuar })).toHaveFocus();
   });
 
+  /**
+   * Oleada final de la Fase H, hallazgo A: `acciones.current?.querySelector('button')` agarra el
+   * PRIMER botón del DOM, y con Fortuna disponible ese primero es "Repetir dado 1"
+   * (`pending.canReroll`, que sale de `run.fortune > 0` — un personaje recién empezado tiene 3 de
+   * 3). El jugador de teclado que aprieta Enter para seguir termina gastando Fortuna sin querer.
+   * El foco tiene que ir siempre a "Continuar", sea cual sea su posición en el DOM.
+   */
+  it('con Fortuna disponible, el foco va a Continuar y no al primer botón de Repetir', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: true, canUsePower: false })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('button', { name: /Fortuna/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toHaveFocus();
+  });
+
   it('si hay un modal abierto cuando se asienta, no le roba el foco', () => {
     useStore.getState().setPrefs({ reducedMotion: 'on' });
     const cerrarModal = marcarModalAbierto();

@@ -38,7 +38,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
   const [girando, setGirando] = useState(!reducedMotion);
   const timerRef = useRef<number | undefined>(undefined);
   const rerollsVistos = useRef(pending.rerolls.length);
-  const acciones = useRef<HTMLDivElement>(null);
+  const continuarRef = useRef<HTMLButtonElement>(null);
 
   const limpiarTimer = (): void => {
     if (timerRef.current !== undefined) {
@@ -88,12 +88,19 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
   // foco sin interrumpir nada que se esté leyendo. Sin esto, "Continuar" (o "Repetir"/el Poder)
   // se desmonta al consolidar la tirada y el foco cae a `<body>`.
   //
+  // Hallazgo de la oleada final: el foco va SIEMPRE a "Continuar" (`continuarRef`), nunca al
+  // primer `<button>` del DOM. Ese primero, cuando `pending.canReroll` (o sea casi siempre: un
+  // personaje recién empezado tiene 3 de 3 de Fortuna), es "Repetir dado N" — un botón
+  // destructivo y sin confirmación que gasta un punto de Fortuna. El jugador de teclado que
+  // aprieta Enter para seguir no puede terminar gastando uno de los tres recursos que tiene en
+  // toda la partida.
+  //
   // `hayModalAbierto()` puede ser verdadero acá (la Ficha se puede abrir con una tirada
   // pendiente): si hay uno, la trampa de foco del modal manda y esto no le roba el foco.
   useEffect(() => {
     if (!asentado) return;
     if (hayModalAbierto()) return;
-    acciones.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    continuarRef.current?.focus();
   }, [asentado]);
 
   const resaltado = pending.rerolls.length > 0 ? pending.rerolls[pending.rerolls.length - 1] : undefined;
@@ -116,7 +123,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
             <span aria-hidden="true">{S.tirada.icono[pending.band]}</span> {S.tirada.banda[pending.band]}
           </p>
 
-          <div ref={acciones} className={styles.acciones}>
+          <div className={styles.acciones}>
             {pending.canReroll &&
               pending.dice.map((_, i) => (
                 <button key={i} type="button" className={styles.secundario} onClick={() => onReroll(i)}>
@@ -128,7 +135,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
                 {S.tirada.poder(powerName)}
               </button>
             )}
-            <button type="button" className={styles.primario} onClick={onContinue}>
+            <button type="button" ref={continuarRef} className={styles.primario} onClick={onContinue}>
               {S.tirada.continuar}
             </button>
           </div>
