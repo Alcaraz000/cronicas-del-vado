@@ -295,7 +295,7 @@ export const c1_cuerpo = {
       label: 'Enterrarlo vos, con las manos',
       outcome: {
         text: [
-          'Cavás con las manos en la grava, arriba de la línea del agua. Del banco del norte, un hombre que carga una barca se queda quieto.',
+          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Del banco del norte, un hombre que carga una barca se queda quieto.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }, { clock: 'sospecha', delta: 1 }],
         next: 'c1_acusacion',

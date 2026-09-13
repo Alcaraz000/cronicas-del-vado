@@ -802,7 +802,7 @@ export const a1_molino_trampilla = {
   text: [
     'Una tapa de roble a ras del piso, con herraje y sin candado. Pesa lo que una puerta y no queda abierta sola: la calzás. Por la juntura sube aire a piedra mojada y hierro frío.',
     'Abajo hay una escalera de las que se atan arriba y nueve escalones hasta un piso de agua quieta. La madera está mojada hasta la mitad, y hasta ahí nomás.',
-    'En la cara de adentro de la tapa hay signos tallados. Unos comidos por los años; otros con el corte fresco, hecho sin pulso.',
+    'En la cara de adentro de la tapa hay signos tallados en una banda. Unos comidos por los años; otros con el corte fresco, hecho sin pulso.',
   ],
   choices: [
     // Único `fumble` de esta tanda (outline §5/r04).
