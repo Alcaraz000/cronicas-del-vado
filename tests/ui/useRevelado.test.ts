@@ -61,6 +61,23 @@ describe('useRevelado', () => {
     expect(result.current.caracteresVisibles).toBe(0);
   });
 
+  it('con el log recortado (largo constante) una entrada nueva igual reinicia el revelado', () => {
+    // El motor recorta el log a LIMITS.maxLog (`resolve.ts` hace `.slice(...)`): una vez
+    // alcanzado el tope, `log.length` queda constante para siempre aunque sigan llegando
+    // entradas nuevas. La señal de "hay una entrada nueva" no puede ser `log.length`.
+    const frente: LogEntry = { kind: 'choice', sceneId: 'm_prev', choiceId: 'ir', label: 'Ir' };
+    const ventana1 = [frente, escena(['ab'], ['h1'])];
+    const { result, rerender } = renderHook((props: { log: LogEntry[] }) =>
+      useRevelado({ log: props.log, seen: {}, cps: 40, instantaneo: false }), { initialProps: { log: ventana1 } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(result.current.terminado).toBe(true);
+    // Ventana de largo IDÉNTICO (2), como tras el recorte: solo cambia la última entrada.
+    const ventana2 = [frente, escena(['zz'], ['h2'])];
+    rerender({ log: ventana2 });
+    expect(result.current.terminado).toBe(false);
+    expect(result.current.caracteresVisibles).toBe(0);
+  });
+
   it('si la última entrada no lleva prosa, no hay nada que revelar', () => {
     const log: LogEntry[] = [
       escena(['ab'], ['h1']),
