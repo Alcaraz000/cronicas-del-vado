@@ -51,7 +51,9 @@ import type { Scene } from '@/content/schema';
  * tres `effects`, con sus `label`:
  *   1. `c2_orilla.remar_en_la_barca_de_tome` paga +1 de `sospecha` (primera vuelta, tabla del brief).
  *   2. `c2_vado_crecido.entregar_lo_que_llevas` → `{ addCondition: 'perseguido' }` (segunda vuelta).
- *   3. `c2_otra_orilla.dejar_el_sello_en_la_cadena` → `{ addCondition: 'empapado' }` (segunda vuelta).
+ *   3. `c2_otra_orilla.dejar_el_sello_en_la_cadena` → `{ addCondition: 'empapado' }` (segunda vuelta),
+ *      y su prosa dejó de usar una variante por `{ item: 'sello_del_vado' }`, que era prosa muerta:
+ *      el desenlace hace `take` de ese mismo objeto. Ver la nota (c) y el comentario de la opción.
  * Las dos de la segunda vuelta salen de la MEDICIÓN, no de la tabla: la traza del simulador mostró
  * que la ruta de la política prudente cruza el cuello 2 por esas dos y no pagaba nada físico en todo
  * el tramo más peligroso de la campaña. Ninguna de las dos cobra `sospecha`, a propósito: el reloj
@@ -157,8 +159,16 @@ import type { Scene } from '@/content/schema';
  *     `c2_otra_orilla`, que tiene el mismo problema al revés: hace `take` de algo que quizá no
  *     tenés). Las dos están escritas con `Paragraph` de dos variantes. **Anotar en la biblia §11.**
  * (c) **`c2_vado_crecido.cruzar_de_frente` hace `take: 'carta_lacrada'` en `partial` y en `fumble`**,
- *     y un jugador puede llegar sin la carta (se gasta de cuatro maneras, §5). El `take` es inocuo
+ *     y un jugador puede llegar sin la carta (se gasta de cinco maneras, §5). El `take` es inocuo
  *     para el motor, pero el texto no: `partial` lleva variante por `{ item: 'carta_lacrada' }`.
+ *     **ESA VARIANTE NO FUNCIONA Y ESTA RECETA NO SE COPIA** (hallazgo de la Fase H). `choose` y
+ *     `commitRoll` aplican los `effects` ANTES de resolver el texto del desenlace
+ *     (`resolve.ts:265-267` y `473-489`), así que cuando se evalúa `{ item: 'carta_lacrada' }` el
+ *     `take` ya corrió y la condición es falsa siempre: el que llega con la carta lee igual el texto
+ *     del que no la tiene. **Queda como deuda**: es prosa de la Fase D, vive en la escena mortal y
+ *     no se toca desde la Fase H, pero un test de contenido la tiene fijada para que no aparezca una
+ *     segunda. La forma correcta, la que usan `c1_acusacion.ceder` y
+ *     `c2_otra_orilla.dejar_el_sello_en_la_cadena`, es **prosa verdadera con el objeto y sin él**.
  * (d) Presupuesto MEDIDO contra el outline §2, escena por escena (toda la prosa escrita, variantes
  *     incluidas; no se cuentan `label` ni `lockedHint`):
  *       `a2_fuera_fuga` 280/194 · `a2_fuera_sotano` 425/390 · `a2_fuera_sello` 392/339 ·
@@ -1343,23 +1353,21 @@ export const c2_otra_orilla = {
     // FASE H · tarea 2, segunda vuelta. Era la otra manera de salir del cuello 2 sin pagar nada:
     // esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— y no cobraba nada a
     // cambio. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche:
-    // el precio es meterse, y las dos variantes lo dicen ahora. Condición y no reloj, a propósito.
+    // el precio es meterse. Condición y no reloj, a propósito.
+    //
+    // LA PROSA NO NOMBRA LA PIEDRA, y es el mismo motivo que en `c1_acusacion.ceder`: este desenlace
+    // hace `take: 'sello_del_vado'` y `choose` aplica los `effects` ANTES de resolver el texto
+    // (`resolve.ts:265-267`), así que una variante `when: { item: 'sello_del_vado' }` acá no se
+    // dispara nunca. La versión anterior tenía una y el que llegaba con la piedra leía el fallback
+    // —«y no la tocás»— mientras el motor se la sacaba y encendía `run:sello_escondido`, que los
+    // cuatro epílogos leen como que la piedra quedó en el agua. Ahora se describe la maniobra, que
+    // es la misma traiga o no traiga la piedra, y el efecto se encarga del resto.
     {
       id: 'dejar_el_sello_en_la_cadena',
       label: 'Meterte al agua, dejar el sello y no volver',
       outcome: {
         text: [
-          {
-            variants: [
-              {
-                when: { item: 'sello_del_vado' },
-                text: 'Entrás hasta la cintura, sacás la piedra del trapo, la atás a un eslabón y la dejás bajar hasta que la cadena la frena.',
-              },
-              {
-                text: 'Vas hasta la punta del tablón con el agua encima y no la tocás. Lo que esté ahí abajo está mejor abajo que en la mesa.',
-              },
-            ],
-          },
+          'Entrás hasta la cintura y seguís la cadena con la mano, eslabón por eslabón, hasta donde el agua no deja ver. Atás corto lo que tenga que quedar abajo y dejás que la corriente lo acomode contra el hierro.',
           'Volvés con las manos vacías y chorreando. Ninguno de los que entren esta noche va a saber dónde mirar.',
         ],
         effects: [

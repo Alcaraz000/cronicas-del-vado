@@ -725,6 +725,37 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
    * tiene que ser verdadera con la carta y sin ella: no puede afirmar que te sacan algo que la ruta
    * del jugador quizá ya gastó (la prudente llega acá sin la carta, la entregó en el puente).
    */
+  /**
+   * La regla general detrás del caso de `ceder`, como regresión sobre las 46 escenas.
+   *
+   * Después de que corren los `effects`, la condición `{ item: X }` es determinista: tras un
+   * `take: X` es siempre falsa, así que la variante que la usa es prosa muerta y el jugador lee el
+   * fallback, que suele decir lo contrario de lo que acaba de pasarle.
+   *
+   * Queda UNA sola, anotada y no arreglada acá: `c2_vado_crecido.cruzar_de_frente.partial` es de la
+   * Fase D (lote 5), vive en la escena mortal y su prosa no es de esta tarea. La lista de abajo es
+   * el candado: si aparece una segunda, este test se cae.
+   */
+  it('ninguna variante por objeto vive en el mismo desenlace que se lleva ese objeto', () => {
+    const muertas: string[] = [];
+    for (const scene of escenas) {
+      for (const choice of scene.choices) {
+        const bandas: [string, Outcome][] = choice.outcome
+          ? [[`${scene.id}/${choice.id}`, choice.outcome]]
+          : desenlaces(choice).map((o, i) => [`${scene.id}/${choice.id}[${i}]`, o]);
+        for (const [etiqueta, banda] of bandas) {
+          const llevados = (banda.effects ?? []).flatMap((e) => ('take' in e ? [e.take] : []));
+          if (llevados.length === 0) continue;
+          const plano = JSON.stringify(banda.text ?? []);
+          for (const id of llevados) {
+            if (plano.includes(`"item":"${id}"`)) muertas.push(etiqueta);
+          }
+        }
+      }
+    }
+    expect(muertas.sort()).toEqual(['c2_vado_crecido/cruzar_de_frente[1]']);
+  });
+
   it('la prosa de ceder no afirma un objeto que el jugador puede no tener', () => {
     const choice = opcion('c1_acusacion', 'ceder');
     const plano = JSON.stringify(choice?.outcome?.text ?? []);

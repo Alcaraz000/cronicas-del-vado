@@ -585,8 +585,13 @@ export const cl_dravos = {
       // no entre dos clases: ahora las dos pagan la misma moneda, la que el motor sí lee (3 = Caído).
       // El `pelea +3` se queda: que cierre el encuentro es el contrato de biblia §9.5 para esta
       // opción, y lo que estaba mal no era que cerrara sino que cerrara gratis.
+      //
+      // El `label` NO anuncia la Herida, y es a propósito: el de `trabar_el_eje` tampoco anuncia la
+      // suya. Las doce opciones `[Clase]` ya llevan el badge que el motor deriva de su `requires`, y
+      // biblia §10 pide que el precio se diga sin nombrar la mecánica: acá vive en el texto, en las
+      // rodillas en el agua y la nariz sangrando.
       id: 'apagar_la_runa_un_latido',
-      label: 'Apagar la runa un latido, y pagarlo',
+      label: 'Apagar la runa un latido',
       requires: { class: 'mago' },
       lockedHint: 'Solo un Mago le hace callar una runa.',
       outcome: {

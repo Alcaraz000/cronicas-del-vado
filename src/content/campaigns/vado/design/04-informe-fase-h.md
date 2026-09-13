@@ -207,6 +207,12 @@ las tres están fuera de la tabla de esta tarea:
 
 ## 5. Anexo — segunda vuelta: cobrar donde la medición dice
 
+> **Dos filas de este anexo las superó la ronda de arreglos 1 (§6), y están corregidas en su sitio:**
+> el costo de `cl_molino.encarar_a_dravos` pasó de `{ set: 'run:dravos_sabe' }` —que no lo leía
+> nadie— a `{ addCondition: 'perseguido' }`, y la prosa de
+> `c2_otra_orilla.dejar_el_sello_en_la_cadena` dejó de usar una variante por objeto que era prosa
+> muerta. Las etiquetas de las dos también cambiaron. Lo vigente es siempre el §3 y el §6.
+
 El §4 midió que la ruta real de la política prudente no pasa por cinco de las seis opciones de la
 tabla. La decisión fue **cobrar donde la medición señala**, y no abrir una tarea aparte: las tres
 palancas están todas en escenas bisagra, así que es el mismo principio ya aprobado puesto donde hace
@@ -216,8 +222,8 @@ gastó un tic. Las monedas acá son una relación, dos condiciones y una Herida.
 | Escena · opción | Costo nuevo | Por qué es consistente |
 |---|---|---|
 | `c2_vado_crecido.entregar_lo_que_llevas` | `{ addCondition: 'perseguido' }` | Era la manera de cruzar el tramo más peligroso de la campaña sin pagar nada físico: el que llega sin la piedra entregaba un bulto vacío y lo pasaban gratis. La escena ya narraba el precio: desde la isla **dicen tu nombre, que ya lo tienen**, bajan dos hombres y te suben en vilo "como una mercadería". `perseguido` es exactamente eso: llegás siendo carga suya y no te sueltan. **Sigue sin poder matar** y su prosa sigue sin una palabra de muerte, como pide biblia §11 para las opciones 3, 4 y 5. |
-| `c2_otra_orilla.dejar_el_sello_en_la_cadena` | `{ addCondition: 'empapado' }` | Era la otra salida gratis del cuello 2: esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— sin cobrar nada. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche: el precio es meterse, y las dos variantes del texto lo dicen ahora. |
-| `cl_molino.encarar_a_dravos` | `{ set: 'run:dravos_sabe' }` | Era la primera libre del clímax y la única de sus cuatro libres sin costo. Lo que se paga por salir al claro y decirlo es la última ventaja que queda: la sorpresa. Es la moneda propia de la escena —la usan `rendirte_de_entrada` y el fallo de `escuchar`— y su **ausencia** es lo que abre `interrumpir_antes_de_que_firmen`. Una relación que se enfría, no un tic de reloj. |
+| `c2_otra_orilla.dejar_el_sello_en_la_cadena` | `{ addCondition: 'empapado' }` | Era la otra salida gratis del cuello 2: esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— sin cobrar nada. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche: el precio es meterse. **(Corregido en el §6.1: la versión de esta vuelta tenía una variante por `{ item: 'sello_del_vado' }` que era prosa muerta, porque el desenlace hace `take` de ese mismo objeto. Ahora la prosa describe la maniobra y es verdadera con la piedra y sin ella.)** |
+| `cl_molino.encarar_a_dravos` | ~~`{ set: 'run:dravos_sabe' }`~~ → **`{ addCondition: 'perseguido' }`** | Era la primera libre del clímax y la única de sus cuatro libres sin costo. **El cobro de esta vuelta fue decorativo y el §6.2 lo reemplazó:** nada lee `run:dravos_sabe` después de `cl_molino`. Lo que se paga ahora es la salida, y la lee la única tirada del encuentro con tag `huida`. |
 | `cl_dravos.huir_escaleras_abajo` | `empapado` en el éxito · `{ wound: 1 }` en el parcial | Era la **única** salida del encuentro que no movía el reloj `pelea` y no cobraba nada en dos de sus tres bandas: las otras cinco piden haber peleado, la piedra, el flag de Orell, una Herida o quedar Agotado. El éxito cobra lo que su propio texto ya narraba ("el agua de abajo está más fría y te recibe entera") y el parcial cobra el medio escalón que te llevás puesto, que es la gramática de esta campaña para un parcial: pasás pagando. |
 
 Las cuatro se anuncian en la etiqueta, igual que las seis de la primera vuelta:
@@ -226,7 +232,8 @@ Las cuatro se anuncian en la etiqueta, igual que las seis de la primera vuelta:
 |---|---|
 | Entregar lo que llevás y que te pasen | **Entregar lo que llevás y cruzar bajo custodia** |
 | Dejar el sello donde está y no volver | **Meterte al agua, dejar el sello y no volver** |
-| Encarar a Dravos delante de todos | **Encarar a Dravos y que sepa que sabés** |
+| Apagar la runa un latido | **Apagar la runa un latido** (sin cambio: el precio vive en el texto, §6.4) |
+| Encarar a Dravos delante de todos | ~~Encarar a Dravos y que sepa que sabés~~ → **Encarar a Dravos y quedarte sin puerta atrás** (§6.2) |
 | Huir escaleras abajo, hacia el sótano | **Huir escaleras abajo, al agua del sótano** |
 
 ### Lo que dio la segunda medición
@@ -408,3 +415,81 @@ Heridas, menos partidas metidas en el bucle que llega a tres.
 Lo dejo como está y lo anoto, porque lo que muestra no es un problema del contenido sino un límite
 del instrumento: `prudente` maximiza la probabilidad de éxito de la tirada y no mira la consecuencia
 de la banda. Un jugador real sí la mira.
+
+---
+
+## 7. Anexo — ronda de arreglos 2
+
+### 7.1 La segunda prosa muerta, y el candado para que no haya una tercera
+
+`c2_otra_orilla.dejar_el_sello_en_la_cadena` tenía el mismo defecto que `c1_acusacion.ceder`, y peor:
+la variante `when: { item: 'sello_del_vado' }` vivía en el **mismo desenlace** que hace
+`take: 'sello_del_vado'`, así que el que llegaba con la piedra leía siempre el fallback —«y no la
+tocás»— mientras el motor se la sacaba y encendía `run:sello_escondido`, que los cuatro epílogos leen
+como que la piedra quedó en el agua. Prosa de la segunda vuelta, y el comentario de la opción y el §5
+afirmaban los dos que "las dos variantes lo dicen", cuando solo una podía mostrarse.
+
+Arreglado con el mismo criterio que `ceder`: **prosa verdadera en los dos casos, sin variante por
+objeto**. Se describe la maniobra, que es la misma traiga o no traiga la piedra — entrás hasta la
+cintura, seguís la cadena eslabón por eslabón, atás corto lo que tenga que quedar abajo — y el efecto
+se encarga del resto. De paso baja 12 palabras escritas en una escena que estaba 31 % por encima de
+su celda.
+
+**Y en vez de arreglar solo la que me señalaron, escaneé las 46 escenas.** Hay exactamente dos
+instancias en la campaña: esta y `c2_vado_crecido.cruzar_de_frente.partial`. La segunda es de la Fase
+D (lote 5), vive en la escena mortal, su prosa no es de esta tarea y **no la toqué**. Pero ahora hay
+un test de contenido que fija la lista en esa única entrada: si aparece una tercera, se cae.
+
+Los dos casos vecinos que **sí** funcionan quedaron intactos, como pediste: la variante de
+`fin_hundido` por `medallon_de_tome` (vive en `ending.epilogue`, no en el desenlace que hace el
+`take`, y su semántica buscada es justamente "la esquirla te quedó en la mano") y la de
+`atar_lo_que_llevas_a_la_cadena` (su desenlace no hace `take`, así que la condición sigue siendo
+informativa).
+
+### 7.2 Los cuatro chicos
+
+- **§5 del informe:** le puse el mismo banner de "superado" que al §3, y corregí en su sitio las dos
+  filas que declaraban como vigente lo que el §6 reemplazó (el costo y la etiqueta de
+  `encarar_a_dravos`, y la afirmación sobre las dos variantes de `dejar_el_sello_en_la_cadena`).
+- **Biblia §7.2, fila de `run:dravos_sabe`:** decía que lo leen "variantes de `cl_molino`,
+  `cl_dravos` y los epílogos" y se contradecía con el corolario nuevo de §10. Ahora dice lo que es
+  verdad y lo que verifiqué: **solo `cl_molino`**, y las dos lecturas se evalúan antes de elegir.
+- **Biblia §9.5, opción del mago:** decía "(cierra el encuentro sin pelear)" sin el precio, al lado
+  de la del guerrero que sí anota el suyo. Ahora anota la Herida y el `agotado`, y por qué se los
+  puso la Fase H.
+- **La etiqueta del mago:** «Apagar la runa un latido, y pagarlo» era registro meta y contradecía la
+  regla que acababa de escribir en biblia §10. Vuelve a «Apagar la runa un latido», como su hermana
+  `trabar_el_eje`: las doce `[Clase]` ya llevan el badge que el motor deriva del `requires`, y el
+  precio vive en el texto —las rodillas en el agua, la nariz sangrando.
+- **La nota (c) de `acto2_fuera.ts`:** era la receta mala en el archivo que alguien abre para tocar
+  el vado. Ahora dice, ahí mismo, que esa variante no funciona, por qué, que queda como deuda y cuál
+  es la forma correcta, con las dos opciones que ya la usan como ejemplo.
+
+### 7.3 La aserción 4: esta ronda no la mueve, y sé por qué se movió antes
+
+**3,3 antes y después de esta ronda.** Los cambios fueron prosa, etiquetas y documentación: nada que
+toque odds ni efectos.
+
+Los 0,2 se los comió la ronda anterior, y el mecanismo es estructural, no casual:
+
+1. `modifiers.ts:54-62` aplica **desventaja** por cada condición cuyo tag coincida con la tirada, por
+  1 Herida en las tiradas `fisico` y por 2 Heridas en **todas**.
+2. `politicas.ts` define la codiciosa como "elegí la de mayor probabilidad de éxito, y puntuá ceder
+  con `PROB_LIBRE = 0.7`" — un **piso fijo**.
+
+O sea: **cada costo que se cobra en una condición o en una Herida baja las probabilidades reales de
+las tiradas siguientes, y la codiciosa las compara contra un 0,7 que no se mueve, así que cede un
+poco más.** Y la aserción 4 mide exactamente cuánto tira la codiciosa. Se ve en la fila que más se
+movió: el guerrero nivel 1 codiciosa pasó de 0,17 a **1,22** Heridas y de 3,0 a **2,8** tiradas.
+
+No es un defecto de esta tarea ni del instrumento: es el acoplamiento entre "cobrar con Heridas" y
+"medir cuánto arriesga el que maximiza". Pero conviene que esté escrito: **el margen hoy es 3,3
+contra un piso de 3,0, y toda tarea que agregue condiciones o Heridas se lo va a seguir comiendo.**
+La palanca de diseño, si algún día hace falta, es `PROB_LIBRE`, que el propio comentario del
+simulador declara "un botón de diseño, no una constante física".
+
+### 7.4 Los números, sin cambios respecto del §3
+
+La medición de esta ronda dio lo mismo que la anterior en todas las filas de la prudente y en la
+campaña entera: derrota 23,1 %, muerte 1,6 %, heridas 1,33, tiradas 6,4, distintas 25,1 (74,8 %
+dentro de 24–30), las cuatro aserciones pasan. Era lo esperable: no se tocó ni un efecto.
