@@ -73,14 +73,14 @@ import type { Scene } from '@/content/schema';
  * está en la lista de quemados de §2.7.
  *
  * TRES ANOTACIONES PARA EL DISEÑO (no se tocó nada; se anota y se sigue).
- * (a) `p_puente_amanecer` = 84 palabras es la celda más apretada de la campaña. Con `text` base de
- *     60 quedan 24 para cinco opciones, y dos de ellas (`bajar_al_vado_antes_de_que_aclare` y
+ * (a) `p_puente_amanecer` = 84 palabras era una celda **mal calculada**, no exigente. Con `text` base
+ *     de 60 quedaban 24 para cinco opciones, y dos de ellas (`bajar_al_vado_antes_de_que_aclare` y
  *     `seguir_la_orilla_hasta_el_sauce`) comparten `next` y no tienen `effects`, así que §2.5
- *     obliga a pagarlas con texto. **FASE H · tarea 4**: la escena entra en la tolerancia del
- *     linter (103 escritas contra 84, +23 %) con el texto base en el piso de la banda (60) y los
- *     cinco desenlaces entre 8 y 14 palabras, o sea la mitad del piso de 20 de la biblia §2.3.
- *     Entra, pero entra raspando y a costa de desenlaces telegráficos. **Sigue en pie la
- *     recomendación: subir la celda a ~200 en el outline §2, o colapsar dos de las cinco opciones.**
+ *     obliga a pagarlas con texto. **SALDADO en la Fase H · tarea 4**: la celda sube a **160** por
+ *     el piso aritmético del outline §2.1 (`text` 60 + 5 desenlaces × 20 del piso de la biblia
+ *     §2.3), y la prosa que las 84 habían forzado a tirar está restituida —la muela del sargento en
+ *     `compartir_el_pan_con_la_guardia` y el silencio de Orell en `preguntarle_por_tome`—. La escena
+ *     mide 192 contra 160 y sus cinco desenlaces vuelven a estar dentro de la banda de 20-60.
  * (b) Geografía: la biblia §1.3 pone la torre de la guardia en la punta **norte** del puente, pero
  *     el `canonPrompt` de `puente_viejo` la pinta en la punta **lejana**, con el pueblo detrás. Como
  *     el fondo pintado es lo que el jugador ve, esta prosa sigue la imagen: barricada cerca, torre
@@ -91,10 +91,10 @@ import type { Scene } from '@/content/schema';
  *     `p_vado_oculto` y ninguna línea dice "a oscuras". **Resolver en la biblia antes del lote 2.**
  * (d) Presupuesto medido, escena por escena, DESPUÉS del recorte de la Fase H · tarea 4:
  *     `p_camino` 349/396 · `p_puente` 573/556 · `p_puente_rechazo` 319/284 · `p_vado_oculto` 414/389
- *     · `p_puente_amanecer` 103/84. Total 1.758 contra las 1.709 del outline §3 (+2,9 %); antes del
- *     recorte eran 1.944 (+13,8 %). La causa del resto es la misma que ya estaba anotada: la tabla
- *     presupuesta 12 palabras de `outcome.text` para todo el prólogo y hay **18 opciones sin tirada
- *     cuyo único cambio posible es el texto**.
+ *     · `p_puente_amanecer` 192/160 (celda corregida, ver (a)). Total 1.847 contra las 1.785 del
+ *     outline §3 (+3,5 %); antes del recorte eran 1.944 contra 1.709 (+13,8 %). La causa del +3,5 %
+ *     que queda es la misma que ya estaba anotada: el prólogo tiene **18 opciones sin tirada cuyo
+ *     único cambio posible es el texto**, y la línea de outcomes de §3 no las paga a todas.
  *
  * ---------------------------------------------------------------------------------------------
  * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
@@ -105,12 +105,21 @@ import type { Scene } from '@/content/schema';
  * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
  * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
  *
- * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
- * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
- * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
- * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
- * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
- * los 22 errores de presupuesto que quedaron en 0.
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -672,7 +681,7 @@ export const p_puente_amanecer = {
       label: 'Cruzar con el relevo de la mañana',
       outcome: {
         text: [
-          'Cruzás entre hombres que ya no miran nada.',
+          'Cruzás en el medio del relevo, entre hombres que ya no miran nada. Del otro lado el puente se termina en barro.',
         ],
         next: 'a1_plaza',
       },
@@ -686,7 +695,7 @@ export const p_puente_amanecer = {
             speaker: 'orell',
             variants: [
               {
-                text: '—Once días. Mandé dos guardias y no entraron. No te puedo decir más.',
+                text: '—Once días. Al cuarto mandé dos guardias al molino. No entraron. —Se queda callado más de lo que dura la frase—. Eso no te lo puedo decir.',
               },
             ],
           },
@@ -699,7 +708,7 @@ export const p_puente_amanecer = {
       label: 'Compartir el pan con la guardia',
       outcome: {
         text: [
-          'El pan es de ayer. Comen de pie.',
+          'El pan es de ayer y hay que mojarlo para pasarlo. Comen de pie, sin hablar, mirando el agua. Al sargento le falta una muela del lado derecho y mastica del otro.',
         ],
         next: 'a1_plaza',
       },
@@ -709,7 +718,7 @@ export const p_puente_amanecer = {
       label: 'Bajar al vado antes de que aclare',
       outcome: {
         text: [
-          'Bajás del terraplén. Nadie pregunta.',
+          'Bajás del terraplén mientras la guardia se cambia de sitio. Nadie pregunta adónde vas. A esta hora el río está bajo y se le ven los huesos.',
         ],
         next: 'p_vado_oculto',
       },
@@ -719,7 +728,7 @@ export const p_puente_amanecer = {
       label: 'Seguir la orilla hasta el sauce partido',
       outcome: {
         text: [
-          'Seguís la orilla. El agua suena corta: hay piedra.',
+          'Seguís la orilla río abajo, pisando grava mojada. A media legua el ruido del agua cambia y se vuelve corto: ahí abajo hay piedra.',
         ],
         next: 'p_vado_oculto',
       },

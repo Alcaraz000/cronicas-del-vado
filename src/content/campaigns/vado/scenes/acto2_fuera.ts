@@ -204,12 +204,21 @@ import type { Scene } from '@/content/schema';
  * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
  * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
  *
- * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
- * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
- * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
- * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
- * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
- * los 22 errores de presupuesto que quedaron en 0.
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -856,16 +865,16 @@ export const a2_fuera_refugio = {
   redirect: [{ when: { clock: 'sospecha', gte: 4 }, to: 'c2_anochece' }],
   onEnter: [{ clock: 'sospecha', delta: 1 }, { heal: 1 }],
   text: [
-    'Arriba, el molino está vacío de gente y lleno de todo lo demás. Te tirás entre las bolsas, con la harina vieja entre los dientes.',
-    'De día, con un río debajo, el sueño viene por pedazos. Algo que tenías abierto se cierra mientras dormís.',
-    'Dos veces pasa una barca de la guardia. La segunda vez el que rema cuenta las ventanas.',
+    'Arriba, el molino está vacío de gente y lleno de todo lo demás. Te tirás entre las bolsas rotas, con la harina vieja metiéndose entre los dientes, que no se va con saliva.',
+    'De día, con un río debajo, el sueño viene por pedazos. Igual algo que tenías abierto se cierra mientras dormís, y al despertar duele menos.',
+    'Dos veces pasa una barca de la guardia por el caz. La segunda vez, el que rema levanta la cara y cuenta las ventanas de arriba.',
   ],
   choices: [
     {
       id: 'dormir_hasta_la_noche',
       label: 'Dormir hasta que caiga la tercera noche',
       outcome: {
-        text: ['Dormís hasta que la ventana se pone color plomo.'],
+        text: ['Te dejás dormir hasta que el hueco de la ventana se pone del color del plomo.'],
         next: 'c2_anochece',
       },
     },
@@ -878,7 +887,9 @@ export const a2_fuera_refugio = {
       id: 'buscar_a_ilse_entre_las_bolsas',
       label: 'Buscar a Ilse entre las bolsas de harina',
       outcome: {
-        text: ['Deja la cuenta y baja, y vos atrás.'],
+        text: [
+          'La encontrás contando bolsas que nadie necesita contar. Cuando la mirás deja la cuenta por la mitad y baja otra vez, y vos atrás.',
+        ],
         next: 'a2_fuera_ilse',
       },
     },
@@ -887,7 +898,7 @@ export const a2_fuera_refugio = {
       label: 'Secarte junto al horno del molino',
       outcome: {
         text: [
-          'Fuego chico dentro del horno, donde no se ve, hasta que dejás de gotear.',
+          'Hacés fuego chico adentro del horno, donde no se ve desde el agua, y te sentás pegado a la piedra hasta que la ropa deja de gotear. Se te va el temblor de las manos.',
         ],
         effects: [{ removeCondition: 'all' }],
         next: 'c2_anochece',
@@ -900,7 +911,7 @@ export const a2_fuera_refugio = {
       lockedHint: 'No tenés el cuaderno de Tomé encima.',
       outcome: {
         text: [
-          'La letra se le cae hacia el margen. El noveno día: «Dos dedos hoy. No baja. Carajo, Tomé, qué hiciste».',
+          'Las últimas hojas tienen una línea por página y la letra se le va cayendo hacia el margen. La del noveno día dice: «Dos dedos hoy. No baja. Carajo, Tomé, qué hiciste». Bajás con el cuaderno en la mano.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -1251,7 +1262,7 @@ export const c2_vado_crecido = {
         outcomes: {
           success: {
             text: [
-              'Vas hasta la rama muerta con el agua en la cintura y atás lo que llevás a un eslabón, donde no se ve.',
+              'Vas hasta la rama muerta con el agua en la cintura y atás lo que llevás a un eslabón donde no se ve.',
               {
                 variants: [
                   {
@@ -1395,7 +1406,7 @@ export const c2_otra_orilla = {
       label: 'Meterte al agua, dejar el sello y no volver',
       outcome: {
         text: [
-          'Entrás hasta la cintura y seguís la cadena con la mano hasta donde el agua no deja ver. Atás corto lo que tenga que quedar abajo y dejás que la corriente lo acomode contra el hierro.',
+          'Entrás hasta la cintura y seguís la cadena con la mano hasta donde el agua no deja ver. Atás corto lo que tenga que quedar abajo y dejás que la corriente lo acomode.',
           'Volvés con las manos vacías y chorreando. Ninguno de los que entren esta noche va a saber dónde mirar.',
         ],
         effects: [

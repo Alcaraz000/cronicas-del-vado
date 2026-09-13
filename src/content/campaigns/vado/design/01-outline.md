@@ -5,7 +5,7 @@
 > **Si algo de acá choca con el validador, gana el validador.**
 > **Todas las cuentas de la campaña viven en este documento.** La biblia manda en lo cualitativo (voces, tono, ficción, canon); acá manda la aritmética. Donde la biblia cite una cifra, está copiada de acá.
 
-**Cifras cerradas de este outline:** 46 escenas · **252 opciones** (179 sin `requires`, 71 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **6 entradas de `redirect` en 5 escenas** · **15.644 palabras de prosa narrativa** · **17.594 palabras escritas en total**.
+**Cifras cerradas de este outline:** 46 escenas · **252 opciones** (179 sin `requires`, 71 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **6 entradas de `redirect` en 5 escenas** · **15.900 palabras de prosa narrativa** · **17.850 palabras escritas en total** (subieron +256 en la Fase H · tarea 4 al corregir tres celdas imposibles; ver §2.1).
 
 ---
 
@@ -326,6 +326,26 @@ flowchart TD
 
 **Columna PNJ.** Solo los que van en `scene.npcs`, que son los presentes en **toda** ruta que entra a esa escena. Los que aparecen de manera condicional van entre paréntesis con la marca *(narrador)*: los nombra el narrador y **ningún párrafo lleva su `speaker`** (biblia §3). Declarar un PNJ deriva `char:met.<id>` aunque no hable, así que no se declara "por si acaso".
 
+### 2.1 Piso aritmético de una celda `pal` (corrección de la Fase H · tarea 4)
+
+Una celda tiene que pagar, como mínimo, el texto base **más el piso de banda de cada desenlace que la escena escribe**, porque la biblia §2.3 es normativa igual que esta tabla: `outcome.text` mide 20-60 palabras y una banda de tirada 25-50. La cuenta, entonces, es:
+
+> **`pal` mínimo = `text` + (bandas de tirada × 25) + (desenlaces sin tirada con texto × 20)**
+
+Y hace falta además que ese mínimo entre en el umbral con el que mide el linter (`UMBRALES.excesoEscenaPct` = 25 %, `tools/lib/lint/presupuesto.ts`). Si **`mínimo > pal × 1,25`**, la celda pide un imposible: no hay prosa que cumpla la tabla §2 y la banda §2.3 a la vez. Medidas las 46, **tres** caían de ese lado, y se corrigen solo esas tres:
+
+| celda | `text` | bandas | desenlaces | mínimo | `pal` viejo | `pal × 1,25` viejo | `pal` nuevo |
+|---|---:|---:|---:|---|---:|---:|---:|
+| `p_puente_amanecer` | 60 | 0 | 5 | 60 + 5×20 = **160** | 84 | 105 | **160** |
+| `a2_ley_guardia` | 90 | 0 | 5 | 90 + 5×20 = **190** | 90 | 112 | **190** |
+| `a2_fuera_refugio` | 90 | 0 | 4 | 90 + 4×20 = **170** | 90 | 112 | **170** |
+
+Las tres tenían `pal` igual o casi igual a `text`: presupuestaban **24, 0 y 0** palabras para cinco, cinco y cuatro desenlaces, y las cinco opciones de `p_puente_amanecer` comparten destino de a tres y de a dos, así que §2.5 obliga a que **todas** lleven texto (sin él serían duplicados la una de la otra). No era una celda exigente: era una celda mal calculada.
+
+**Esto no afloja el presupuesto.** Hay otras **doce** celdas cuyo mínimo también pasa de `pal` —`a1_orell_mesa`, `a1_posada`, `a1_ronda`, `a1_taberna_trastienda`, `a1_ilse_patio`, `a1_molino_pell`, `a1_molino_rueda`, `a1_molino_trampilla`, `a2_amanecer`, `a2_fuera_fuga`, `c2_anochece` y `cl_molino`— y **ninguna se toca**: su mínimo cae dentro del 25 % de tolerancia, así que son exigentes y no imposibles. Se escriben apretadas y pasan.
+
+El total de la columna `pal` sube **+256** (76 + 100 + 80) y con él las cifras derivadas de §3, §6 y §7, que están actualizadas. *(Descuadre anterior a esta corrección, anotado y sin tocar: la columna `pal` de §2 suma 15.930 y §3 declara 15.900; esos 30 de diferencia ya estaban antes y conviene reconciliarlos en su propia pasada.)*
+
 ### Prólogo — primera noche, bajo la lluvia (5)
 
 | id | kind | lugar | PNJ | lleva a | opc | tir | text | pal |
@@ -334,9 +354,9 @@ flowchart TD
 | `p_puente` | normal | `puente_viejo` | orell · *(pell: narrador, sin nombre)* | `a1_plaza`, `p_puente_rechazo`, `p_vado_oculto`, `p_puente_amanecer` | 7/5 | 2 | 140 | **556** |
 | `p_puente_rechazo` | normal | `puente_viejo` | orell | `a1_plaza`, `p_vado_oculto`, `p_puente_amanecer` | 6/4 | 1 | 95 | **284** |
 | `p_vado_oculto` | normal | `vado_oculto` | — | `a1_plaza`, `a1_molino`, `a1_molino_trampilla` | 6/5 | 1 | 120 | **389** |
-| `p_puente_amanecer` | normal | `puente_viejo` · `amanecer` | orell | `a1_plaza`, `p_vado_oculto` | 5/5 | 0 | 60 | **84** |
+| `p_puente_amanecer` | normal | `puente_viejo` · `amanecer` | orell | `a1_plaza`, `p_vado_oculto` | 5/5 | 0 | 60 | **160** |
 
-*`p_camino` sube de 110 a 150 porque es la única escena que no se puede saltear y tiene que entregar, ella sola: quién sos, la carta de Berta, la promesa de plata, Tomé desaparecido hace once días, el puente al fondo con la barricada, un detalle sensorial no visual y una variante de memoria. Las 40 palabras salen de `p_puente_amanecer`, que es una escena de convergencia sin tiradas.*
+*`p_camino` sube de 110 a 150 porque es la única escena que no se puede saltear y tiene que entregar, ella sola: quién sos, la carta de Berta, la promesa de plata, Tomé desaparecido hace once días, el puente al fondo con la barricada, un detalle sensorial no visual y una variante de memoria. Las 40 palabras salían de `p_puente_amanecer`, y **ahí estuvo el error**: es una escena de convergencia y sin tiradas, sí, pero tiene cinco opciones libres que §2.5 obliga a pagar con texto, y quedarse con 24 palabras para las cinco la volvía inescribible. `p_camino` conserva sus 150; la celda de `p_puente_amanecer` se recalcula por el piso aritmético de §2.1 y sube a 160.*
 
 ### Acto 1 — Aldamar de noche (13)
 
@@ -385,9 +405,9 @@ flowchart TD
 | `a2_ley_cartas` | normal | `torre_de_dravos` | — | `a2_ley_halvar`, `a2_ley_berta` | 7/4 | **2** | 110 | **459** |
 | `a2_ley_halvar` | normal | `vado_oculto` | halvar | `a2_ley_berta`, `a2_ley_guardia` | 6/4 | 1 | 110 | **299** |
 | `a2_ley_berta` | normal | `casa_de_berta` | berta, ilse | `a2_ley_guardia`, `a2_fuera_sotano` *(cruce)* | 6/4 | **1** | 150 | **359** |
-| `a2_ley_guardia` | **rest** | `torre_de_dravos` | orell | `c2_anochece`, `a2_ley_torre`, `a2_ley_berta` · *redirect* → `c2_anochece` | 5/4 | 0 | 90 | **90** |
+| `a2_ley_guardia` | **rest** | `torre_de_dravos` | orell | `c2_anochece`, `a2_ley_torre`, `a2_ley_berta` · *redirect* → `c2_anochece` | 5/4 | 0 | 90 | **190** |
 
-*Dos cambios que arreglan la rama A entera.* **(a)** `a2_ley_cartas` tiene **dos** tiradas y no una: `leer_las_cartas` (Saber · `normal` · `saber`, libre, escribe el hito `la_verdad_de_tome` en éxito y parcial) y `reconocer_el_sigilo` (Saber · `dificil`, la puerta del final oculto, con `requires: { not: { flag: 'run:piedra_leida' } }`). Son opciones distintas y hacen cosas distintas. **(b)** `a2_ley_berta` sube de 140 a 359 palabras y gana una tirada: `hablarle_a_ilse_en_la_escalera` (Presencia · `normal` · `social`, `advantageIf: { flag: 'run:ilse_confia' }`). Es **la entrega garantizada de la verdad de Tomé y del `medallon_de_tome` para la rama A**, sin `endingSeen` y sin bajar al sótano. Sin ella, la mitad de las partidas llegaba al clímax sin el medallón, sin saber qué hizo Tomé y con `fin_hundido` ficcionalmente imposible.
+*Dos cambios que arreglan la rama A entera.* **(a)** `a2_ley_cartas` tiene **dos** tiradas y no una: `leer_las_cartas` (Saber · `normal` · `saber`, libre, escribe el hito `la_verdad_de_tome` en éxito y parcial) y `reconocer_el_sigilo` (Saber · `dificil`, la puerta del final oculto, con `requires: { not: { flag: 'run:piedra_leida' } }`). Son opciones distintas y hacen cosas distintas. **(b)** `a2_ley_berta` sube de 140 a 359 palabras y gana una tirada: `hablarle_a_ilse_en_la_escalera` (Presencia · `normal` · `social`, `advantageIf: { flag: 'run:ilse_confia' }`). Es **la entrega garantizada de la verdad de Tomé y del `medallon_de_tome` para la rama A**, sin `endingSeen` y sin bajar al sótano. Sin ella, la mitad de las partidas llegaba al clímax sin el medallón, sin saber qué hizo Tomé y con `fin_hundido` ficcionalmente imposible.* **(c)** `a2_ley_guardia` sube de 90 a 190 por el piso aritmético de §2.1: tenía `pal` = `text`, o sea **cero** palabras presupuestadas para sus cinco desenlaces.
 
 ### Acto 2, rama B — "Contra la ley" (6)
 
@@ -398,9 +418,9 @@ flowchart TD
 | `a2_fuera_sello` | normal | `sotano_del_sello` | — | `a2_fuera_medallon`, `a2_fuera_ilse`, `a2_fuera_refugio` | 7/4 | 1 | 115 | **339** |
 | `a2_fuera_medallon` | normal | `sotano_del_sello` | ilse | `a2_fuera_ilse`, `a2_fuera_refugio` | 5/4 | 1 | 105 | **266** |
 | `a2_fuera_ilse` | normal | `sotano_del_sello` | ilse | `a2_fuera_refugio` | 4/4 | 1 | 110 | **410** |
-| `a2_fuera_refugio` | **rest** | `molino_de_tome` | — | `c2_anochece`, `a2_fuera_sotano`, `a2_fuera_ilse` | 5/4 | 0 | 90 | **90** |
+| `a2_fuera_refugio` | **rest** | `molino_de_tome` | — | `c2_anochece`, `a2_fuera_sotano`, `a2_fuera_ilse` | 5/4 | 0 | 90 | **170** |
 
-*`a2_fuera_ilse` baja de 6 a 4 opciones: tenía seis botones con un solo destino. Las cuatro que quedan hacen cosas distintas (`presionarla` es Burnt Bridge, `pedirle_que_te_acompane` enciende `run:con_ilse`, `rezar_por_tome` escribe canon, `dejarla_en_paz` es la salida limpia) y la escena se lleva la variante de memoria de la rama B.*
+*`a2_fuera_ilse` baja de 6 a 4 opciones: tenía seis botones con un solo destino. Las cuatro que quedan hacen cosas distintas (`presionarla` es Burnt Bridge, `pedirle_que_te_acompane` enciende `run:con_ilse`, `rezar_por_tome` escribe canon, `dejarla_en_paz` es la salida limpia) y la escena se lleva la variante de memoria de la rama B.* **`a2_fuera_refugio` sube de 90 a 170** por el piso aritmético de §2.1: tenía `pal` = `text` y cuatro de sus cinco opciones llevan texto (`bajar_otra_vez_al_sotano` es tránsito pelado).
 
 ### Transición B (1)
 
@@ -462,7 +482,7 @@ La opción 2 se llama *dejar que la guardia cruce con la piedra* y no *dejar que
 
 | | escenas | opciones | libres | tiradas | palabras |
 |---|---|---|---|---|---|
-| **Suma** | **46** | **252** | **179** (71 %) | **41** | **15.644** |
+| **Suma** | **46** | **252** | **179** (71 %) | **41** | **15.900** |
 
 Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending` = 46 ✔. Una sola con `lethal: true` ⇒ `lethalScenes: 1`.
 
@@ -475,24 +495,24 @@ Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending
 1. **`text`** — el texto base de cada escena (una variante por párrafo, la que no tiene `when`).
 2. **Bandas de tirada** — `success` + `partial` + `failure` de cada tirada, a ~35 palabras cada una.
 3. **`crit` / `fumble`** — solo en las tiradas memorables: **6 `crit` y 4 `fumble`** en toda la campaña, a ~35 palabras.
-4. **Outcomes con texto** — **100 de las 211 opciones sin tirada** llevan `text`, a ~28 palabras. Las otras 111 son tránsito puro entre escenas del mismo lugar: `outcome: { next }` o `outcome: { effects, next }` pelado.
+4. **Outcomes con texto** — **100 de las 211 opciones sin tirada** llevan `text`, a ~28 palabras, **más 256 del piso aritmético de tres celdas** (§2.1). Las otras 111 son tránsito puro entre escenas del mismo lugar: `outcome: { next }` o `outcome: { effects, next }` pelado.
 5. **Variantes de memoria** — las 14 escenas con cuota (30 %), ~71 palabras por escena.
 6. **Variantes de flag** — la prosa condicionada por flags `run:`, que hasta ahora no tenía ni una palabra asignada: las seis celdas alternativas de la matriz 3×3, las variantes del hub por pistas y por Orell, las rondas posteriores de los dos `encounter`, las variantes de rama del clímax y los cuatro epílogos.
 7. **Epílogos** — los 4 `ending.epilogue`, a 160 palabras.
 
 | Tramo | esc. | tir. | `text` | bandas | crit/fum | outcomes | memoria | flags | epílogos | **total** |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Prólogo | 5 | 5 | 565 | 525 | 70 | 336 | 213 | — | — | **1.709** |
+| Prólogo | 5 | 5 | 565 | 525 | 70 | 412 | 213 | — | — | **1.785** |
 | Acto 1 | 13 | 9 | 1.290 | 945 | 70 | 840 | 284 | 720 | — | **4.149** |
 | Cuello 1 | 3 | 4 | 370 | 420 | 35 | 280 | 71 | 190 | — | **1.366** |
 | Transición A | 1 | 0 | 110 | — | — | 84 | — | — | — | **194** |
-| Acto 2 · rama A | 6 | 6 | 685 | 630 | 35 | 420 | 71 | 40 | — | **1.881** |
-| Acto 2 · rama B | 6 | 4 | 660 | 420 | 35 | 392 | 142 | 40 | — | **1.689** |
+| Acto 2 · rama A | 6 | 6 | 685 | 630 | 35 | 520 | 71 | 40 | — | **1.981** |
+| Acto 2 · rama B | 6 | 4 | 660 | 420 | 35 | 472 | 142 | 40 | — | **1.769** |
 | Transición B | 1 | 0 | 115 | — | — | 84 | — | — | — | **199** |
 | Cuello 2 | 3 | 4 | 380 | 420 | 35 | 168 | 142 | — | — | **1.145** |
 | Clímax | 4 | 9 | 510 | 945 | 70 | 196 | 71 | 320 | — | **2.112** |
 | Finales | 4 | 0 | 240 | — | — | — | — | 320 | 640 | **1.200** |
-| **SUMA** | **46** | **41** | **4.925** | **4.305** | **350** | **2.800** | **994** | **1.630** | **640** | **15.644** |
+| **SUMA** | **46** | **41** | **4.925** | **4.305** | **350** | **3.056** | **994** | **1.630** | **640** | **15.900** |
 
 ### Verificación de que cierra
 
@@ -505,14 +525,14 @@ Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending
 | `text` | 4.925 / 46 escenas = **107 palabras de media** | ✔ dentro de 60-160 |
 | Bandas | 41 × 3 × 35 = 4.305 | ✔ |
 | crit/fumble | (6+4) × 35 = 350 | ✔ el cupo exacto, nombrado opción por opción en §5/r04 |
-| Outcomes con texto | 100 × 28 = 2.800 | ✔ 100 de las 211 opciones sin tirada |
+| Outcomes con texto | 100 × 28 = 2.800, **+256** del piso de §2.1 = **3.056** | ✔ 100 de las 211 opciones sin tirada, con tres celdas recalculadas |
 | Memoria | 14 × 71 = 994 | ✔ 14/46 escenas = 30 %, la cuota de la biblia §9.1 |
 | Variantes de flag | 720+190+40+40+320+320 = 1.630 | ✔ desglosado abajo |
 | Epílogos | 4 × 160 = 640 | ✔ dentro de 120-200 |
-| **Prosa narrativa** | 4.925+4.305+350+2.800+994+1.630+640 | **15.644** |
+| **Prosa narrativa** | 4.925+4.305+350+3.056+994+1.630+640 | **15.900** |
 | Etiquetas de opción | 252 × ~6 palabras | **1.512** |
 | `lockedHint` | 73 opciones con `requires` × ~6 | **438** |
-| **TOTAL ESCRITO** | 15.644 + 1.512 + 438 | **17.594** |
+| **TOTAL ESCRITO** | 15.900 + 1.512 + 438 | **17.850** |
 
 **Desglose de la línea 6 (variantes de flag), 1.630 palabras:** matriz 3×3, dos celdas alternativas por puerta × 3 puertas × ~100 = **600** · variantes del hub por cantidad de pistas y por `run:orell_confia`/`run:orell_humillado`/`run:mausi_informo` = **120** · ronda posterior de `c1_refriega` = **70** · variantes de `c1_acusacion` por `pell_amigo`/`pell_delato`/`cuerpo_hallado`/`la_soga_cortada` = **120** · rondas 2 y 3 de `cl_dravos` = **140** · variantes de rama y de `run:dravos_sabe` en `cl_molino`, `cl_halvar` y `cl_desenlace` = **180** · las dos ramas del acto 2, 40 cada una = **80** · variantes de los 4 epílogos = **320**.
 
@@ -520,7 +540,7 @@ Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending
 
 La spec pedía 11.000-12.000 palabras y su fórmula era *«46 × ~110 + 30 tiradas × 3 × ~40 + ~1.400 de variantes + ~1.200 de epílogos y etiquetas»*. La versión anterior de este outline daba 11.904 **redefiniendo dos cosas**: sacaba las etiquetas de la cuenta (la spec las tenía adentro) y reinterpretaba "variantes" como "variantes de memoria", que es un tercio de lo que hace falta. Redefinir qué cuenta para entrar en la ventana es exactamente lo que no hay que hacer cuando la ventana existe para acotar el esfuerzo.
 
-**El número honesto es 15.644 de prosa narrativa y 17.594 escritas en total, y se declara** (conflicto 13). Las tres razones, en orden de peso:
+**El número honesto es 15.900 de prosa narrativa y 17.850 escritas en total, y se declara** (conflicto 13; eran 15.644 y 17.594 antes de la corrección de §2.1). Las tres razones, en orden de peso:
 1. **+1.630 de variantes de flag**, que antes valían cero y que el diseño exige en las nueve celdas de la matriz, en el hub, en las rondas de los encuentros y en los cuatro epílogos. La spec presupuestaba ~1.400 acá; el error fue reinterpretarlas.
 2. **+1.450 de outcomes con texto** (de 45 a 100). Con 45, **176 de 257 clics del juego devolvían silencio**: elegías la opción 3 de 6 y el juego cambiaba de escena sin decirte una palabra. Eso contradice la regla de la propia biblia (*«si el desenlace se pudiera borrar sin pérdida, la opción no va»*) y es el defecto que más aburre en la mesa.
 3. **+525 de bandas**, por pasar de 36 a 41 tiradas: dos para la ruta diplomática del clímax, una para la entrega de la verdad en la rama A, una para separar `leer_las_cartas` de `reconocer_el_sigilo` y una para que recuperar el sello de la cadena pueda fallar.
@@ -908,7 +928,7 @@ Cada lote agrega sus escenas **y** las opciones que las escenas ya escritas nece
 | **6** | **Rama B, "Contra la ley"** | `a2_fuera_sotano`, `a2_fuera_sello`, `a2_fuera_medallon`, `a2_fuera_ilse` (+ `a2_fuera_fuga` y `a2_fuera_refugio` definitivas) | **1.689** | el cruce a la rama A; el atajo de `a2_amanecer`; el `requires` de `cl_desenlace.quedarte_con_el_sello`; `sello_del_vado`, `cuaderno_de_tome`, `medallon_de_tome`; los dos `take` de `a2_fuera_sotano.onEnter` | Es el tramo con más carga emocional (Ilse, el cuaderno, la verdad de Tomé) y el que **entrega el sello**. Se escribe después de la rama A para que las dos versiones de la misma verdad se contrasten con la primera ya cerrada |
 | **7** | **Cuello 2, clímax y finales** | `c2_vado_crecido` definitiva, `cl_dravos`, `cl_halvar` (+ `c2_anochece`, `c2_orilla`, `c2_otra_orilla`, `cl_molino`, `cl_desenlace` y los 4 finales definitivos) | **4.656** | el segundo `encounter` (9 opciones, el techo); las 7 opciones de `cl_desenlace`; los 4 epílogos con sus variantes; el `reward` de `fin_heredero`; **`lintProfile: 'release'`** | **Va último, sin excepción.** Es el tramo que lee más flags de toda la campaña: los epílogos varían por `run:berta_miente`, `run:acusado`, `run:con_la_ley`/`contra_la_ley`, `run:con_ilse`, `run:sello_escondido`, `char:vado.tome_enterrado` y por qué objetos llevás. No se puede escribir bien hasta que los otros seis lotes fijaron qué puede estar encendido al llegar. **Condición de cierre extra:** el test de que `sello_del_vado` aparece en el perfil después de `fin_heredero` y no después de los otros tres (biblia §13.1) |
 
-**Suma de los siete lotes:** 1.709 + 1.436 + 2.713 + 1.560 + 1.881 + 1.689 + 4.656 = **15.644** ✔, exactamente el total de §3.
+**Suma de los siete lotes:** 1.785 + 1.436 + 2.713 + 1.560 + 1.981 + 1.769 + 4.656 = **15.900** ✔, exactamente el total de §3. *(Los lotes 1, 5 y 6 subieron 76, 100 y 80 al corregir las tres celdas imposibles de §2.1.)*
 
 **Los cupos NO se dividen por lote.** Dividir el total por siete convertía en cero los cupos de `de repente/de pronto` (4), `lentamente/rápidamente` (4) y `como si fuera` (6), y dejaba a Pell —cuyo tic definitorio es el `usted`— diciéndolo dos veces en toda la campaña. El cupo es de campaña, cada lote **anota lo que gastó** en `design/cupos.md` y `lint-text` lo mide al final contra el total (biblia §2.6). El de `usted` se reparte por escena de Pell: 2 en `p_puente` *(donde no es `speaker`: son las de la ordenanza que recita en voz baja, reportadas por el narrador entre comillas)*, 2 en `a1_molino`, 2 en `a1_molino_pell`, 2 en `cl_molino`.
 
@@ -931,7 +951,7 @@ Trece choques entre la spec, la biblia y las reglas. Se resuelven acá y este ou
 | 1 | Biblia §9.6 pedía **«dos atributos por escena como mínimo»**, que es el chequeo de r06 extendido a las 42 escenas no finales: eso son 84 tiradas mínimo, contra las 41 del presupuesto | La regla se reescribe para que **restrinja algo y sea cierta**: *toda escena con al menos una tirada ofrece además una salida sin tirada, y ninguna escena concentra todas sus tiradas en un solo atributo*. La versión intermedia («toda escena ofrece dos maneras distintas de encararla: una tirada y una salida sin tirada, o dos tiradas de atributos distintos») **nacía violada por 13 escenas** que no tienen ni un dado y que no deberían tenerlo: `c1_acusacion` y `c2_orilla` son escenas de **decisión**, no de habilidad. La nueva cubre el caso que importaba (que la única salida no sea un dado) sin mentir, y la biblia §9.6 declara en voz alta que esta campaña es de investigación y conversación: **29 de 42 escenas tienen dados, 13 no** |
 | 2 | El reparto de tiradas de la biblia §9.6 (prólogo 4 · acto 1 10 · cuello 1 5 · acto 2 8 · cuello 2 3 · clímax 5) sumaba 35, no las ~33 que declaraba, y le daba 5 al clímax cuando `cl_dravos` sola tiene 4 | Reparto nuevo, **verificado contra escena y opción**, en §3 y §5/r09: prólogo 5 · acto 1 9 · cuello 1 4 · acto 2 10 · cuello 2 4 · clímax 9. La biblia §9.6 quedó corregida en el lugar y ahora apunta acá para el detalle |
 | 3 | La spec dice **~30 tiradas**; la biblia decía ~33; el grafo real necesita 41 | **41 tiradas escritas** (+37 % sobre la spec). Las cinco que se agregaron sobre la versión anterior tienen nombre: 2 en `cl_halvar` (la ruta diplomática del clímax tenía 180 palabras y cero dados, contra 525 de `cl_dravos`, y es **la** ruta del personaje mínimo), 1 en `a2_ley_berta` (la entrega de la verdad y del medallón para la rama A), 1 al separar `leer_las_cartas` de `reconocer_el_sigilo`, y 1 en `c2_otra_orilla.levantar_la_cadena` para que la opción segura de la escena mortal tenga precio |
-| 4 | La fórmula de presupuesto de la biblia §2.3 sumaba 12.065, no los ~11.800 que declaraba, y el outline anterior cerraba en 11.904 **sacando las etiquetas de la cuenta** (la spec las tenía adentro) y reinterpretando "variantes" como "variantes de memoria" | Recalculado línea por línea en §3, con **siete** líneas de gasto y las etiquetas de vuelta: **15.644 de prosa narrativa, 17.594 escritas en total**. La ventana de la spec se sube y se declara; la palanca de recorte está escrita y es reversible sin tocar ni una escena. La biblia ya no repite ninguna cifra: apunta acá |
+| 4 | La fórmula de presupuesto de la biblia §2.3 sumaba 12.065, no los ~11.800 que declaraba, y el outline anterior cerraba en 11.904 **sacando las etiquetas de la cuenta** (la spec las tenía adentro) y reinterpretando "variantes" como "variantes de memoria" | Recalculado línea por línea en §3, con **siete** líneas de gasto y las etiquetas de vuelta: **15.900 de prosa narrativa, 17.850 escritas en total** (15.644 y 17.594 hasta la corrección de §2.1). La ventana de la spec se sube y se declara; la palanca de recorte está escrita y es reversible sin tocar ni una escena. La biblia ya no repite ninguna cifra: apunta acá |
 | 5 | Biblia §6.3 hablaba de **«los cuatro `redirect`»**, §6.2 listaba 7 en 6 escenas, y uno de ellos —`a1_molino_pell` → `a1_molino_trampilla`— se disparaba sobre una etiqueta que le prometía al jugador un encuentro con Pell | Son **6 entradas de `redirect` en 5 escenas**. El de `a1_molino_pell` **se borró**: en su lugar, la opción `a1_molino.hablar_con_el_chico` lleva `requires: { not: { all: [pista_taberna, pista_alcaldesa] } }` y aparece una salida libre directa a la trampilla. El jugador **elige** lo que le pasa en vez de que se lo cambien, y la celda "molino último" de la matriz queda más limpia |
 | 6 | El hito `cruzar_el_vado_crecido` estaba en **`c2_otra_orilla.onEnter`** según §7.4 y en **`c2_vado_crecido.onEnter`** según §11 | Va **solo en `c2_otra_orilla.onEnter`**. Su etiqueta es *«Llegar a la isla del molino»*, que es lo que hace toda ruta, no solo la que baja al vado. Beneficio lateral: `c2_vado_crecido.onEnter` queda **vacío**, que es la forma más limpia de cumplir el primer chequeo de r05 |
 | 7 | La spec acota **24-30 escenas por partida**; la ruta B con los dos encuentros da 31 escenas distintas y 38 pantallas | Se reportan **las dos cuentas** en §4: pantallas (contando revisitas, rondas y descontando las entradas que redirigen) y escenas distintas. La ventana real es **24-31 escenas distintas / 26-38 pantallas**, y las tres rutas de ejemplo caen en 30-45 minutos. Si `simulate` pone la ruta B por encima de 45, se recorta `a1_posada` de la ruta, no del contenido |
@@ -940,7 +960,7 @@ Trece choques entre la spec, la biblia y las reglas. Se resuelven acá y este ou
 | 10 | Biblia §6.2 daba a `a1_plaza` cinco destinos, y la resolución anterior se contradecía: llamaba "sexto destino libre" a una opción con `requires: { flag: 'run:pista_alcaldesa' }` y decía que quedaba "margen de dos opciones" cuando 8 + 2 = 10 | **`a1_plaza` queda en 8 opciones / 6 libres, enumeradas una por una en §1.2.** Las seis libres son las cuatro puertas más **dos opciones Fluff que vuelven al propio hub** (mirar el pozo de la soga cortada, leer el poste de bandos), las dos con texto de outcome obligatorio e información de mundo que no da ninguna otra opción; las dos gated son `volver_al_despacho` y el atajo `[Recuerdo]`. **El margen es de una sola opción** hasta el techo de 9, y va escrito en el esqueleto |
 | 11 | Biblia §0.3 convierte `a1_puente_runas` en la opción `p_puente.runas` con `outcome`, pero el mapa de aristas no le daba destino | `p_puente.runas` va a **`p_puente_rechazo`**: mirás la piedra del pilar, Orell te ve mirándola y te saca del puente. El flag `run:vio_runas` queda encendido y la escena de rechazo empieza con vos ya del lado equivocado de la barricada |
 | 12 | §11 declara `npcs: []` para la escena mortal, pero una de sus cinco opciones es **`esperar_a_orell`** — y la resolución anterior decía que Orell «aparece en persona recién en `c2_otra_orilla`» mientras la tabla le ponía PNJ «—» a esa escena | En `c2_vado_crecido`, `npcs` **se queda vacío** y a Orell lo nombra el narrador; no hay ningún párrafo con `speaker: 'orell'`, así que r07 pasa. Y **`c2_otra_orilla` sí lo declara** ahora, que es lo que la resolución prometía: la guardia está del lado de la isla en toda ruta. De paso se generaliza la regla a toda la campaña (biblia §3): **un PNJ va en `npcs` solo si está presente en toda ruta que entre a la escena; si su presencia es condicional, lo nombra el narrador y no lleva `speaker`.** Aplicado: `cl_desenlace` suma `orell` y `berta`; `cl_molino`, `cl_halvar` y `cl_dravos` **no** suman a Ilse ni a Orell, y sus opciones condicionales los mueven desde el narrador |
-| 13 | **Nuevo.** La ventana de 11.000-12.000 palabras de la spec no contemplaba la prosa condicionada por flags, que es la mitad del diseño de rejugabilidad (matriz 3×3, hub, rondas de encuentro, epílogos por seis ejes), ni el cupo real de outcomes con texto | Se declara la desviación: **15.644 de prosa narrativa y 17.594 escritas**, con el desglose de las tres causas en §3 y la palanca de recorte escrita. **No se recorta estructura para volver a la ventana**: la spec fija 46 escenas y eso es un número duro; el presupuesto de palabras es una línea blanda que se puede bajar a ~14.280 en cualquier momento tocando dos cupos |
+| 13 | **Nuevo.** La ventana de 11.000-12.000 palabras de la spec no contemplaba la prosa condicionada por flags, que es la mitad del diseño de rejugabilidad (matriz 3×3, hub, rondas de encuentro, epílogos por seis ejes), ni el cupo real de outcomes con texto | Se declara la desviación: **15.900 de prosa narrativa y 17.850 escritas** (15.644 y 17.594 hasta la corrección de §2.1), con el desglose de las tres causas en §3 y la palanca de recorte escrita. **No se recorta estructura para volver a la ventana**: la spec fija 46 escenas y eso es un número duro; el presupuesto de palabras es una línea blanda que se puede bajar a ~14.280 en cualquier momento tocando dos cupos |
 
 ---
 

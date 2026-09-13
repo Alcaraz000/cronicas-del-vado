@@ -96,14 +96,17 @@ import type { Scene } from '@/content/schema';
  *     variantes condicionadas (memoria de Halvar, `run:dravos_sabe`, `run:mausi_informo`) que la
  *     tabla no le presupuesta acá sino en la línea global de variantes, tres bandas de tirada y
  *     **seis** `outcome.text` de opciones cuyo único cambio posible es el texto (§2.5 obliga a
- *     pagarlas). El piso real eran ~480. **FASE H · tarea 4**: entra en la tolerancia (402 contra
- *     331, +21 %) con seis desenlaces de 17 a 30 palabras. **Sigue en pie la recomendación: subir la
- *     celda o mover las variantes de flag del clímax (180 palabras en §3) a las escenas que las llevan.**
+ *     pagarlas). **FASE H · tarea 4**: medido con el piso aritmético del outline §2.1, el mínimo de
+ *     esta celda son 335 palabras contra un `pal` de 331 — se pasa por cuatro, pero entra holgada en
+ *     la tolerancia del 25 %, así que es una celda **exigente y no rota**, y por eso NO se tocó: la
+ *     escena mide 397 contra 331 (+20 %) con seis desenlaces de 17 a 30 palabras. **Sigue en pie la
+ *     recomendación: mover las variantes de flag del clímax (180 palabras en §3) a las escenas que
+ *     las llevan, que es de donde sale el exceso.**
  * (d) **Presupuesto medido, escena por escena** (palabras escritas, contando todas las variantes y
  *     sin contar `label` ni `lockedHint`), DESPUÉS del recorte de la Fase H · tarea 4: `cl_molino`
- *     402/331 · `cl_dravos` 698/695 · `cl_halvar` 507/515 · `cl_desenlace` 570/571 · `fin_hundido`
- *     261/300 · `fin_dravos` 257/300 · `fin_crecida` 284/300 · `fin_heredero` 252/300. Clímax 2.177
- *     contra 2.112; finales 1.054 contra 1.200. **Total del lote 3.231 contra 3.312 (−2,4 %)**;
+ *     397/331 · `cl_dravos` 695/695 · `cl_halvar` 506/515 · `cl_desenlace` 570/571 · `fin_hundido`
+ *     261/300 · `fin_dravos` 257/300 · `fin_crecida` 284/300 · `fin_heredero` 252/300. Clímax 2.168
+ *     contra 2.112; finales 1.054 contra 1.200. **Total del lote 3.222 contra 3.312 (−2,7 %)**;
  *     antes del recorte eran 3.626 (+9,5 %).
  *     Ritmo medido sobre las 289 oraciones del lote: media **12,5**, mediana 12, máximo **30**, cero
  *     oraciones de 31 o más, y **las nueve de más de 22 palabras llevan dos puntos**, como pide §1.2
@@ -156,12 +159,21 @@ import type { Scene } from '@/content/schema';
  * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
  * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
  *
- * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
- * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
- * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
- * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
- * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
- * los 22 errores de presupuesto que quedaron en 0.
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -185,7 +197,7 @@ export const cl_molino = {
           text: 'Al mercader ya lo conocés: la barba trenzada, los anillos, el maletín al pecho. Vino a cobrar algo que ya es suyo.',
         },
         {
-          text: 'Contra la pared hay una mesa seca sobre caballetes y dos hombres de pie. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota encima. El otro, barba trenzada y anillos de plata.',
+          text: 'Contra la pared hay una mesa seca sobre caballetes y dos hombres. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota encima. El otro, barba trenzada y anillos de plata.',
         },
       ],
     },
@@ -224,7 +236,7 @@ export const cl_molino = {
         outcomes: {
           success: {
             text: [
-              'Te metés entre los sacos y aguantás la respiración. Halvar cuenta en voz alta: entre su casa y el vado hay tres peajes y el del medio es de ellos.',
+              'Te metés entre los sacos y aguantás la respiración. Halvar cuenta en voz alta: entre su casa y el vado hay tres peajes y el del medio es suyo.',
             ],
             next: 'cl_halvar',
           },
@@ -308,7 +320,7 @@ export const cl_molino = {
       lockedHint: 'Nadie te acusó de nada todavía.',
       outcome: {
         text: [
-          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte. Le pide la cuerda al chico.',
+          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte. Le pide la cuerda.',
         ],
         effects: [{ set: 'run:dravos_sabe' }],
         next: 'cl_dravos',
@@ -615,7 +627,7 @@ export const cl_dravos = {
       lockedHint: 'Solo un Mago le hace callar una runa.',
       outcome: {
         text: [
-          'Le decís a la piedra el nombre que tenía antes del molino y se calla un latido. En ese latido el agua se queda quieta. A Dravos se le termina la noche ahí. Cuando el ruido vuelve estás de rodillas, con la nariz sangrando.',
+          'Le decís a la piedra el nombre que tenía antes del molino y se calla un latido. El agua se queda quieta. A Dravos se le termina la noche ahí. Cuando el ruido vuelve estás de rodillas, con la nariz sangrando.',
         ],
         effects: [{ addCondition: 'agotado' }, { wound: 1 }, { clock: 'pelea', delta: 3 }],
         next: 'cl_desenlace',
@@ -738,7 +750,7 @@ export const cl_halvar = {
       label: 'Cerrar el trato y cobrar tu parte',
       outcome: {
         text: [
-          'Decís que sí con una palabra sola y alcanza. Halvar te cuenta tu parte sobre la mesa mojada. El lacre baja con tu nombre al lado del de él.',
+          'Decís que sí con una palabra y alcanza. Halvar te cuenta tu parte sobre la mesa mojada. El lacre baja con tu nombre al lado del de él.',
         ],
         effects: [{ set: 'run:trato_con_halvar' }, { set: 'run:dravos_sabe' }],
         next: 'cl_desenlace',

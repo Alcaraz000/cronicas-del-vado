@@ -184,12 +184,21 @@ import type { Scene } from '@/content/schema';
  * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
  * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
  *
- * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
- * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
- * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
- * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
- * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
- * los 22 errores de presupuesto que quedaron en 0.
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -285,7 +294,7 @@ export const c1_cuerpo = {
       label: 'Enterrarlo vos, con las manos',
       outcome: {
         text: [
-          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Del banco del norte, un hombre que carga una barca deja de cargar.',
+          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Del banco del norte, un hombre que carga una barca se queda quieto.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }, { clock: 'sospecha', delta: 1 }],
         next: 'c1_acusacion',
@@ -416,7 +425,7 @@ export const c1_acusacion = {
           text: 'En la segunda fila está el chico del casco grande. Cuando el capitán pregunta quién más bajó al vado, mira el barro y tarda.',
         },
         {
-          text: 'La rueda de gente se cierra un paso. Nadie dice nada todavía: esperan a ver de qué lado se acomoda la alcaldesa.',
+          text: 'La rueda de gente se cierra un paso. Nadie dice nada: esperan a ver de qué lado se acomoda la alcaldesa.',
         },
       ],
     },
@@ -496,7 +505,7 @@ export const c1_acusacion = {
       lockedHint: 'Orell no te dio nada que usar en su contra.',
       outcome: {
         text: [
-          'Decís que el sargento te dejó cruzar de noche y que sabía lo del molino. Orell no lo niega, y eso es lo peor que le podía pasar. Cuando la plaza se afloja, ya está mirando el agua.',
+          'Decís que el sargento te dejó cruzar de noche y que sabía lo del molino. Orell no lo niega, y eso es lo peor que le podía pasar. Cuando la plaza se afloja, ya mira el agua.',
         ],
         effects: [
           { clear: 'run:orell_confia' },
@@ -526,7 +535,7 @@ export const c1_acusacion = {
       lockedHint: 'Ya no tenés la carta lacrada.',
       outcome: {
         text: [
-          'Le ponés la carta en la mano con el lacre para arriba. Dravos la lee y después mira a la alcaldesa más de lo que dura una mirada. Se la guarda en el pecho. «Esto lo firmó ella. Corresponde archivarlo».',
+          'Le ponés la carta con el lacre para arriba. Dravos la lee y después mira a la alcaldesa más de lo que dura una mirada. Se la guarda en el pecho. «Esto lo firmó ella. Corresponde archivarlo».',
         ],
         effects: [
           { take: 'carta_lacrada' },
@@ -1086,7 +1095,7 @@ export const a2_ley_torre = {
       label: 'Leer el sigilo lacrado delante de Dravos',
       outcome: {
         text: [
-          'El lacre verde no tiene armas: tiene un círculo con tres canales, como los de un molino. El mismo dibujo está al pie de otras dos cartas. Dravos pregunta, sin levantar la cabeza, cuál te interesó.',
+          'El lacre verde no tiene armas: tiene un círculo con tres canales, como los de un molino. Está al pie de otras dos cartas. Dravos pregunta, sin levantar la cabeza, cuál te interesó.',
         ],
         effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_cartas',
@@ -1170,7 +1179,7 @@ export const a2_ley_cartas = {
   kind: 'normal',
   place: 'torre_de_dravos',
   text: [
-    'Las cartas están en dos montones, los dos ordenados por fecha. El papel del otro lado del río es más liso y más frío al tacto, y no se dobla: se quiebra en el pliegue.',
+    'Las cartas están en dos montones ordenados por fecha. El papel del otro lado del río es más liso y más frío al tacto, y no se dobla: se quiebra en el pliegue.',
     {
       variants: [
         {
@@ -1263,7 +1272,7 @@ export const a2_ley_cartas = {
         outcomes: {
           crit: {
             text: [
-              'No es un escudo: es un plano. Los tres canales son los del piso de un sótano y el círculo del medio es el hueco donde va la piedra. Lo que cierra esa carta es la cosa que se vende.',
+              'No es un escudo: es un plano. Los tres canales son los del piso de un sótano y el círculo del medio es el hueco donde va la piedra. Lo que cierra esa carta es lo que se vende.',
             ],
             effects: [{ set: 'run:piedra_leida' }, { set: 'char:vado.sabe_del_sello' }],
             next: 'a2_ley_halvar',
@@ -1620,8 +1629,8 @@ export const a2_ley_guardia = {
   redirect: [{ when: { clock: 'sospecha', gte: 4 }, to: 'c2_anochece' }],
   onEnter: [{ take: 'farol_de_sebo' }, { heal: 1 }, { clock: 'sospecha', delta: 1 }],
   text: [
-    'Abajo, en el cuerpo de guardia, hay un banco largo, cuatro capas y un puchero que hierve desde dos relevos. Te dan un jarro con grasa.',
-    'El farol queda en el poste: adentro no se entra con fuego propio. En la tablilla está tu nombre y la hora.',
+    'Abajo, en el cuerpo de guardia, hay un banco largo, cuatro capas colgadas y un puchero que hierve desde hace dos relevos. Te dan un jarro: es agua con grasa y un pedazo de nabo, y te lo tomás entero.',
+    'El farol lo dejás colgado en el poste del relevo, porque adentro no se entra con fuego propio. En la tablilla de la guardia, abajo de todo, alguien escribió tu nombre y al lado la hora en que entraste.',
     {
       speaker: 'orell',
       variants: [
@@ -1637,7 +1646,7 @@ export const a2_ley_guardia = {
       label: 'Dormir lo que queda hasta el relevo',
       outcome: {
         text: [
-          'Dormís de un tirón y despertás con la boca seca.',
+          'Dormís de un tirón y sin sueños. Te despertás con la boca seca y con la sensación de haber perdido algo que después no encontrás.',
         ],
         next: 'c2_anochece',
       },
@@ -1647,7 +1656,7 @@ export const a2_ley_guardia = {
       label: 'Esperar despierto junto al brasero',
       outcome: {
         text: [
-          'No dormís. Dos relevos: los que bajan hablan del agua.',
+          'No dormís. Escuchás dos relevos enteros: los que bajan hablan del agua y los que suben no hablan de nada.',
         ],
         next: 'c2_anochece',
       },
@@ -1657,7 +1666,7 @@ export const a2_ley_guardia = {
       label: 'Volver a subir a la sala de mando',
       outcome: {
         text: [
-          'Subís con la excusa del jarro. La sala sigue entornada.',
+          'Subís otra vez, con la excusa de devolver el jarro. Arriba, la puerta de la sala de mando está entornada igual que antes.',
         ],
         next: 'a2_ley_torre',
       },
@@ -1667,7 +1676,7 @@ export const a2_ley_guardia = {
       label: 'Volver a golpear la puerta de Berta',
       outcome: {
         text: [
-          'Cruzás el puente al revés. Lo de Berta sigue encendido.',
+          'Salís por la poterna y cruzás el puente al revés. En la casa de la alcaldesa la lámpara sigue encendida, y ya es tarde para que siga encendida.',
         ],
         next: 'a2_ley_berta',
       },
@@ -1679,7 +1688,7 @@ export const a2_ley_guardia = {
       lockedHint: 'Orell todavía no te presta ni la hora.',
       outcome: {
         text: [
-          'Orell te tira una capa seca.',
+          'Orell descuelga una capa del perchero y te la tira sin mirarte. Está seca y huele a otro hombre. La tuya queda goteando en el gancho.',
         ],
         effects: [{ removeCondition: 'empapado' }],
         next: 'c2_anochece',

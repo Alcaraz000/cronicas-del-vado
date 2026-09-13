@@ -128,12 +128,21 @@ import type { Scene } from '@/content/schema';
  * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
  * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
  *
- * TENSIÓN QUE EL RECORTE DEJA A LA VISTA, y que conviene resolver en el diseño: las celdas de la
- * tabla §2 del outline y la banda de 20-60 palabras por desenlace de la biblia §2.3 **no se pueden
- * satisfacer las dos a la vez**. La tabla presupuesta 28 palabras por `outcome.text` y solo para
- * una parte de las opciones libres, así que entrar en la celda obliga a bajar de 20 en varios
- * desenlaces. Los avisos de `[bandas]` del linter subieron de 117 a 153 por eso: son el precio de
- * los 22 errores de presupuesto que quedaron en 0.
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
