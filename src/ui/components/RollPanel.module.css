@@ -18,27 +18,10 @@
   color: var(--color-texto-suave);
 }
 
-.dados {
-  display: flex;
-  gap: var(--esp-2);
-  margin-bottom: var(--esp-2);
-}
-
-.dado {
-  display: inline-grid;
-  place-items: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border: 2px solid var(--color-borde);
-  border-radius: var(--radio);
-  font-size: 2rem;
-  font-weight: 700;
-  background: var(--color-fondo);
-}
-
 .total {
-  margin: 0 0 var(--esp-1);
-  font-size: 1.1rem;
+  margin: var(--esp-2) 0 var(--esp-1);
+  font-size: var(--tam-ui);
+  font-weight: 600;
 }
 
 .sello {

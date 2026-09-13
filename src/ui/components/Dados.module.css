@@ -1,0 +1,57 @@
+.dados {
+  display: flex;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-2);
+}
+
+.dado {
+  width: 3.5rem;
+  height: 3.5rem;
+  overflow: visible;
+}
+
+/* El descartado se ve apagado (no desaparece: sigue mostrando qué salió). */
+.dado[data-kept='false'] {
+  opacity: 0.4;
+}
+
+.cara {
+  fill: var(--color-fondo);
+  stroke: var(--color-borde);
+  stroke-width: 3;
+}
+
+.punto {
+  fill: var(--color-texto);
+}
+
+/* El dado recién repetido con Fortuna lleva el borde del acento, además de que solo él gira. */
+.dado[data-resaltado='true'] .cara {
+  stroke: var(--color-acento);
+  stroke-width: 6;
+}
+
+.dado[data-girando='true'] {
+  animation: girar 700ms ease-out;
+}
+
+@keyframes girar {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(190deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+/* Cinturón y tirantes: además del control por prop (`girando`, que ya decide `useReducedMotion`
+   en RollPanel), la propia animación se apaga si el sistema pide menos movimiento — la
+   preferencia puede cambiar con el componente ya montado. */
+@media (prefers-reduced-motion: reduce) {
+  .dado[data-girando='true'] {
+    animation: none;
+  }
+}

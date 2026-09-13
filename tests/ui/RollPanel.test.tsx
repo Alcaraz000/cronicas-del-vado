@@ -1,8 +1,9 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { RollPanel } from '@/ui/components/RollPanel';
 import { S } from '@/ui/strings.es';
+import { useStore } from '@/state/store';
 import type { PendingRoll, RollPreview } from '@/engine/types';
 
 const preview: RollPreview = {
@@ -39,83 +40,161 @@ function pendiente(over: Partial<PendingRoll> = {}): PendingRoll {
 describe('RollPanel', () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    useStore.getState().setPrefs({ reducedMotion: 'auto' });
   });
 
-  it('muestra objetivo, dados (descartado apagado), total y sello de banda', () => {
+  it('con movimiento reducido muestra el resultado completo de una, sin temporizadores', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+
     render(
       <RollPanel pending={pendiente()} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={vi.fn()} />,
     );
-    expect(screen.getByText(preview.targetLine)).toBeInTheDocument();
-    expect(screen.getByText(S.tirada.modo.advantage)).toBeInTheDocument();
 
-    expect(screen.getByTestId('dado-0')).toHaveTextContent('6');
-    expect(screen.getByTestId('dado-1')).toHaveTextContent('2');
-    expect(screen.getByTestId('dado-2')).toHaveTextContent('5');
-    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-kept', 'true');
-    expect(screen.getByTestId('dado-1')).toHaveAttribute('data-kept', 'false');
-    expect(screen.getByTestId('dado-1')).toHaveStyle({ opacity: '0.4' });
-    expect(screen.getByTestId('dado-2')).toHaveStyle({ opacity: '1' });
-
+    // Todo lo que solo debería verse "al asentar" ya está en el primer render.
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'false');
     expect(screen.getByTestId('total')).toHaveTextContent('13');
-    const sello = screen.getByText(S.tirada.banda.success);
-    expect(sello).toHaveAttribute('data-banda', 'success');
+    expect(screen.getByTestId('sello')).toHaveTextContent(S.tirada.banda.success);
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toBeInTheDocument();
+
+    // Sin movimiento no hay nada que animar: no debe quedar ningún temporizador corriendo.
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 
-  it('muestra el sello de cada banda', () => {
-    const bandas = ['crit', 'success', 'partial', 'failure', 'fumble'] as const;
-    for (const band of bandas) {
-      render(
-        <RollPanel pending={pendiente({ band })} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={vi.fn()} />,
-      );
-      expect(screen.getByText(S.tirada.banda[band])).toHaveAttribute('data-banda', band);
-      cleanup();
-    }
-  });
-
-  it('ofrece un botón de Fortuna por dado solo si canReroll y llama a onReroll con el índice', () => {
-    const onReroll = vi.fn<(i: number) => void>();
+  it('anima y después se asienta: primero giran los dados, después el total', () => {
+    vi.useFakeTimers();
     render(
-      <RollPanel pending={pendiente({ canReroll: true })} powerName="Conjuro" onReroll={onReroll} onPower={vi.fn()} onContinue={vi.fn()} />,
+      <RollPanel pending={pendiente()} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={vi.fn()} />,
     );
-    const botones = screen.getAllByRole('button', { name: /Fortuna: repetir dado/ });
-    expect(botones).toHaveLength(3);
-    fireEvent.click(screen.getByRole('button', { name: S.tirada.repetir(2) }));
-    expect(onReroll).toHaveBeenCalledWith(1);
-    cleanup();
 
-    render(
-      <RollPanel pending={pendiente({ canReroll: false })} powerName="Conjuro" onReroll={onReroll} onPower={vi.fn()} onContinue={vi.fn()} />,
-    );
-    expect(screen.queryByRole('button', { name: /Fortuna: repetir dado/ })).toBeNull();
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'true');
+    expect(screen.queryByTestId('total')).toBeNull();
+    expect(screen.queryByTestId('sello')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('total')).toHaveTextContent('13');
+    expect(screen.getByTestId('sello')).toHaveTextContent(S.tirada.banda.success);
   });
 
-  it('ofrece el botón de Poder solo si canUsePower y llama a onPower', () => {
-    const onPower = vi.fn();
+  it('un clic salta la animación', () => {
+    vi.useFakeTimers();
+    render(
+      <RollPanel pending={pendiente()} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={vi.fn()} />,
+    );
+    expect(screen.queryByTestId('total')).toBeNull();
+
+    fireEvent.click(screen.getByRole('region', { name: S.tirada.titulo }));
+
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('total')).toHaveTextContent('13');
+  });
+
+  it('muestra los chips del preview, con los anulados tachados', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    const previewAnulado: RollPreview = {
+      ...preview,
+      mode: 'cancelled',
+      sources: [
+        { kind: 'advantage', label: 'Aprendiz de escriba', origin: 'trait', cancelled: true },
+        { kind: 'disadvantage', label: 'Exhausto', origin: 'condition', cancelled: true },
+      ],
+    };
     render(
       <RollPanel
-        pending={pendiente({ band: 'failure', canUsePower: true })}
+        pending={pendiente({ preview: previewAnulado })}
         powerName="Conjuro"
         onReroll={vi.fn()}
-        onPower={onPower}
+        onPower={vi.fn()}
         onContinue={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: S.tirada.poder('Conjuro') }));
-    expect(onPower).toHaveBeenCalledTimes(1);
-    cleanup();
 
-    render(
-      <RollPanel pending={pendiente({ canUsePower: false })} powerName="Conjuro" onReroll={vi.fn()} onPower={onPower} onContinue={vi.fn()} />,
-    );
-    expect(screen.queryByRole('button', { name: /Usar Poder/ })).toBeNull();
+    expect(screen.getByText(S.tirada.modo.cancelled)).toBeInTheDocument();
+    const ventaja = S.tirada.chip.fuente(S.tirada.chip.simbolo.advantage, 'Aprendiz de escriba');
+    const desventaja = S.tirada.chip.fuente(S.tirada.chip.simbolo.disadvantage, 'Exhausto');
+    expect(screen.getByText(ventaja)).toHaveAttribute('data-tachado', 'true');
+    expect(screen.getByText(desventaja)).toHaveAttribute('data-tachado', 'true');
   });
 
-  it('Continuar llama a onContinue', () => {
-    const onContinue = vi.fn();
+  it('el sello lleva icono Y texto, no solo color', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
     render(
-      <RollPanel pending={pendiente()} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={onContinue} />,
+      <RollPanel
+        pending={pendiente({ band: 'fumble' })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
     );
-    fireEvent.click(screen.getByRole('button', { name: S.tirada.continuar }));
-    expect(onContinue).toHaveBeenCalledTimes(1);
+    const sello = screen.getByTestId('sello');
+    expect(sello).toHaveAttribute('data-banda', 'fumble');
+    expect(sello).toHaveTextContent(S.tirada.icono.fumble);
+    expect(sello).toHaveTextContent(S.tirada.banda.fumble);
+  });
+
+  it('los botones de Fortuna y Poder aparecen recién cuando la tirada se asentó', () => {
+    vi.useFakeTimers();
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: true, canUsePower: true })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Fortuna/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: S.tirada.poder('Conjuro') })).toBeNull();
+    expect(screen.queryByRole('button', { name: S.tirada.continuar })).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.getAllByRole('button', { name: /Fortuna/ }).length).toBe(3);
+    expect(screen.getByRole('button', { name: S.tirada.poder('Conjuro') })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toBeInTheDocument();
+  });
+
+  it('al repetir un dado con Fortuna solo re-anima ese dado', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <RollPanel pending={pendiente()} powerName="Conjuro" onReroll={vi.fn()} onPower={vi.fn()} onContinue={vi.fn()} />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('dado-1')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('dado-2')).toHaveAttribute('data-girando', 'false');
+
+    rerender(
+      <RollPanel
+        pending={pendiente({ dice: [6, 4, 5], rerolls: [1], total: 11 })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+
+    // Solo el dado repetido gira; el resto de la tirada, ya asentada, no se toca.
+    expect(screen.getByTestId('dado-1')).toHaveAttribute('data-girando', 'true');
+    expect(screen.getByTestId('dado-1')).toHaveAttribute('data-resaltado', 'true');
+    expect(screen.getByTestId('dado-0')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('dado-2')).toHaveAttribute('data-girando', 'false');
+    expect(screen.getByTestId('total')).toHaveTextContent('11');
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    expect(screen.getByTestId('dado-1')).toHaveAttribute('data-girando', 'false');
   });
 });

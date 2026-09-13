@@ -169,6 +169,18 @@ export const S = {
       failure: 'Fallo',
       fumble: 'Fallo grave',
     },
+    /**
+     * El sello de la banda nunca se distingue solo por color (spec de accesibilidad): cada
+     * banda además lleva un símbolo propio, así que un jugador que no distingue colores igual
+     * lee si le fue bien.
+     */
+    icono: {
+      crit: '✦',
+      success: '✓',
+      partial: '±',
+      failure: '✗',
+      fumble: '☠',
+    },
     modo: {
       normal: 'Tirada normal: 2d6',
       advantage: 'Con ventaja: 3d6, se conservan los 2 mayores',
