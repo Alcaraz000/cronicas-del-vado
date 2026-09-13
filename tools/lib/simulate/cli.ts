@@ -19,7 +19,7 @@ export interface CliArgs {
 export const SEMILLA_POR_DEFECTO = 20260912;
 
 /**
- * Carreras por combinación por defecto: 100, o sea 2.400 carreras y ~9.300 partidas, un minuto y
+ * Carreras por combinación por defecto: 100, o sea 3.200 carreras y ~12.492 partidas, un minuto y
  * medio. La spec §10 pide 500 (unos ocho minutos); se sube con `--n`. El valor por defecto es el
  * que se usó para el `sim-report.md` que está en el repo, así que `npm run simulate` sin argumentos
  * regenera exactamente ese archivo.

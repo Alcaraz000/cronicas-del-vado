@@ -10,8 +10,9 @@ import type { ClassId } from '@/content/catalog';
  *   arriesgar, y el instrumento con el que se mide si ceder cuesta algo.
  *
  * Una opción SIN tirada no puede fallar: vale éxito 1 y fallo 0 para `probExito`/`probFallo`, que
- * es lo que usan el informe, la temeraria y la prudente. La codiciosa puntúa distinto (ver
- * `puntajeCodicioso` en politicas.ts) para no confundir "no puede fallar" con "conviene".
+ * es lo que usan la temeraria y la prudente (el informe no: trabaja sobre las tiradas
+ * observadas). La codiciosa puntúa distinto (ver `puntajeCodicioso` en politicas.ts) para no
+ * confundir "no puede fallar" con "conviene".
  */
 export type PoliticaId = 'aleatoria' | 'codiciosa' | 'temeraria' | 'prudente';
 
