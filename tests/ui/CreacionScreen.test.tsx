@@ -40,6 +40,25 @@ describe('CreacionScreen', () => {
     cleanup();
   });
 
+  /**
+   * Tarea 6 (Fase H): cada paso reemplaza el `<main>` entero (no es un router de pantallas,
+   * pero el efecto es el mismo), así que el control que tenía el foco en el paso anterior
+   * desaparece y el foco cae a `<body>`, invisible. El subtítulo del paso recibe el foco por
+   * programa al montar Y cada vez que cambia de paso (ver `useEnfocarAlEntrar`).
+   */
+  it('lleva el foco al subtítulo del paso, al montar y en cada cambio de paso', () => {
+    render(<CreacionScreen />);
+
+    expect(screen.getByRole('heading', { level: 2, name: S.creacion.titulos[1] })).toHaveFocus();
+
+    fireEvent.click(screen.getByTestId('clase-guerrero'));
+    avanzar();
+    expect(screen.getByRole('heading', { level: 2, name: S.creacion.titulos[2] })).toHaveFocus();
+
+    avanzar();
+    expect(screen.getByRole('heading', { level: 2, name: S.creacion.titulos[3] })).toHaveFocus();
+  });
+
   it('no deja avanzar del paso 1 sin elegir clase, y dice por qué', () => {
     render(<CreacionScreen />);
 

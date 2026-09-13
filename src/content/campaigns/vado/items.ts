@@ -17,7 +17,7 @@ export const items: Record<string, Item> = {
     name: 'Carta lacrada de Berta',
     icon: 'carta_lacrada',
     description:
-      'La carta que te trajo hasta acá: el lacre de la alcaldesa todavía entero, la promesa de plata y once días de ausencia escritos con buena letra. Es el objeto que más trabaja y el más perdible: se gasta dándosela a Orell para cruzar, mostrándosela a Dravos, mojándola en el vado o cuando Berta te la arranca de la mano.',
+      'La carta que te trajo hasta acá: el lacre de la alcaldesa todavía entero, la promesa de plata y once días de ausencia escritos con buena letra. Es el objeto que más trabaja y el más perdible: se gasta dándosela a Orell para cruzar, mostrándosela a Dravos, mojándola en el vado, cuando Berta te la arranca de la mano o cuando te cachean en la plaza por dejarte tomar nota.',
     advantageTags: ['social'],
   },
   farol_de_sebo: {

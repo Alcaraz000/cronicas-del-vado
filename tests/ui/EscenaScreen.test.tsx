@@ -1,6 +1,9 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
 import type { Campaign } from '@/content/schema';
 import type { LogEntry, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
@@ -485,5 +488,62 @@ describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/**
+ * jsdom no calcula layout ni evalúa `@media`, así que esto no puede probar que la hoja se vea
+ * bien en un teléfono — eso se juega a mano, emulando 375×812 (ver el informe de la tarea).
+ * Lo único que un test puede fijar acá es la DECLARACIÓN: que el bloque de móvil de verdad
+ * apile una fila de altura fija para el visual y convierta `.columna` en su propio scroll, en
+ * vez de quedar, como antes, con `max-height: none` y sin tope real. Mismo método que ya usa
+ * `StatusBar.test.tsx` para su regla `.abandonar`: leer el archivo y buscar la regla exacta.
+ */
+describe('EscenaScreen — hoja inferior en móvil', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
+  const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
+
+  it('en móvil la columna es una hoja con su propio scroll', () => {
+    const columna = cuerpoDe(movil, '.columna');
+    expect(columna, '.columna no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(columna).toMatch(/overflow-y\s*:\s*auto/);
+    // Sin esto el ítem de grid crece con el contenido en vez de respetar la fila que le toca,
+    // y el scroll de arriba nunca llega a hacer falta (la página entera scrollea).
+    expect(columna).toMatch(/min-height\s*:\s*0/);
+
+    // La fila de arriba (el visual) necesita una altura fija en proporción de la pantalla:
+    // es lo que declara cuánto mide el fondo antes de que la hoja empiece.
+    const grid = cuerpoDe(movil, '.grid');
+    expect(grid, '.grid no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(grid).toMatch(/grid-template-rows\s*:\s*[\d.]+vh/);
+  });
+
+  /**
+   * `.grid` mide `1fr` de la fila de abajo — pero un `fr` solo reparte espacio de verdad
+   * cuando su CONTENEDOR tiene una altura definida. `.pantalla` (arriba del todo) solo
+   * declaraba `min-height: 100vh`, nunca `height`, así que ante contenido largo el navegador
+   * calcula la altura automática de `.pantalla` ANTES de saber cuánto mide `.grid` — y para
+   * esa cuenta, un `fr` sin un contenedor de altura definida se comporta como `auto` (mide por
+   * contenido). Resultado, jugado en un teléfono real (375×812) y no visible en jsdom: `.grid`
+   * termina midiendo lo que el texto de la escena necesita, `.pantalla` crece para no
+   * cortarlo, y es la PÁGINA la que scrollea —fondo incluido— en vez de la hoja. `min-height: 0`
+   * en `.grid` y en `.columna` no alcanza para arreglar esto por sí solo: sin este
+   * `height: 100vh`, sigue sin haber ninguna altura real de la cual partir. Este test existe
+   * porque el anterior (`.columna`/`.grid`) pasaría igual si alguien borrara esta línea por
+   * parecer redundante con esos `min-height: 0` — y el bug volvería en silencio. */
+  it('en móvil `.pantalla` tiene una altura fija, no solo un mínimo: la fila `1fr` de `.grid` no tiene de qué repartirse sin esto', () => {
+    const pantalla = cuerpoDe(movil, '.pantalla');
+    expect(pantalla, '.pantalla no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(pantalla).toMatch(/height\s*:\s*100vh/);
+  });
+
+  it('la hoja se despega del fondo: esquinas de arriba redondeadas y sombra hacia arriba', () => {
+    const columna = cuerpoDe(movil, '.columna');
+    expect(columna).toMatch(/border-radius\s*:\s*var\(--radio\)/);
+    expect(columna).toMatch(/background\s*:\s*var\(--color-superficie\)/);
+    // El desplazamiento en Y es negativo (sombra hacia ARRIBA, no un borde parejo): puede
+    // escribirse como `-Npx` o como `calc(... * -1)`, así que el negativo se busca suelto en
+    // el valor entero y no pegado al `0` del desplazamiento en X.
+    expect(columna).toMatch(/box-shadow\s*:[^;]*-/);
   });
 });

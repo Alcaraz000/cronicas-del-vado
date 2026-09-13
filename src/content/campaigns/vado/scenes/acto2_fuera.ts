@@ -47,6 +47,23 @@ import type { Scene } from '@/content/schema';
  * ni un `requires`, ni un `lockedHint`, ni un `roll`, ni un `effects`, ni un `next`, ni un
  * `redirect`, ni un `onEnter`, ni un `npcs`, ni un `place`, ni un `variant`. Entró texto y nada más.
  *
+ * FASE H · TAREA 2 — "que ceder cueste algo". Lo único que cambió de estructura en este archivo son
+ * tres `effects`, con sus `label`:
+ *   1. `c2_orilla.remar_en_la_barca_de_tome` paga +1 de `sospecha` (primera vuelta, tabla del brief).
+ *   2. `c2_vado_crecido.entregar_lo_que_llevas` → `{ addCondition: 'perseguido' }` (segunda vuelta).
+ *   3. `c2_otra_orilla.dejar_el_sello_en_la_cadena` → `{ addCondition: 'empapado' }` (segunda vuelta),
+ *      y su prosa dejó de usar una variante por `{ item: 'sello_del_vado' }`, que era prosa muerta:
+ *      el desenlace hace `take` de ese mismo objeto. Ver la nota (c) y el comentario de la opción.
+ * Las dos de la segunda vuelta salen de la MEDICIÓN, no de la tabla: la traza del simulador mostró
+ * que la ruta de la política prudente cruza el cuello 2 por esas dos y no pagaba nada físico en todo
+ * el tramo más peligroso de la campaña. Ninguna de las dos cobra `sospecha`, a propósito: el reloj
+ * llega a 4 y redirige, y la primera vuelta ya gastó un tic. La 2 sigue sin poder matar y su prosa
+ * sigue sin una palabra de muerte, como pide biblia §11 para las opciones 3, 4 y 5.
+ * Ninguna opción se sacó ni ganó `requires`, así que la columna `opc`/`libres` de arriba sigue
+ * valiendo. `c2_anochece` NO se tocó a propósito: es escena de aviso, no de habilidad, y su
+ * asimetría correcta ya existe (`buscar_una_cuerda` entrega la `cuerda_de_molinero`, que es ventaja
+ * real en el vado crecido); cobrarle algo sería castigarla por hacer lo que tiene que hacer.
+ *
  * DEUDA DE PROSA SALDADA
  * · Variantes de memoria de la cuota (biblia §9.1), las cuatro en párrafos de NARRADOR, sin
  *   `speaker`, y las cuatro más cortas que su base:
@@ -142,8 +159,16 @@ import type { Scene } from '@/content/schema';
  *     `c2_otra_orilla`, que tiene el mismo problema al revés: hace `take` de algo que quizá no
  *     tenés). Las dos están escritas con `Paragraph` de dos variantes. **Anotar en la biblia §11.**
  * (c) **`c2_vado_crecido.cruzar_de_frente` hace `take: 'carta_lacrada'` en `partial` y en `fumble`**,
- *     y un jugador puede llegar sin la carta (se gasta de cuatro maneras, §5). El `take` es inocuo
+ *     y un jugador puede llegar sin la carta (se gasta de cinco maneras, §5). El `take` es inocuo
  *     para el motor, pero el texto no: `partial` lleva variante por `{ item: 'carta_lacrada' }`.
+ *     **ESA VARIANTE NO FUNCIONA Y ESTA RECETA NO SE COPIA** (hallazgo de la Fase H). `choose` y
+ *     `commitRoll` aplican los `effects` ANTES de resolver el texto del desenlace
+ *     (`resolve.ts:265-267` y `473-489`), así que cuando se evalúa `{ item: 'carta_lacrada' }` el
+ *     `take` ya corrió y la condición es falsa siempre: el que llega con la carta lee igual el texto
+ *     del que no la tiene. **Queda como deuda**: es prosa de la Fase D, vive en la escena mortal y
+ *     no se toca desde la Fase H, pero un test de contenido la tiene fijada para que no aparezca una
+ *     segunda. La forma correcta, la que usan `c1_acusacion.ceder` y
+ *     `c2_otra_orilla.dejar_el_sello_en_la_cadena`, es **prosa verdadera con el objeto y sin él**.
  * (d) Presupuesto MEDIDO contra el outline §2, escena por escena (toda la prosa escrita, variantes
  *     incluidas; no se cuentan `label` ni `lockedHint`):
  *       `a2_fuera_fuga` 280/194 · `a2_fuera_sotano` 425/390 · `a2_fuera_sello` 392/339 ·
@@ -155,6 +180,45 @@ import type { Scene } from '@/content/schema';
  *     mismo desvío que midió el lote 1 y por la misma causa: opciones sin tirada cuyo único
  *     cambio posible es el texto, más las cinco variantes (memoria y objeto) que una sola partida
  *     no lee enteras (~105 palabras). **La ruta base de una partida está en ~3.500.**
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 3 — "el sello es invisible, no inaccesible". Ver la nota gemela en
+ * `scenes/acto2_ley.ts` (informe de Fase E §8.2). **No se tocó la mecánica** de `leer_la_piedra`
+ * (mismo `requires: { not: { flag: 'run:piedra_leida' } }`, misma tirada, mismo intento único).
+ * Lo único que cambió en `a2_fuera_sello`:
+ *   1. El párrafo 2 del `text` de escena suma una cláusula: la talla de la piedra no es un
+ *      adorno, porque el agua gastó parejo el resto de la piedra y a esas líneas no las tocó
+ *      —siguen tan netas como si fueran de anoche—, sin adelantar qué dicen. Presupuesto de la
+ *      escena: 392 → 411 de 339 (+21 %, dentro del piso de aviso).
+ *   2. `leer_la_piedra.label` pasa de "Leer la piedra hasta entenderla" a "Leer lo que dice la
+ *      piedra" (biblia §10: la etiqueta anuncia que hay algo escrito, no nombra el objeto).
+ * Igual que con `a2_ley_cartas.reconocer_el_sigilo`, `npm run simulate` con la misma semilla da
+ * los mismos 118/9416 en `fin_heredero` antes y después: el simulador no lee prosa.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
+ * `label`, ni un `requires`, ni un `roll`, ni un `effects`, ni un `next`: entró y salió texto.
+ * Criterio de recorte, en este orden: (1) la oración que repite lo que la escena ya dijo; (2) la
+ * que explica al jugador la opción que acaba de elegir; (3) el adjetivo y la subordinada que no
+ * agregan información. NO se tocaron: lo que el jugador necesita para decidir lo que sigue, las
+ * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
+ * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
+ *
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -173,15 +237,15 @@ export const a2_fuera_fuga = {
   npcs: ['ilse'],
   onEnter: [{ set: 'run:con_ilse' }],
   text: [
-    'Todavía no aclaró del todo y la plaza ya tiene gente. Vas pegado a las paredes. El agua que cae de los techos te entra en la boca y sabe a hollín.',
+    'Todavía no aclaró y la plaza ya tiene gente. Vas pegado a las paredes. El agua de los techos te entra en la boca y sabe a hollín.',
     {
       variants: [
         {
           when: { met: 'ilse' },
-          text: 'A la hija de la alcaldesa la reconocés por la trenza antes que por la cara. Esta vez no espera a que la mires: te agarra la manga y tira.',
+          text: 'A la hija de la alcaldesa la reconocés por la trenza. Esta vez no espera: te agarra la manga y tira.',
         },
         {
-          text: 'Una chica de tu altura te cierra el paso entre dos carros. Trenza colorada, delantal de cuero de hombre, harina seca hasta el codo. No pregunta: te agarra la manga y tira.',
+          text: 'Una chica de tu altura te cierra el paso entre dos carros. Trenza colorada, delantal de cuero, harina hasta el codo. No pregunta: te agarra y tira.',
         },
       ],
     },
@@ -189,7 +253,7 @@ export const a2_fuera_fuga = {
       speaker: 'ilse',
       variants: [
         {
-          text: '—Por el caz. Abajo del azud hay una boca de piedra y se entra agachado. —Te mide de arriba abajo—. La boca es de dos sacos de ancho. Vos sos de tres. Entrás igual.',
+          text: '—Por el caz. Abajo del azud hay una boca de piedra y se entra agachado. —Te mide—. Es de dos sacos de ancho. Vos sos de tres. Entrás igual.',
         },
       ],
     },
@@ -200,7 +264,7 @@ export const a2_fuera_fuga = {
       label: 'Seguir a Ilse por el caz hasta el sótano',
       outcome: {
         text: [
-          'Entrás atrás de ella con el agua del caz hasta la rodilla. La boca de piedra baja y se termina en una escalera de mano.',
+          'Entrás atrás de ella con el agua hasta la rodilla. La boca de piedra termina en una escalera de mano.',
         ],
         next: 'a2_fuera_sotano',
       },
@@ -210,7 +274,7 @@ export const a2_fuera_fuga = {
       label: 'Preguntarle qué sabe antes de moverte',
       outcome: {
         text: [
-          'Le preguntás qué hay abajo. —Lo que él encontró —dice, y no baja el paso—. Acá arriba no me vas a creer.',
+          '—Lo que él encontró —dice, y no baja el paso—. Acá arriba no me vas a creer.',
         ],
         next: 'a2_fuera_sotano',
       },
@@ -230,7 +294,7 @@ export const a2_fuera_fuga = {
       label: 'Salir por los techos y perderte en la vega',
       outcome: {
         text: [
-          'Pasás de alero en alero hasta la última casa. El tejero que a esa hora repone pizarras te ve de cerca y no dice nada todavía.',
+          'Pasás de alero en alero hasta la última casa. El tejero que repone pizarras te ve de cerca y no dice nada todavía.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'a2_fuera_refugio',
@@ -244,7 +308,7 @@ export const a2_fuera_fuga = {
       lockedHint: 'Ya elegiste de qué lado estás, y no hay vuelta.',
       outcome: {
         text: [
-          'Le soltás la manga y volvés sobre tus pasos. Ilse no te sigue. El relevo de la torre te ve llegar solo y anota la hora.',
+          'Le soltás la manga y volvés sobre tus pasos. Ilse no te sigue. El relevo te ve llegar solo y anota la hora.',
         ],
         effects: [
           { set: 'run:cruzo_de_rama' },
@@ -262,7 +326,7 @@ export const a2_fuera_fuga = {
       lockedHint: 'No tenés con qué probar que la madre miente.',
       outcome: {
         text: [
-          'Le nombrás lo que su madre firmó antes de mandarte la carta. Se queda quieta en el barro y después camina más rápido. —Ya sé. Hace once días.',
+          'Le nombrás lo que su madre firmó antes de la carta. Se queda quieta en el barro y después camina más rápido. —Ya sé.',
         ],
         next: 'a2_fuera_sotano',
       },
@@ -288,8 +352,8 @@ export const a2_fuera_sotano = {
     { milestone: 'ver_el_sello' },
   ],
   text: [
-    'Bajás de espaldas por una escalera de mano que no llega al piso. El farol se te va en el último escalón y se apaga en el charco. Arriba queda la palanca atravesada en la tapa, para que no se cierre sola.',
-    'El sótano es redondo y más viejo que el molino que tiene encima. Del borde de la trampilla baja luz gris. Cae una gota, siempre en el mismo punto del agua, y se la oye contar.',
+    'Bajás de espaldas por una escalera de mano que no llega al piso. El farol se te va en el último escalón y se apaga en el charco. Arriba queda la palanca atravesada en la tapa.',
+    'El sótano es redondo y más viejo que el molino. Del borde de la trampilla baja luz gris. Cae una gota, siempre en el mismo punto, y se la oye contar.',
     {
       variants: [
         {
@@ -297,7 +361,7 @@ export const a2_fuera_sotano = {
           text: 'La tiza de la pared no cambió. El agua del piso sí: la raya de mojado subió un escalón desde que te fuiste.',
         },
         {
-          text: 'En la pared curva hay tiza: rayas de a cinco y, abajo, palabras que no son de las que usás. En el piso, canales en espiral bajan hasta un zócalo.',
+          text: 'En la pared curva hay tiza: rayas de a cinco y palabras que no son de las que usás. En el piso, canales en espiral bajan hasta un zócalo.',
         },
       ],
     },
@@ -320,7 +384,7 @@ export const a2_fuera_sotano = {
       label: 'Abrir el cuaderno de Tomé',
       outcome: {
         text: [
-          'El cuaderno está boca abajo sobre una caja, hinchado de humedad. Las primeras hojas son cuentas de fiados. Las últimas tienen una línea sola por página. Te lo guardás.',
+          'El cuaderno está boca abajo sobre una caja, hinchado de humedad. Las primeras hojas son fiados; las últimas, una línea por página. Te lo guardás.',
         ],
         effects: [{ give: 'cuaderno_de_tome' }],
         next: 'a2_fuera_sello',
@@ -331,7 +395,7 @@ export const a2_fuera_sotano = {
       label: 'Escuchar lo que Ilse no termina de decir',
       outcome: {
         text: [
-          'Habla del molino, del grano, del caz. Cada vez que la frase se le acerca al zócalo, cambia de tema y de tarea. Después baja dos escalones y se calla mirándote.',
+          'Habla del molino, del grano, del caz. Cada vez que la frase se acerca al zócalo, cambia de tema. Después baja dos escalones y se calla mirándote.',
         ],
         effects: [{ set: 'run:ilse_confia' }],
         next: 'a2_fuera_medallon',
@@ -347,20 +411,20 @@ export const a2_fuera_sotano = {
         outcomes: {
           success: {
             text: [
-              'Metés las dos manos y seguís los canales con los dedos. El agua no entra en el hueco del zócalo: sale de él, despacio y pareja, y sale tibia.',
+              'Metés las dos manos y seguís los canales con los dedos. El agua no entra en el zócalo: sale de él, despacio y pareja, y sale tibia.',
             ],
             next: 'a2_fuera_sello',
           },
           partial: {
             text: [
-              'Tanteás el borde y el canto te abre la palma de un tajo limpio. La mano se te cierra sola. Lo sentiste igual: el agua viene del hueco, no va.',
+              'Tanteás el borde y el canto te abre la palma de un tajo limpio. Lo sentiste igual: el agua viene del hueco, no va.',
             ],
             effects: [{ wound: 1 }],
             next: 'a2_fuera_sello',
           },
           failure: {
             text: [
-              'Removés el agua y el piso devuelve un ruido de olla vacía que sube por la trampilla. Arriba, en el caz, una barca de la guardia deja de remar.',
+              'Removés el agua y el piso devuelve un ruido de olla vacía que sube por la trampilla. Arriba, una barca de la guardia deja de remar.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_fuera_ilse',
@@ -372,7 +436,7 @@ export const a2_fuera_sotano = {
       id: 'subir_a_descansar',
       label: 'Subir a descansar al piso del molino',
       outcome: {
-        text: ['Subís por donde bajaste. La palanca aguanta la tapa y la tapa no chilla al ceder.'],
+        text: ['Subís por donde bajaste. La palanca aguanta la tapa y no chilla al ceder.'],
         next: 'a2_fuera_refugio',
       },
     },
@@ -396,7 +460,7 @@ export const a2_fuera_sotano = {
       lockedHint: 'Ilse todavía no te muestra lo que guarda.',
       outcome: {
         text: [
-          'Nombrás lo que guarda, sin rodeos. No dice que sí: baja los escalones que le faltaban y se sienta en el borde del agua, de espaldas a la piedra.',
+          'Nombrás lo que guarda. No dice que sí: baja los escalones que le faltaban y se sienta en el borde del agua, de espaldas.',
         ],
         next: 'a2_fuera_medallon',
       },
@@ -408,7 +472,7 @@ export const a2_fuera_sotano = {
       lockedHint: 'No viste nunca esas marcas.',
       outcome: {
         text: [
-          'Lo que hay debajo de la tiza es lo del pilar del puente: la misma figura que vuelve cada cinco. Quien la copió acá lo hizo de apuro, y le salió torcida siempre igual.',
+          'Lo que hay debajo de la tiza es lo del pilar del puente: la misma figura que vuelve cada cinco. Quien la copió lo hizo de apuro.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -430,14 +494,14 @@ export const a2_fuera_sello = {
   kind: 'normal',
   place: 'sotano_del_sello',
   text: [
-    'Cabe en las dos manos. Está encajada en un zócalo redondo, en el medio del piso, y los canales vienen todos a morir ahí. Antes de tocarla se te entumecen las yemas, igual que cuando agarrás hierro al aire libre en invierno.',
-    'Le falta un pedazo. En el borde de arriba hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. Alrededor la talla sigue, apretada y pareja, y no se entiende.',
+    'Cabe en las dos manos. Está encajada en un zócalo redondo y los canales vienen todos a morir ahí. Antes de tocarla se te entumecen las yemas, como cuando agarrás hierro en invierno.',
+    'Le falta un pedazo. En el borde hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. La talla no es un adorno: el agua gastó parejo el resto de la piedra, pero a esas líneas no las tocó.',
     'Ilse se quedó en la escalera. Desde ahí no se ve el zócalo, y por eso se quedó ahí.',
   ],
   choices: [
     {
       id: 'leer_la_piedra',
-      label: 'Leer la piedra hasta entenderla',
+      label: 'Leer lo que dice la piedra',
       requires: { not: { flag: 'run:piedra_leida' } },
       lockedHint: 'Esa piedra ya te dijo todo lo que iba a decirte.',
       roll: {
@@ -448,14 +512,14 @@ export const a2_fuera_sello = {
         outcomes: {
           success: {
             text: [
-              'Las líneas no son letras: es una frase sola repetida hasta llenar la piedra, y la frase es una medida. Alguien contó cuánta agua hay que tener quieta y dejó la cuenta en la tapa.',
+              'Las líneas no son letras: es una frase repetida hasta llenar la piedra, y es una medida. Alguien contó cuánta agua hay que tener quieta y dejó la cuenta en la tapa.',
             ],
             effects: [{ set: 'run:piedra_leida' }, { set: 'char:vado.sabe_del_sello' }],
             next: 'a2_fuera_ilse',
           },
           partial: {
             text: [
-              'Sacás la cuenta hasta la mitad y ahí se te va la cabeza. La nuca da contra el canto. Lo entendiste igual, tirado en el agua: es un tapón y le falta un pedazo.',
+              'Sacás la cuenta hasta la mitad y se te va la cabeza. La nuca da contra el canto. Lo entendiste igual, tirado en el agua: es un tapón y le falta un pedazo.',
             ],
             effects: [{ set: 'run:piedra_leida' }, { set: 'char:vado.sabe_del_sello' }, { wound: 1 }],
             next: 'a2_fuera_medallon',
@@ -489,7 +553,7 @@ export const a2_fuera_sello = {
       lockedHint: 'No viste esas runas, o no sabrías leerlas.',
       outcome: {
         text: [
-          'La que en el pilar volvía cada cinco acá está entera, y entera no es un nombre: es una cantidad, y la cantidad es de agua.',
+          'La que en el pilar volvía cada cinco acá está entera, y entera no es un nombre: es una cantidad de agua.',
         ],
         effects: [{ set: 'char:vado.sabe_del_sello' }],
         next: 'a2_fuera_medallon',
@@ -503,7 +567,7 @@ export const a2_fuera_sello = {
       lockedHint: 'Solo un Mago escucha lo que contesta una piedra.',
       outcome: {
         text: [
-          'Le hablás bajo, con la frente apoyada en el canto. Contesta con lo único que sabe: ruido de agua quieta, sin río y sin lluvia. Del otro lado hay mucha.',
+          'Le hablás bajo, con la frente en el canto. Contesta con lo único que sabe: ruido de agua quieta, sin río y sin lluvia. Del otro lado hay mucha.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -525,7 +589,7 @@ export const a2_fuera_sello = {
       label: 'Arrancar el sello de una y cargarlo',
       outcome: {
         text: [
-          'Metés los dedos en la mella y tirás. La piedra sale de golpe y el canto te abre los nudillos contra el zócalo. Ilse dice tu nombre desde la escalera una sola vez y no lo vuelve a decir en toda la noche. Arriba se contestan dos silbidos.',
+          'Metés los dedos en la mella y tirás. La piedra sale de golpe y el canto te abre los nudillos. Ilse dice tu nombre una vez y no lo vuelve a decir. Arriba se contestan dos silbidos.',
         ],
         effects: [
           { give: 'sello_del_vado' },
@@ -541,7 +605,7 @@ export const a2_fuera_sello = {
       label: 'Dejar la piedra en su hueco y no tocarla',
       outcome: {
         text: [
-          'Sacás las manos y las apoyás en las rodillas. La piedra se queda donde está. Ilse baja un escalón, después otro.',
+          'Sacás las manos y las apoyás en las rodillas. La piedra se queda. Ilse baja un escalón, después otro.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -569,8 +633,8 @@ export const a2_fuera_medallon = {
   place: 'sotano_del_sello',
   npcs: ['ilse'],
   text: [
-    'Ilse se sienta en el borde del agua y saca de adentro de la ropa un cordón de cuero. Lo que cuelga del cordón viene tibio: estuvo contra ella todos estos días.',
-    'Es una lasca oscura del tamaño de una uña, montada en alambre de atar sacos por alguien que sabe hacer nudos y no sabe hacer joyas. Entra en la mella sin que haga falta probarlo.',
+    'Ilse se sienta en el borde del agua y saca de la ropa un cordón de cuero. Lo que cuelga viene tibio: estuvo contra ella todos estos días.',
+    'Es una lasca oscura del tamaño de una uña, montada en alambre de atar sacos por alguien que sabe nudos y no joyas. Entra en la mella sin probarlo.',
     'No te la ofrece. La sostiene con el puño cerrado contra el pecho y espera a que hables vos.',
   ],
   choices: [
@@ -590,7 +654,7 @@ export const a2_fuera_medallon = {
                 speaker: 'ilse',
                 variants: [
                   {
-                    text: '—Se le cayó esa noche y yo lo junté. Once días lo tuve acá y once días subió el agua. Llevalo vos, que yo ya lo llevé bastante.',
+                    text: '—Se le cayó esa noche y yo lo junté. Once días lo tuve acá y once días subió el agua. Llevalo vos, que ya lo llevé bastante.',
                   },
                 ],
               },
@@ -600,7 +664,7 @@ export const a2_fuera_medallon = {
           },
           partial: {
             text: [
-              'Te lo da, pero antes te hace decir en voz alta para qué lo querés. Lo decís fuerte, y en un sótano redondo lo que se dice fuerte sale por la trampilla al caz.',
+              'Te lo da, pero antes te hace decir en voz alta para qué lo querés. En un sótano redondo lo que se dice fuerte sale por la trampilla al caz.',
             ],
             effects: [
               { give: 'medallon_de_tome' },
@@ -624,7 +688,7 @@ export const a2_fuera_medallon = {
       label: 'Rezar por Tomé con lo que te quede de voz',
       outcome: {
         text: [
-          'No sabés el responso entero y decís el pedazo que te acordás, con las manos abiertas en el agua. Ilse no reza: espera y dice el nombre, que es otra manera.',
+          'No sabés el responso entero y decís el pedazo que te acordás, con las manos en el agua. Ilse no reza: espera y dice el nombre, que es otra manera.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }],
         next: 'a2_fuera_ilse',
@@ -635,7 +699,7 @@ export const a2_fuera_medallon = {
       label: 'Contarle cómo encontraste a Tomé en el vado',
       outcome: {
         text: [
-          'Le contás cómo estaba: la ropa, la postura, el sitio entre el sauce y la grava. No llora y no te para. Cuando terminás, pregunta por las manos.',
+          'Le contás cómo estaba: la ropa, la postura, el sitio. No llora y no te para. Al final pregunta por las manos.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -644,7 +708,7 @@ export const a2_fuera_medallon = {
       id: 'subir_con_ella',
       label: 'Subir con ella antes de que aclare',
       outcome: {
-        text: ['Suben los dos por la escalera. Ella va primera y no mira atrás para ver si la seguís.'],
+        text: ['Suben los dos. Ella va primera y no mira atrás para ver si la seguís.'],
         next: 'a2_fuera_refugio',
       },
     },
@@ -677,7 +741,7 @@ export const a2_fuera_ilse = {
   npcs: ['ilse'],
   onEnter: [{ milestone: 'la_verdad_de_tome' }],
   text: [
-    'Tarda en empezar. Se agarra las rodillas y habla mirando el zócalo, no a vos. Cada vez que se calla, la pared curva le devuelve la última palabra una vez sola, y ella espera a que termine de volver.',
+    'Tarda en empezar. Se agarra las rodillas y habla mirando el zócalo, no a vos. Cada vez que se calla, la pared curva le devuelve la última palabra, y ella espera a que termine de volver.',
     {
       variants: [
         {
@@ -725,7 +789,7 @@ export const a2_fuera_ilse = {
           },
           partial: {
             text: [
-              'Lo dice, y en cuanto lo dice se para. —Ya está. Ya lo tenés. —Sube la escalera de a dos escalones y la tapa queda abierta atrás de ella. Te quedás abajo con la gota y con la piedra.',
+              'Lo dice, y en cuanto lo dice se para. —Ya está. Ya lo tenés. —Sube de a dos escalones y la tapa queda abierta. Te quedás abajo con la gota y con la piedra.',
             ],
             effects: [{ clear: 'run:ilse_confia' }, { clear: 'run:con_ilse' }],
             next: 'a2_fuera_refugio',
@@ -749,7 +813,7 @@ export const a2_fuera_ilse = {
       label: 'Pedirle que te acompañe hasta el final',
       outcome: {
         text: [
-          'Apenas se lo pedís, contesta. —Ya está dicho. —Se limpia las manos en el delantal—. Si no, mañana te ahogás solo y lo tengo que contar yo.',
+          'Apenas se lo pedís, contesta. —Ya está dicho. —Se limpia las manos—. Si no, mañana te ahogás solo y lo tengo que contar yo.',
         ],
         effects: [{ set: 'run:con_ilse' }],
         next: 'a2_fuera_refugio',
@@ -780,7 +844,7 @@ export const a2_fuera_ilse = {
       label: 'Dejarla en paz y subir al molino',
       outcome: {
         text: [
-          'Le dejás la tiza al lado y subís. A media escalera la oís acomodar cosas que ya estaban acomodadas.',
+          'Le dejás la tiza al lado y subís. A media escalera la oís acomodar cosas ya acomodadas.',
         ],
         next: 'a2_fuera_refugio',
       },
@@ -874,9 +938,9 @@ export const c2_anochece = {
   place: 'aldamar_plaza',
   variant: 'tormenta',
   text: [
-    'Toda la plaza está afuera con la lluvia encima. Clavan tablas en las ventanas bajas y suben a los carros lo que se puede subir. El bando del poste se despegó de una punta y golpea la madera toda la noche.',
+    'Toda la plaza está afuera con la lluvia encima. Clavan tablas en las ventanas y suben a los carros lo que se puede subir. El bando del poste se despegó y golpea la madera toda la noche.',
     'El que vuelve del vado lo dice sin que le pregunten: el agua tapa cuatro de las siete piedras. Anoche se veían seis.',
-    'Del otro lado del agua, el molino tiene las dos ventanas encendidas. Contra la isla hay amarrada una barca que no es la de Tomé.',
+    'Del otro lado del agua, el molino tiene las dos ventanas encendidas. Contra la isla hay amarrada una barca que no es de Tomé.',
   ],
   choices: [
     {
@@ -884,7 +948,7 @@ export const c2_anochece = {
       label: 'Buscar una cuerda de sirga en el molino',
       outcome: {
         text: [
-          'En el embarcadero de este lado, donde Tomé dejaba la barca, hay una sirga de tres brazas, dura de brea. La enrollás al hombro.',
+          'En el embarcadero de este lado hay una sirga de tres brazas, dura de brea. La enrollás al hombro.',
         ],
         effects: [{ give: 'cuerda_de_molinero' }],
         next: 'c2_orilla',
@@ -895,7 +959,7 @@ export const c2_anochece = {
       label: 'Mirar cuántas piedras del vado quedan',
       outcome: {
         text: [
-          'Bajás hasta donde se ve el vado y contás vos mismo, para no creerle a nadie. Cuatro tapadas. Mientras contás se va la quinta.',
+          'Bajás hasta donde se ve el vado y contás vos mismo. Cuatro tapadas. Mientras contás se va la quinta.',
         ],
         next: 'c2_orilla',
       },
@@ -905,7 +969,7 @@ export const c2_anochece = {
       label: 'Escuchar lo que grita la gente en la plaza',
       outcome: {
         text: [
-          'Nadie habla del molinero. Hablan de la vega, de la siembra que ya está bajo el agua y del turno del pozo si la plaza se inunda.',
+          'Nadie habla del molinero. Hablan de la vega, de la siembra que ya está bajo el agua y del turno del pozo.',
         ],
         next: 'c2_orilla',
       },
@@ -915,7 +979,7 @@ export const c2_anochece = {
       label: 'Cerrar los postigos con los vecinos',
       outcome: {
         text: [
-          'Aguantás el postigo contra el viento mientras un viejo clava. No te pregunta el nombre. Al terminar te da medio pan y se mete adentro.',
+          'Aguantás el postigo contra el viento mientras un viejo clava. No pregunta el nombre. Al terminar te da medio pan.',
         ],
         next: 'c2_orilla',
       },
@@ -925,7 +989,7 @@ export const c2_anochece = {
       label: 'Salir ya mismo hacia la orilla',
       outcome: {
         text: [
-          'No esperás a que se acomode nada. Salís por el camino de abajo, con la lluvia de costado y el barro hasta el tobillo.',
+          'No esperás nada. Salís por el camino de abajo, con la lluvia de costado y barro hasta el tobillo.',
         ],
         next: 'c2_orilla',
       },
@@ -937,7 +1001,7 @@ export const c2_anochece = {
       lockedHint: 'Orell todavía no te debe nada.',
       outcome: {
         text: [
-          'Lo encontrás bajo el alero, contando hombres. —Hoy no cruza nadie —dice, y se queda callado lo que dura un relevo—. Si vas igual, andá por la orilla de abajo.',
+          'Lo encontrás bajo el alero, contando hombres. —Hoy no cruza nadie —dice, y se calla lo que dura un relevo—. Si vas igual, andá por la orilla de abajo.',
         ],
         next: 'c2_orilla',
       },
@@ -962,8 +1026,8 @@ export const c2_orilla = {
   variant: 'crecido',
   onEnter: [{ milestone: 'la_tormenta' }],
   text: [
-    'Desde el banco de grava ya no se oye el vado. Con el agua baja, la piedra le corta el ruido y el vado suena corto; esta noche suena hueco y parejo, y el ruido de la piedra no está. El sauce partido tiene el tronco muerto adentro del agua hasta la mitad.',
-    'Anteanoche dos carreteros quisieron pasar con la mula. A la mula la sacaron media legua abajo, contra el azud. A ellos los sacaron al otro día, y no los sacaron enteros.',
+    'Desde el banco de grava ya no se oye el vado. Con el agua baja la piedra le corta el ruido; esta noche suena hueco y parejo, y el ruido de la piedra no está. El sauce partido tiene el tronco muerto adentro del agua hasta la mitad.',
+    'Anteanoche dos carreteros quisieron pasar con la mula. A la mula la sacaron contra el azud, media legua abajo. A ellos, al otro día, y no enteros.',
     {
       variants: [
         {
@@ -971,7 +1035,7 @@ export const c2_orilla = {
           text: 'Contás por dentro, que es como se cuenta ahora. La cuarta, la del borde redondo, está donde siempre y ya no sirve de nada.',
         },
         {
-          text: 'Contás lo que se ve: tres piedras, y las tres con el agua encima haciendo espuma. De las otras cuatro no hay manera de saber dónde están.',
+          text: 'Contás lo que se ve: tres piedras, y las tres con el agua encima. De las otras cuatro no hay manera de saber dónde están.',
         },
       ],
     },
@@ -982,19 +1046,23 @@ export const c2_orilla = {
       label: 'Bajar al vado',
       outcome: {
         text: [
-          'Bajás por la grava hasta donde el banco se termina. El agua te llega a la rodilla antes de que hayas entrado en el vado.',
+          'Bajás por la grava hasta donde el banco se termina. El agua te llega a la rodilla antes de entrar en el vado.',
         ],
         next: 'c2_vado_crecido',
       },
     },
     {
+      // FASE H · tarea 2. Era una inconsistencia, no una excepción: las otras dos maneras de evitar
+      // el vado ya cuestan —esperar paga +1 de `sospecha`, el azud paga una Herida— y esta era la
+      // única gratis, siendo la menos discreta de las tres: el texto ya decía que del molino salió
+      // gente a mirar. Ahora paga el tic, con el sujeto que mira nombrado, y el `label` lo anuncia.
       id: 'remar_en_la_barca_de_tome',
-      label: 'Remar hasta la isla en la barca de Tomé',
+      label: 'Remar hasta la isla, a la vista del molino',
       outcome: {
         text: [
-          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás al pie de la isla mucho después de lo que pensabas. Del molino ya salió gente a mirar.',
+          'La barca de Tomé está dada vuelta entre los juncos y hay que achicarla con el sombrero. Remás contra la corriente y llegás mucho después de lo que pensabas. Del molino salió gente a mirar: uno no se mueve hasta que tocás la grava y después entra a decirlo.',
         ],
-        effects: [{ set: 'run:dravos_sabe' }],
+        effects: [{ set: 'run:dravos_sabe' }, { clock: 'sospecha', delta: 1 }],
         next: 'c2_otra_orilla',
       },
     },
@@ -1003,7 +1071,7 @@ export const c2_orilla = {
       label: 'Esperar a que el agua baje un dedo',
       outcome: {
         text: [
-          'Te sentás en la grava a esperar el dedo que no va a bajar. Baja igual, tarde y poco. Para entonces en la ventana del molino hay tres sombras y no dos: alguien cruzó a avisar que en el sauce hay un hombre sentado.',
+          'Te sentás en la grava a esperar el dedo que no va a bajar. Baja tarde y poco. Para entonces en la ventana del molino hay tres sombras y no dos: alguien cruzó a avisar del hombre sentado en el sauce.',
         ],
         effects: [{ set: 'run:dravos_sabe' }, { clock: 'sospecha', delta: 1 }],
         next: 'c2_otra_orilla',
@@ -1014,7 +1082,7 @@ export const c2_orilla = {
       label: 'Subir por el azud y pasar por arriba',
       outcome: {
         text: [
-          'El azud es un muro de un palmo de ancho con el agua pasándole por encima. Vas de costado, de cara a la corriente. En la tercera compuerta el pie encuentra madera podrida y la rodilla da contra el canto. Cruzás rengueando, y del otro lado te esperan despiertos.',
+          'El azud es un muro de un palmo de ancho con el agua por encima. Vas de costado, de cara a la corriente. En la tercera compuerta el pie encuentra madera podrida y la rodilla da contra el canto. Cruzás rengueando y te esperan despiertos.',
         ],
         effects: [{ set: 'run:dravos_sabe' }, { wound: 1 }],
         next: 'c2_otra_orilla',
@@ -1027,7 +1095,7 @@ export const c2_orilla = {
       lockedHint: 'Orell no va a cruzar el vado por vos.',
       outcome: {
         text: [
-          'Baja con el farol tapado con la capa y no dice de dónde lo sacó. Va adelante, tanteando el azud con el asta de la lanza. —Pisá donde piso. —Pasan los dos y no se cruzan con nadie.',
+          'Baja con el farol tapado con la capa. Va adelante, tanteando el azud con el asta de la lanza. —Pisá donde piso. —Pasan los dos sin cruzarse con nadie.',
         ],
         next: 'c2_otra_orilla',
       },
@@ -1063,9 +1131,9 @@ export const c2_vado_crecido = {
   variant: 'crecido',
   npcs: [],
   text: [
-    'Estás metido hasta la mitad del muslo y todavía no empezó el vado. El agua no viene fría: viene pesada, y te corre la rodilla para el costado antes de que vos decidas nada.',
-    'De la rama muerta del sauce cuelga la cadena vieja del azud, tirante. De acá a la isla hay veinte pasos de espuma marrón y, abajo, las siete piedras. No se ve ninguna.',
-    'De frente, en el medio, el agua llega al pecho y el fondo es grava suelta. Por las piedras hay que ir a ciegas, con el limo encima. La cadena aguanta un bulto atado y no aguanta a un hombre.',
+    'Estás metido hasta la mitad del muslo y todavía no empezó el vado. El agua no viene fría: viene pesada, y te corre la rodilla antes de que decidas nada.',
+    'De la rama muerta del sauce cuelga la cadena del azud, tirante. De acá a la isla hay veinte pasos de espuma marrón y, abajo, las siete piedras. No se ve ninguna.',
+    'De frente, en el medio, el agua llega al pecho y el fondo es grava suelta. Por las piedras hay que ir a ciegas, con el limo encima. La cadena aguanta un bulto y no a un hombre.',
     {
       variants: [
         {
@@ -1090,7 +1158,7 @@ export const c2_vado_crecido = {
         outcomes: {
           success: {
             text: [
-              'Entrás en ángulo y dejás que el río te empuje hacia donde querés llegar. El fondo se te va dos veces y las dos lo recuperás con el otro pie. Salís de pie en la grava de la isla.',
+              'Entrás en ángulo y dejás que el río te empuje hacia donde querés llegar. El fondo se te va dos veces y las dos lo recuperás con el otro pie. Salís de pie en la grava.',
             ],
             next: 'c2_otra_orilla',
           },
@@ -1137,7 +1205,7 @@ export const c2_vado_crecido = {
         outcomes: {
           success: {
             text: [
-              'Tanteás con el pie antes de cargar el peso, una por una, contando. La cuarta está donde siempre y se hunde un palmo, como siempre. Llegás a la isla sin haber levantado los pies del fondo.',
+              'Tanteás con el pie antes de cargar el peso, una por una, contando. La cuarta está donde siempre y se hunde un palmo. Llegás a la isla sin levantar los pies del fondo.',
             ],
             next: 'c2_otra_orilla',
           },
@@ -1159,17 +1227,25 @@ export const c2_vado_crecido = {
       },
     },
     // Burnt Bridge, sin tirada: se entrega la piedra y con ella el bando.
+    //
+    // FASE H · tarea 2, segunda vuelta. Era la manera de cruzar el tramo más peligroso de la campaña
+    // sin pagar nada físico: el que llega sin la piedra entregaba un bulto vacío y lo pasaban gratis.
+    // Ahora se cobra lo que la escena ya narraba: te suben ellos, dicen tu nombre porque ya lo
+    // tienen, y los dos hombres que te suben no te sueltan. `perseguido` es exactamente eso.
+    // NO cobra `sospecha` (el reloj ya llegó lejos) y NO puede matar: sigue siendo una de las tres
+    // salidas seguras que pide biblia §11, y su prosa no usa una sola palabra de muerte.
     {
       id: 'entregar_lo_que_llevas',
-      label: 'Entregar lo que llevás y que te pasen',
+      label: 'Entregar lo que llevás y cruzar bajo custodia',
       outcome: {
         text: [
-          'Desde la isla te alumbran con un farol tapado y dicen tu nombre, que ya lo tienen. Atás el bulto a la cadena y del otro extremo tiran. Después bajan dos hombres con botas hasta la ingle y te suben en vilo, con el cuidado de quien sube una mercadería que no se puede mojar. Nadie pregunta nada: ya está pago.',
+          'Desde la isla te alumbran con un farol tapado y dicen tu nombre, que ya lo tienen. Atás el bulto a la cadena y del otro extremo tiran. Después bajan dos hombres con botas hasta la ingle y te suben en vilo. Nadie pregunta: ya está pago. En la grava, los dos no vuelven a la barca: se quedan uno a cada lado tuyo.',
         ],
         effects: [
           { take: 'sello_del_vado' },
           { set: 'run:trato_con_halvar' },
           { set: 'run:dravos_sabe' },
+          { addCondition: 'perseguido' },
         ],
         next: 'c2_otra_orilla',
       },
@@ -1186,7 +1262,7 @@ export const c2_vado_crecido = {
         outcomes: {
           success: {
             text: [
-              'Vas hasta la rama muerta con el agua en la cintura y atás lo que llevás a un eslabón, donde la espuma no deja ver.',
+              'Vas hasta la rama muerta con el agua en la cintura y atás lo que llevás a un eslabón donde no se ve.',
               {
                 variants: [
                   {
@@ -1204,7 +1280,7 @@ export const c2_vado_crecido = {
           },
           partial: {
             text: [
-              'El nudo te sale recién a la tercera, con las manos dormidas, y para entonces estás adentro hasta el cuello. Queda bien atado. Salís por donde entraste, chorreando.',
+              'El nudo te sale recién a la tercera, con las manos dormidas, y para entonces estás hasta el cuello. Queda bien atado. Salís chorreando.',
             ],
             effects: [
               { set: 'run:sello_escondido' },
@@ -1215,7 +1291,7 @@ export const c2_vado_crecido = {
           },
           failure: {
             text: [
-              'Atás bien, pero tardás. Cuando levantás la cabeza hay un farol quieto en la orilla de la isla y un hombre mirando justo el sitio donde metiste las manos.',
+              'Atás bien, pero tardás. Cuando levantás la cabeza hay un farol quieto en la isla y un hombre mirando el sitio donde metiste las manos.',
             ],
             effects: [
               { set: 'run:sello_escondido' },
@@ -1234,7 +1310,7 @@ export const c2_vado_crecido = {
       lockedHint: 'Nadie va a bajar a buscarte.',
       outcome: {
         text: [
-          'Te quedás en la grava, con el agua en los tobillos, y aguantás. Baja con una soga al hombro, la ata al sauce y se ata él. Te pasa la punta por la cintura. —De a uno. Yo primero. —Del otro lado la soga queda puesta por si hay que volver.',
+          'Te quedás en la grava, con el agua en los tobillos, y aguantás. Baja con una soga al hombro, la ata al sauce y se ata él. Te pasa la punta por la cintura. —De a uno. Yo primero. —Del otro lado la soga queda puesta.',
         ],
         next: 'c2_otra_orilla',
       },
@@ -1260,8 +1336,8 @@ export const c2_otra_orilla = {
   npcs: ['orell'],
   onEnter: [{ milestone: 'cruzar_el_vado_crecido' }],
   text: [
-    'Salís del agua en la grava de la isla y el suelo te sigue moviendo un rato. El molino está a veinte pasos, con las dos ventanas encendidas y la puerta grande cerrada por dentro.',
-    'El caz se desbordó y la isla es medio barro. Cada paso en el tablón del embarcadero devuelve agua por las juntas y te entra en la bota por arriba. La cadena del azud sale del agua a un paso y se pierde río abajo.',
+    'Salís del agua en la grava de la isla y el suelo te sigue moviendo. El molino está a veinte pasos, con las dos ventanas encendidas y la puerta grande cerrada.',
+    'El caz se desbordó y la isla es medio barro. Cada paso en el tablón devuelve agua por las juntas. La cadena del azud sale del agua a un paso y se pierde río abajo.',
     {
       speaker: 'orell',
       variants: [
@@ -1286,7 +1362,7 @@ export const c2_otra_orilla = {
         outcomes: {
           success: {
             text: [
-              'Tirás de la cadena eslabón por eslabón, sentado, con los talones contra el tablón. El bulto viene entero y chorreando. Lo desatás con los dientes.',
+              'Tirás de la cadena eslabón por eslabón, con los talones contra el tablón. El bulto viene entero y chorreando. Lo desatás con los dientes.',
             ],
             effects: [{ give: 'sello_del_vado' }, { clear: 'run:sello_escondido' }],
             next: 'cl_molino',
@@ -1304,7 +1380,7 @@ export const c2_otra_orilla = {
           },
           failure: {
             text: [
-              'Sube una braza y se planta. Tirás hasta que algo se corta arriba, en el azud, y lo que viene después es cadena sola. Lo que ataste se queda en el agua.',
+              'Sube una braza y se planta. Tirás hasta que algo se corta arriba, en el azud, y después es cadena sola. Lo que ataste se queda en el agua.',
             ],
             next: 'cl_molino',
           },
@@ -1312,25 +1388,32 @@ export const c2_otra_orilla = {
       },
     },
     // Burnt Bridge, sin tirada: la piedra se queda en el agua y los cuatro epílogos lo dicen.
+    //
+    // FASE H · tarea 2, segunda vuelta. Era la otra manera de salir del cuello 2 sin pagar nada:
+    // esquivaba la tirada de `levantar_la_cadena` —que puede costar una Herida— y no cobraba nada a
+    // cambio. La cadena sale del agua a un paso de la punta del tablón, en una crecida y de noche:
+    // el precio es meterse. Condición y no reloj, a propósito.
+    //
+    // LA PROSA NO NOMBRA LA PIEDRA, y es el mismo motivo que en `c1_acusacion.ceder`: este desenlace
+    // hace `take: 'sello_del_vado'` y `choose` aplica los `effects` ANTES de resolver el texto
+    // (`resolve.ts:265-267`), así que una variante `when: { item: 'sello_del_vado' }` acá no se
+    // dispara nunca. La versión anterior tenía una y el que llegaba con la piedra leía el fallback
+    // —«y no la tocás»— mientras el motor se la sacaba y encendía `run:sello_escondido`, que los
+    // cuatro epílogos leen como que la piedra quedó en el agua. Ahora se describe la maniobra, que
+    // es la misma traiga o no traiga la piedra, y el efecto se encarga del resto.
     {
       id: 'dejar_el_sello_en_la_cadena',
-      label: 'Dejar el sello donde está y no volver',
+      label: 'Meterte al agua, dejar el sello y no volver',
       outcome: {
         text: [
-          {
-            variants: [
-              {
-                when: { item: 'sello_del_vado' },
-                text: 'Sacás la piedra del trapo, la atás a un eslabón y la dejás bajar hasta que la cadena la frena.',
-              },
-              {
-                text: 'Mirás la cadena y no la tocás. Lo que esté ahí abajo está mejor abajo que en la mesa.',
-              },
-            ],
-          },
-          'Subís con las manos vacías. Ninguno de los que entren esta noche va a saber dónde mirar.',
+          'Entrás hasta la cintura y seguís la cadena con la mano hasta donde el agua no deja ver. Atás corto lo que tenga que quedar abajo y dejás que la corriente lo acomode.',
+          'Volvés con las manos vacías y chorreando. Ninguno de los que entren esta noche va a saber dónde mirar.',
         ],
-        effects: [{ take: 'sello_del_vado' }, { set: 'run:sello_escondido' }],
+        effects: [
+          { take: 'sello_del_vado' },
+          { set: 'run:sello_escondido' },
+          { addCondition: 'empapado' },
+        ],
         next: 'cl_molino',
       },
     },
@@ -1339,7 +1422,7 @@ export const c2_otra_orilla = {
       label: 'Subir al molino de una',
       outcome: {
         text: [
-          'Vas derecho por el barro, sin agacharte y sin bajar el paso. La puerta grande está cerrada, pero el postigo del caz nunca cerró bien.',
+          'Vas derecho por el barro. La puerta grande está cerrada, pero el postigo del caz nunca cerró bien.',
         ],
         next: 'cl_molino',
       },
@@ -1349,7 +1432,7 @@ export const c2_otra_orilla = {
       label: 'Esperar junto al horno a que pase la ronda',
       outcome: {
         text: [
-          'Te metés en el horno viejo, con la espalda contra la piedra tibia, hasta que la ropa deja de pesar. La ronda pasa dos veces. La segunda, uno se para donde estabas vos y le mira las huellas al barro.',
+          'Te metés en el horno viejo, con la espalda contra la piedra tibia, hasta que la ropa deja de pesar. La ronda pasa dos veces; la segunda, uno mira las huellas.',
         ],
         effects: [
           { removeCondition: 'empapado' },

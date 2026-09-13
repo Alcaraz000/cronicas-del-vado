@@ -693,6 +693,337 @@ describe('vado: se juega de punta a punta hasta los cuatro finales (§8.14)', ()
   });
 });
 
+// ---------------------------------------------------------------------------
+// Fase H · tarea 2 — que ceder cueste algo
+// ---------------------------------------------------------------------------
+
+/** La opción `id` de la escena `sceneId`, o `undefined` si no existe. */
+function opcion(sceneId: string, choiceId: string): Choice | undefined {
+  return campaign.scenes[sceneId]?.choices.find((c) => c.id === choiceId);
+}
+
+/** Los efectos del `outcome` sin tirada de una opción. */
+function efectos(sceneId: string, choiceId: string): Effect[] {
+  return opcion(sceneId, choiceId)?.outcome?.effects ?? [];
+}
+
+/** Una opción es gratis si no tiene `requires`, no tiene tirada y su desenlace no tiene efectos. */
+function esGratis(choice: Choice): boolean {
+  return choice.requires === undefined && choice.roll === undefined && (choice.outcome?.effects ?? []).length === 0;
+}
+
+describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
+  it('ceder en la acusación cuesta la carta lacrada', () => {
+    const o = campaign.scenes['c1_acusacion']?.choices.find((c) => c.id === 'ceder');
+    expect(o?.outcome?.effects).toContainEqual({ take: 'carta_lacrada' });
+  });
+
+  /**
+   * `choose` aplica los `effects` ANTES de resolver el texto (`resolve.ts:265-267`, y `commitRoll`
+   * hace lo mismo en `473-489`), así que una variante `when: { item: … }` en el desenlace de una
+   * opción que hace `take` de ese mismo objeto no se dispara nunca. Por eso la prosa de `ceder`
+   * tiene que ser verdadera con la carta y sin ella: no puede afirmar que te sacan algo que la ruta
+   * del jugador quizá ya gastó (la prudente llega acá sin la carta, la entregó en el puente).
+   */
+  /**
+   * La regla general detrás del caso de `ceder`, como regresión sobre las 46 escenas.
+   *
+   * Después de que corren los `effects`, la condición `{ item: X }` es determinista: tras un
+   * `take: X` es siempre falsa, así que la variante que la usa es prosa muerta y el jugador lee el
+   * fallback, que suele decir lo contrario de lo que acaba de pasarle.
+   *
+   * Queda UNA sola, anotada y no arreglada acá: `c2_vado_crecido.cruzar_de_frente.partial` es de la
+   * Fase D (lote 5), vive en la escena mortal y su prosa no es de esta tarea. La lista de abajo es
+   * el candado: si aparece una segunda, este test se cae.
+   */
+  it('ninguna variante por objeto vive en el mismo desenlace que se lleva ese objeto', () => {
+    const muertas: string[] = [];
+    for (const scene of escenas) {
+      for (const choice of scene.choices) {
+        const bandas: [string, Outcome][] = choice.outcome
+          ? [[`${scene.id}/${choice.id}`, choice.outcome]]
+          : desenlaces(choice).map((o, i) => [`${scene.id}/${choice.id}[${i}]`, o]);
+        for (const [etiqueta, banda] of bandas) {
+          const llevados = (banda.effects ?? []).flatMap((e) => ('take' in e ? [e.take] : []));
+          if (llevados.length === 0) continue;
+          const plano = JSON.stringify(banda.text ?? []);
+          for (const id of llevados) {
+            if (plano.includes(`"item":"${id}"`)) muertas.push(etiqueta);
+          }
+        }
+      }
+    }
+    expect(muertas.sort()).toEqual(['c2_vado_crecido/cruzar_de_frente[1]']);
+  });
+
+  it('la prosa de ceder no afirma un objeto que el jugador puede no tener', () => {
+    const choice = opcion('c1_acusacion', 'ceder');
+    const plano = JSON.stringify(choice?.outcome?.text ?? []);
+    expect(plano.toLowerCase()).not.toContain('carta lacrada');
+    expect(plano, 'una variante por item acá sería prosa muerta').not.toContain('sello_del_vado');
+    expect(plano, 'una variante por item acá sería prosa muerta').not.toContain('carta_lacrada');
+  });
+
+  it('rendirse en la refriega se paga con sospecha', () => {
+    const o = campaign.scenes['c1_refriega']?.choices.find((c) => c.id === 'rendirte');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('remar hasta la isla se paga con sospecha', () => {
+    const o = campaign.scenes['c2_orilla']?.choices.find((c) => c.id === 'remar_en_la_barca_de_tome');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('irse del sótano sin contestar se paga con sospecha', () => {
+    const o = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'bajar_al_sotano_sin_contestar');
+    expect(o?.outcome?.effects).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('dejar que el agua decida entrega el sello', () => {
+    const o = campaign.scenes['cl_desenlace']?.choices.find((c) => c.id === 'subir_y_dejar_que_el_agua_decida');
+    expect(o?.outcome?.effects).toContainEqual({ take: 'sello_del_vado' });
+  });
+
+  it('orell_confia no se enciende por entrar a a2_ley_orell', () => {
+    expect(campaign.scenes['a2_ley_orell']?.onEnter ?? []).not.toContainEqual({ set: 'run:orell_confia' });
+  });
+
+  it('en la rama A orell_confia se gana con el éxito de la tirada, y ahí limpia orell_humillado', () => {
+    const o = opcion('a2_ley_orell', 'preguntarle_por_la_orden_escrita');
+    expect(o?.roll, 'la fuente de rama A tiene que ser una tirada').toBeDefined();
+    const exito = o?.roll?.outcomes.success.effects ?? [];
+    expect(exito).toContainEqual({ set: 'run:orell_confia' });
+    expect(exito).toContainEqual({ clear: 'run:orell_humillado' });
+    // El par mutuamente excluyente: ninguna banda enciende uno sin limpiar el otro.
+    for (const [i, banda] of desenlaces(o as Choice).entries()) {
+      const effects = banda.effects ?? [];
+      if (!effects.some((e) => 'set' in e && e.set === 'run:orell_confia')) continue;
+      expect(effects, `banda ${i}`).toContainEqual({ clear: 'run:orell_humillado' });
+    }
+  });
+
+  it('toda fuente de run:orell_confia limpia run:orell_humillado, en TODA la campaña (no solo el acto 2)', () => {
+    // Oleada final de la Fase H, hallazgo C: el test de arriba solo mira `a2_ley_orell`. El bug de
+    // verdad estaba en el prólogo: `p_puente_amanecer.onEnter` y `reconocer_el_escudo` (opción de
+    // Guerrero en `p_puente_rechazo`) encendían `run:orell_confia` sin limpiar `run:orell_humillado`,
+    // y las dos son alcanzables después de `p_puente.intimidar_al_sargento`, que enciende el
+    // humillado — una partida podía terminar con los dos flags prendidos a la vez. La invariante es
+    // pareja para toda fuente, recorriendo `bloquesDeEfectos()` (onEnter + todos los desenlaces de
+    // toda escena), no solo la rama A del acto 2.
+    for (const { etiqueta, effects } of bloquesDeEfectos()) {
+      if (!effects.some((e) => 'set' in e && e.set === 'run:orell_confia')) continue;
+      expect(effects, etiqueta).toContainEqual({ clear: 'run:orell_humillado' });
+    }
+  });
+
+  it('ninguna escena enciende orell_confia en su onEnter dentro del acto 2', () => {
+    for (const scene of escenas) {
+      if (scene.id === 'p_puente_amanecer') continue; // la fuente del prólogo, biblia §7.2
+      expect((scene.onEnter ?? []).some((e) => 'set' in e && e.set === 'run:orell_confia'), scene.id).toBe(false);
+    }
+  });
+
+  it('el encuentro del clímax no se cierra sin dados salvo que te hayas ganado algo antes', () => {
+    const dravos = campaign.scenes['cl_dravos'] as Scene;
+    for (const choice of dravos.choices) {
+      const gratis = choice.requires === undefined && choice.roll === undefined;
+      expect(gratis, `cl_dravos/${choice.id}`).toBe(false);
+    }
+  });
+
+  it('cerrar_la_cronica se marca al llegar a un final, no al entrar al desenlace', () => {
+    expect(campaign.scenes['cl_desenlace']?.onEnter ?? []).not.toContainEqual({ milestone: 'cerrar_la_cronica' });
+    for (const fin of ['fin_hundido', 'fin_dravos', 'fin_crecida', 'fin_heredero']) {
+      expect(campaign.scenes[fin]?.onEnter ?? [], fin).toContainEqual({ milestone: 'cerrar_la_cronica' });
+    }
+  });
+
+  it('ver_el_sello deja una sola vía gratuita por rama', () => {
+    const gratuitas: string[] = [];
+    for (const scene of escenas) {
+      if ((scene.onEnter ?? []).some((e) => 'milestone' in e && e.milestone === 'ver_el_sello')) {
+        gratuitas.push(`${scene.id}/onEnter`);
+      }
+      for (const choice of scene.choices) {
+        if (choice.requires !== undefined || choice.roll !== undefined) continue;
+        const effects = choice.outcome?.effects ?? [];
+        if (!effects.some((e) => 'milestone' in e && e.milestone === 'ver_el_sello')) continue;
+        if (effects.some((e) => 'clock' in e || 'wound' in e || 'take' in e)) continue; // ya cuesta algo
+        gratuitas.push(`${scene.id}/${choice.id}`);
+      }
+    }
+    // Rama B: el `onEnter` del sótano. Rama A: el mapa de las cartas. Y ninguna más.
+    expect(gratuitas.sort()).toEqual(['a2_fuera_sotano/onEnter', 'a2_ley_cartas/buscar_el_mapa']);
+  });
+
+  it('leer el sigilo delante de Dravos se paga con sospecha', () => {
+    expect(efectos('a2_ley_torre', 'leer_el_sigilo_de_la_mesa')).toContainEqual({ clock: 'sospecha', delta: 1 });
+  });
+
+  it('las seis opciones bisagra dejaron de salir gratis', () => {
+    const bisagras: [string, string][] = [
+      ['c1_acusacion', 'ceder'],
+      ['c1_refriega', 'rendirte'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa'],
+    ];
+    for (const [sceneId, choiceId] of bisagras) {
+      const choice = opcion(sceneId, choiceId);
+      expect(choice, `${sceneId}/${choiceId}`).toBeDefined();
+      expect(esGratis(choice as Choice), `${sceneId}/${choiceId}`).toBe(false);
+    }
+  });
+
+  /**
+   * Un costo escondido no es una decisión: es una trampa. El motor deriva el `badge` del `requires`
+   * (`resolve.ts::badgeDe`) y estas seis no tienen `requires`, así que el aviso tiene que estar en la
+   * etiqueta, en ficción y sin nombrar la mecánica (biblia §10).
+   */
+  it('cada costo nuevo se anuncia en la etiqueta', () => {
+    const avisos: [string, string, string][] = [
+      ['c1_acusacion', 'ceder', 'palpen la capa'],
+      ['c1_refriega', 'rendirte', 'delante de todos'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome', 'a la vista'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar', 'delante del capitán'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida', 'dejar la piedra'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa', 'delante de Dravos'],
+    ];
+    for (const [sceneId, choiceId, aviso] of avisos) {
+      const label = opcion(sceneId, choiceId)?.label ?? '';
+      expect(label.toLowerCase(), `${sceneId}/${choiceId}`).toContain(aviso.toLowerCase());
+      expect(label.length, `${sceneId}/${choiceId}`).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it('la opción libre sigue existiendo en las seis: ninguna ganó un requires', () => {
+    const bisagras: [string, string][] = [
+      ['c1_acusacion', 'ceder'],
+      ['c1_refriega', 'rendirte'],
+      ['c2_orilla', 'remar_en_la_barca_de_tome'],
+      ['cl_halvar', 'bajar_al_sotano_sin_contestar'],
+      ['cl_desenlace', 'subir_y_dejar_que_el_agua_decida'],
+      ['a2_ley_torre', 'leer_el_sigilo_de_la_mesa'],
+    ];
+    for (const [sceneId, choiceId] of bisagras) {
+      expect(opcion(sceneId, choiceId)?.requires, `${sceneId}/${choiceId}`).toBeUndefined();
+      expect(opcion(sceneId, choiceId)?.roll, `${sceneId}/${choiceId}`).toBeUndefined();
+    }
+  });
+
+  /**
+   * Segunda vuelta. La tabla del brief salió de un análisis estático de las 46 escenas; la traza del
+   * simulador mostró que la ruta real de la política prudente pasa por otro lado. Estas tres palancas
+   * son las que esa medición señaló, y las tres están en escenas bisagra.
+   *
+   * Ninguna cobra `sospecha`: el reloj llega a 4 y redirige, y en la primera vuelta ya entró un tic.
+   * Las monedas acá son una relación (`run:dravos_sabe`), dos condiciones y una Herida.
+   */
+  it('entregar lo que llevás en el vado crecido te deja marcado', () => {
+    const effects = efectos('c2_vado_crecido', 'entregar_lo_que_llevas');
+    expect(effects).toContainEqual({ addCondition: 'perseguido' });
+    // Sigue sin poder matar: es una de las tres salidas seguras de la escena mortal (biblia §11).
+    expect(tieneLethal(effects)).toBe(false);
+  });
+
+  it('dejar el sello en la cadena te cuesta meterte al agua', () => {
+    expect(efectos('c2_otra_orilla', 'dejar_el_sello_en_la_cadena')).toContainEqual({
+      addCondition: 'empapado',
+    });
+  });
+
+  /**
+   * Un costo que nadie lee no es un costo. `run:dravos_sabe` no lo lee nada DESPUÉS de `cl_molino`:
+   * su único `requires` (`interrumpir_antes_de_que_firmen`) y su única variante viven en esa misma
+   * escena y se evalúan antes de elegir; `cl_dravos`, `cl_halvar`, `cl_desenlace` y los cuatro
+   * finales no lo miran. El precio de salir al claro es la salida: `perseguido` es `huida`, y el
+   * encuentro tiene exactamente una tirada con ese tag.
+   */
+  it('encarar a Dravos cuesta la salida, y el encuentro la lee', () => {
+    const effects = efectos('cl_molino', 'encarar_a_dravos');
+    expect(effects).toContainEqual({ addCondition: 'perseguido' });
+    expect(effects).not.toContainEqual({ set: 'run:dravos_sabe' });
+    const huir = opcion('cl_dravos', 'huir_escaleras_abajo');
+    expect(huir?.roll?.tags, 'perseguido solo cobra si algo tira con tag huida').toContain('huida');
+  });
+
+  it('la opción del mago en el encuentro cuesta lo mismo que la del guerrero', () => {
+    const mago = efectos('cl_dravos', 'apagar_la_runa_un_latido');
+    const guerrero = efectos('cl_dravos', 'trabar_el_eje');
+    // `agotado` es `magia` y en el clímax no queda ni una tirada con ese tag: no lo lee nadie.
+    // La Herida sí la lee el motor (3 = Caído) y es la moneda de su hermana de escena.
+    expect(guerrero).toContainEqual({ wound: 1 });
+    expect(mago).toContainEqual({ wound: 1 });
+  });
+
+  it('ninguna tirada del clímax tiene tag magia, así que agotado solo no alcanza como precio', () => {
+    const climax = ['cl_molino', 'cl_dravos', 'cl_halvar', 'cl_desenlace'];
+    for (const sceneId of climax) {
+      for (const choice of (campaign.scenes[sceneId] as Scene).choices) {
+        expect(choice.roll?.tags ?? [], `${sceneId}/${choice.id}`).not.toContain('magia');
+      }
+    }
+  });
+
+  it('huir escaleras abajo deja de ser la salida gratis del encuentro', () => {
+    const roll = opcion('cl_dravos', 'huir_escaleras_abajo')?.roll;
+    expect(roll?.outcomes.success.effects).toContainEqual({ addCondition: 'empapado' });
+    expect(roll?.outcomes.partial.effects).toContainEqual({ wound: 1 });
+    expect(roll?.outcomes.partial.effects).toContainEqual({ addCondition: 'perseguido' });
+  });
+
+  it('ninguna banda del encuentro del clímax sale sin efectos', () => {
+    const dravos = campaign.scenes['cl_dravos'] as Scene;
+    for (const choice of dravos.choices) {
+      for (const [i, banda] of desenlaces(choice).entries()) {
+        expect((banda.effects ?? []).length, `cl_dravos/${choice.id}[${i}]`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('las tres palancas de la segunda vuelta se anuncian en la etiqueta', () => {
+    const avisos: [string, string, string][] = [
+      ['c2_vado_crecido', 'entregar_lo_que_llevas', 'custodia'],
+      ['c2_otra_orilla', 'dejar_el_sello_en_la_cadena', 'al agua'],
+      ['cl_molino', 'encarar_a_dravos', 'sin puerta'],
+      ['cl_dravos', 'huir_escaleras_abajo', 'al agua'],
+    ];
+    for (const [sceneId, choiceId, aviso] of avisos) {
+      const label = opcion(sceneId, choiceId)?.label ?? '';
+      expect(label.toLowerCase(), `${sceneId}/${choiceId}`).toContain(aviso.toLowerCase());
+      expect(label.length, `${sceneId}/${choiceId}`).toBeLessThanOrEqual(60);
+    }
+  });
+
+  it('la segunda vuelta no metió ni un tic más de sospecha', () => {
+    const palancas: [string, string][] = [
+      ['c2_vado_crecido', 'entregar_lo_que_llevas'],
+      ['c2_otra_orilla', 'dejar_el_sello_en_la_cadena'],
+      ['cl_molino', 'encarar_a_dravos'],
+    ];
+    for (const [sceneId, choiceId] of palancas) {
+      const effects = efectos(sceneId, choiceId);
+      expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha'), `${sceneId}/${choiceId}`).toBe(false);
+    }
+    for (const banda of desenlaces(opcion('cl_dravos', 'huir_escaleras_abajo') as Choice)) {
+      const effects = banda.effects ?? [];
+      expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha')).toBe(false);
+    }
+  });
+
+  it('a2_amanecer y c2_anochece no se tocaron: siguen sin cobrar nada', () => {
+    for (const sceneId of ['a2_amanecer', 'c2_anochece']) {
+      const scene = campaign.scenes[sceneId] as Scene;
+      for (const choice of scene.choices) {
+        const effects = choice.outcome?.effects ?? [];
+        expect(effects.some((e) => 'clock' in e && e.clock === 'sospecha'), `${sceneId}/${choice.id}`).toBe(false);
+        expect(effects.some((e) => 'wound' in e), `${sceneId}/${choice.id}`).toBe(false);
+      }
+    }
+  });
+});
+
 /**
  * La reliquia de punta a punta (biblia §13.1, outline §5). Los tests unitarios de `applyReward`
  * (tests/engine/resolve.end.test.ts) arman un fixture que mete la reliquia en `campaign.items`, que
@@ -746,5 +1077,54 @@ describe('vado: fin_heredero deja la reliquia en el personaje (§13.1)', () => {
       character: { ...segunda.character, relics: primera.character.relics },
     });
     expect(character.relics).toEqual(['sello_del_vado']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fase H · tarea 3 — el sello se telegrafía, y la carta que nadie podía usar
+// ---------------------------------------------------------------------------
+
+describe('vado: el sello es invisible, no inaccesible (Fase H §3)', () => {
+  /**
+   * Las dos puertas del camino A (biblia §9.4) no cambian de mecánica: siguen siendo la misma
+   * tirada de Saber · difícil con un intento por partida. Lo único que cambia es que el texto de
+   * escena, antes de ofrecer la opción, dice que hay algo para leer, y que la etiqueta promete que
+   * hay algo escrito en vez de nombrar el objeto sin más.
+   */
+  it('las dos escenas de la piedra dicen que hay algo escrito antes de ofrecer leerla', () => {
+    const casos: { sceneId: string; choiceId: string }[] = [
+      { sceneId: 'a2_ley_cartas', choiceId: 'reconocer_el_sigilo' },
+      { sceneId: 'a2_fuera_sello', choiceId: 'leer_la_piedra' },
+    ];
+    for (const { sceneId, choiceId } of casos) {
+      const scene = campaign.scenes[sceneId] as Scene;
+      // El aviso vive en el texto de ESCENA (lo que se lee antes de elegir), no en el desenlace.
+      const textoDeEscena = JSON.stringify(scene.text).toLowerCase();
+      expect(textoDeEscena, `${sceneId}: el texto de escena no dice que hay algo para leer`).toContain('adorno');
+
+      const choice = scene.choices.find((c) => c.id === choiceId);
+      expect(choice, `${sceneId}/${choiceId}`).toBeDefined();
+      // "Leer la piedra" no promete nada; "Leer lo que dice la piedra" sí (biblia §10).
+      expect(choice?.label.toLowerCase(), `${sceneId}/${choiceId}`).toContain('dice');
+    }
+  });
+
+  /**
+   * Fase H · tarea 3, brief §"la carta que nadie podía usar". El brief nombraba
+   * `cl_halvar.leerle_el_libro_de_rutas` como la opción sin guardia, pero esa premisa no se sostenía
+   * (investigación completa en `task-3-report.md` §4): esa opción es una de las 4 libres de
+   * `cl_halvar` a propósito —el diseño la documenta como la vía SIN objeto, en paralelo a la que sí
+   * lo pide— y forzarle un `requires` deja la escena en 3 libres, lo que dispara `r03_choices`
+   * (`LIMITS.minChoices = 4`), confirmado corriendo `npm run validate` con el cambio puesto.
+   *
+   * La opción que de verdad usa `carta_de_halvar`, `leerle_lo_que_firmo_berta`, ya tenía el
+   * `requires` y el `lockedHint` puestos —probablemente desde el lote que escribió la prosa—, así
+   * que el segundo arreglo de la tarea no existía: ya estaba hecho. Este test fija ese estado para
+   * que, si alguna vez se le saca la guardia a esta opción, algo se entere.
+   */
+  it('la opción del clímax que usa la carta de Halvar ya la pide y explica qué falta', () => {
+    const opcion = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'leerle_lo_que_firmo_berta');
+    expect(opcion?.requires).toEqual({ item: 'carta_de_halvar' });
+    expect(opcion?.lockedHint).toBeTruthy();
   });
 });

@@ -13,7 +13,7 @@
 export const flags: Record<string, string> = {
   // --- Relación y prólogo -------------------------------------------------
   'run:orell_confia':
-    'Orell te dejó pasar o te debe una copa. Lo encienden el convencer del puente, el amanecer en la barricada, reconocer el escudo [Guerrero], la mesa del Ancla Seca y la rama A. Abre opciones en la ronda, la acusación, la refriega, la orilla, la escena mortal, el clímax y el desenlace.',
+    'Orell te dejó pasar o te debe una copa. Lo encienden el convencer del puente, el amanecer en la barricada, reconocer el escudo [Guerrero], la mesa del Ancla Seca y —desde la Fase H— el ÉXITO de preguntarle por la orden escrita en la rama A, nunca el solo hecho de entrar a la torre. Abre opciones en la ronda, la acusación, la refriega, la orilla, la escena mortal, el clímax y el desenlace.',
   'run:orell_humillado':
     'Lo intimidaste en el puente y no lo va a olvidar. Lo enciende `p_puente.intimidar`; `a1_orell_mesa.recordarle_el_puente` lo limpia. Cambia variantes del hub.',
   'run:vio_runas':
@@ -57,7 +57,7 @@ export const flags: Record<string, string> = {
 
   // --- El sello ------------------------------------------------------------
   'run:vio_el_sello':
-    'Viste el sello, o su hueco en el zócalo, con tus propios ojos. Lo encienden la trampilla del molino, revisar el cuerpo, el sigilo y el mapa de la torre y `a2_fuera_sotano.onEnter`. Va siempre junto al hito `ver_el_sello`.',
+    'Viste el sello, o su hueco en el zócalo, con tus propios ojos. Lo encienden la trampilla del molino, revisar el cuerpo, el sigilo y el mapa de la torre y `a2_fuera_sotano.onEnter`. Va siempre junto al hito `ver_el_sello`. Vía gratuita: una por rama (el mapa en la A, el sótano en la B); leer el sigilo delante de Dravos paga +1 de sospecha.',
   'run:piedra_leida':
     'Ya intentaste entender la piedra esta noche. Lo encienden las TRES bandas de `a2_ley_cartas.reconocer_el_sigilo` y de `a2_fuera_sello.leer_la_piedra`, y es el `requires: { not: … }` de esas dos: la puerta al final oculto se intenta una sola vez por partida.',
   'run:sello_escondido':

@@ -38,6 +38,7 @@ export function StatusBar({
 }: StatusBarProps) {
   const [confirmando, setConfirmando] = useState(false);
   const nombresCondiciones = nombresDeCondiciones(conditions);
+  const sinCondiciones = conditions.length === 0;
 
   return (
     <header className={styles.barra}>
@@ -48,7 +49,13 @@ export function StatusBar({
       <span className={styles.dato} title={S.barra.fortuna}>
         {S.barra.fortuna}: <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
       </span>
-      <span className={styles.dato}>
+      {/* En la hoja móvil (Fase H, tarea 5; revisado en la oleada final) el lugar y las marcas
+          de heridas/Fortuna se quedan siempre. "Condiciones: ..." se oculta con
+          `.condicionesVacias` SOLO cuando no hay ninguna: si las hay, tienen que verse en el
+          teléfono igual que en escritorio, porque son en su mayoría los costos que esta fase
+          agregó (perseguido, empapado, agotado). `.dato` sigue puesta para no perder el
+          color/tamaño de las otras dos líneas de la barra. */}
+      <span className={`${styles.dato} ${styles.condiciones}${sinCondiciones ? ` ${styles.condicionesVacias}` : ''}`}>
         {S.barra.condiciones}: {nombresCondiciones}
       </span>
       <div className={styles.acciones}>

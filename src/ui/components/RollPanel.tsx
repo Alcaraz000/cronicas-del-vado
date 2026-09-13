@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PendingRoll } from '@/engine/types';
 import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
+import { hayModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import { Chips, chipsDeTirada } from './Chips';
 import { Dados } from './Dados';
@@ -37,6 +38,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
   const [girando, setGirando] = useState(!reducedMotion);
   const timerRef = useRef<number | undefined>(undefined);
   const rerollsVistos = useRef(pending.rerolls.length);
+  const continuarRef = useRef<HTMLButtonElement>(null);
 
   const limpiarTimer = (): void => {
     if (timerRef.current !== undefined) {
@@ -80,6 +82,27 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
     setGirando(false);
   };
 
+  // Tarea 6 (Fase H), mismo criterio que `OptionList`: recién cuando la tirada se asienta el
+  // total y el sello son legibles y los botones existen en el DOM (antes de `asentado` no hay
+  // ninguno: ver el `{asentado && (…)}` de abajo), así que es el momento seguro para mover el
+  // foco sin interrumpir nada que se esté leyendo. Sin esto, "Continuar" (o "Repetir"/el Poder)
+  // se desmonta al consolidar la tirada y el foco cae a `<body>`.
+  //
+  // Hallazgo de la oleada final: el foco va SIEMPRE a "Continuar" (`continuarRef`), nunca al
+  // primer `<button>` del DOM. Ese primero, cuando `pending.canReroll` (o sea casi siempre: un
+  // personaje recién empezado tiene 3 de 3 de Fortuna), es "Repetir dado N" — un botón
+  // destructivo y sin confirmación que gasta un punto de Fortuna. El jugador de teclado que
+  // aprieta Enter para seguir no puede terminar gastando uno de los tres recursos que tiene en
+  // toda la partida.
+  //
+  // `hayModalAbierto()` puede ser verdadero acá (la Ficha se puede abrir con una tirada
+  // pendiente): si hay uno, la trampa de foco del modal manda y esto no le roba el foco.
+  useEffect(() => {
+    if (!asentado) return;
+    if (hayModalAbierto()) return;
+    continuarRef.current?.focus();
+  }, [asentado]);
+
   const resaltado = pending.rerolls.length > 0 ? pending.rerolls[pending.rerolls.length - 1] : undefined;
 
   return (
@@ -112,7 +135,7 @@ export function RollPanel({ pending, powerName, onReroll, onPower, onContinue }:
                 {S.tirada.poder(powerName)}
               </button>
             )}
-            <button type="button" className={styles.primario} onClick={onContinue}>
+            <button type="button" ref={continuarRef} className={styles.primario} onClick={onContinue}>
               {S.tirada.continuar}
             </button>
           </div>

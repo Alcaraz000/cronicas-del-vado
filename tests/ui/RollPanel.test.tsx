@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { RollPanel } from '@/ui/components/RollPanel';
+import { marcarModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
 import { useStore } from '@/state/store';
 import type { PendingRoll, RollPreview } from '@/engine/types';
@@ -58,8 +59,12 @@ describe('RollPanel', () => {
     expect(screen.getByTestId('sello')).toHaveTextContent(S.tirada.banda.success);
     expect(screen.getByRole('button', { name: S.tirada.continuar })).toBeInTheDocument();
 
-    // Sin movimiento no hay nada que animar: no debe quedar ningún temporizador corriendo.
-    expect(setTimeoutSpy).not.toHaveBeenCalled();
+    // Sin movimiento no hay nada que animar: no debe quedar ningún temporizador de la
+    // animación (los 700 ms de `DURACION_GIRO_MS`) corriendo. No se afirma "cero setTimeout
+    // en total": desde la tarea 6 el panel enfoca el primer botón apenas se asienta (acá,
+    // desde el primer render), y `focus()` de jsdom agenda uno propio para el evento — nada
+    // que ver con la animación de los dados.
+    expect(setTimeoutSpy).not.toHaveBeenCalledWith(expect.any(Function), 700);
   });
 
   it('anima y después se asienta: primero giran los dados, después el total', () => {
@@ -170,6 +175,84 @@ describe('RollPanel', () => {
     expect(screen.getAllByRole('button', { name: /Fortuna/ }).length).toBe(3);
     expect(screen.getByRole('button', { name: S.tirada.poder('Conjuro') })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: S.tirada.continuar })).toBeInTheDocument();
+  });
+
+  /**
+   * Tarea 6 (Fase H), pedido del coordinador: "lo que corresponda ahí con el mismo criterio"
+   * que las opciones — enfocar la primera acción, pero recién cuando la tirada se asienta y
+   * los botones existen de verdad, nunca antes (antes de `asentado` no hay ningún botón en el
+   * DOM, así que no hay nada que enfocar sin esperar).
+   */
+  it('con movimiento reducido (todo asentado desde el primer render), el foco va al primer botón', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: false, canUsePower: false })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toHaveFocus();
+  });
+
+  it('con animación, el foco va al primer botón recién cuando la tirada se asienta, no antes', () => {
+    vi.useFakeTimers();
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: false, canUsePower: false })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: S.tirada.continuar })).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toHaveFocus();
+  });
+
+  /**
+   * Oleada final de la Fase H, hallazgo A: `acciones.current?.querySelector('button')` agarra el
+   * PRIMER botón del DOM, y con Fortuna disponible ese primero es "Repetir dado 1"
+   * (`pending.canReroll`, que sale de `run.fortune > 0` — un personaje recién empezado tiene 3 de
+   * 3). El jugador de teclado que aprieta Enter para seguir termina gastando Fortuna sin querer.
+   * El foco tiene que ir siempre a "Continuar", sea cual sea su posición en el DOM.
+   */
+  it('con Fortuna disponible, el foco va a Continuar y no al primer botón de Repetir', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: true, canUsePower: false })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('button', { name: /Fortuna/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).toHaveFocus();
+  });
+
+  it('si hay un modal abierto cuando se asienta, no le roba el foco', () => {
+    useStore.getState().setPrefs({ reducedMotion: 'on' });
+    const cerrarModal = marcarModalAbierto();
+    render(
+      <RollPanel
+        pending={pendiente({ canReroll: false, canUsePower: false })}
+        powerName="Conjuro"
+        onReroll={vi.fn()}
+        onPower={vi.fn()}
+        onContinue={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: S.tirada.continuar })).not.toHaveFocus();
+    cerrarModal();
   });
 
   it('al repetir un dado con Fortuna solo re-anima ese dado', () => {

@@ -1,6 +1,7 @@
 import type { Campaign } from '@/content/schema';
 import {
   LARGO_OBJETIVO,
+  PISO_TIRADAS_CODICIOSA,
   TOPE_MUERTE_CODICIOSA,
   type Agregado,
   type DatosPorPartida,
@@ -30,7 +31,7 @@ function bloqueLista(ids: readonly string[], vacio: string): string {
   return `${ids.map((id) => `- \`${id}\``).join('\n')}\n`;
 }
 
-/** Las tres aserciones duras de la spec §10, con su veredicto. */
+/** Las cuatro aserciones duras de la spec §10 y la Fase H, con su veredicto. */
 export function lineasDeAserciones(agregado: Agregado): { titulo: string; detalle: string; pasa: boolean }[] {
   const a = agregado.aserciones;
   return [
@@ -55,17 +56,22 @@ export function lineasDeAserciones(agregado: Agregado): { titulo: string; detall
           : a.finalesFaltantesPorClase.map((f) => `${f.clase}: falta ${lista(f.faltan, '')}`).join(' · '),
       pasa: a.finalesFaltantesPorClase.length === 0,
     },
+    {
+      titulo: `La política codiciosa hace al menos ${PISO_TIRADAS_CODICIOSA} tiradas por partida`,
+      detalle: `${dec(a.tiradasMediaCodiciosa)} tiradas de media`,
+      pasa: a.tiradasMediaCodiciosa >= PISO_TIRADAS_CODICIOSA,
+    },
   ];
 }
 
 function tablaCombinaciones(filas: readonly FilaCombinacion[]): string {
   const cabecera = [
-    '| Clase | Nivel | Política | Partidas | Pantallas | Distintas | Distintas en objetivo | Palabras | Derrota | Muerte | Heridas | Tiradas | Fallo (dados) | Fallo (final) |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| Clase | Nivel | Política | Partidas | Pantallas | Distintas | Distintas en objetivo | Palabras | Derrota | Muerte | Heridas | Hitos | Tiradas | Fallo (dados) | Fallo (final) |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
   ];
   const cuerpo = filas.map(
     (f) =>
-      `| ${f.clase} | ${f.nivel} | ${f.politica} | ${f.partidas} | ${dec(f.escenas.media)} | ${dec(f.escenasDistintas.media)} | ${pct(f.enObjetivo)} | ${Math.round(f.palabras.media)} | ${pct(f.derrota)} | ${pct(f.muerte)} | ${dec(f.heridasMedia, 2)} | ${dec(f.tiradasMedia)} | ${pct(f.tasaFalloCruda)} | ${pct(f.tasaFallo)} |`,
+      `| ${f.clase} | ${f.nivel} | ${f.politica} | ${f.partidas} | ${dec(f.escenas.media)} | ${dec(f.escenasDistintas.media)} | ${pct(f.enObjetivo)} | ${Math.round(f.palabras.media)} | ${pct(f.derrota)} | ${pct(f.muerte)} | ${dec(f.heridasMedia, 2)} | ${dec(f.hitosMedia)} | ${dec(f.tiradasMedia)} | ${pct(f.tasaFalloCruda)} | ${pct(f.tasaFallo)} |`,
   );
   return [...cabecera, ...cuerpo].join('\n');
 }
@@ -141,11 +147,11 @@ export function informeMarkdown(
       `- Campaña \`${campaign.id}\`, contentVersion ${campaign.contentVersion}`,
       `- Semilla ${config.semilla} · carreras por combinación ${config.n} · partidas por carrera ${config.k}`,
       `- ${agregado.carreras} carreras, ${agregado.partidas} partidas simuladas con el motor real`,
-      `- Combinaciones: 4 clases × niveles {${[...new Set(agregado.filas.map((f) => f.nivel))].join(', ')}} × 3 políticas`,
+      `- Combinaciones: 4 clases × niveles {${[...new Set(agregado.filas.map((f) => f.nivel))].join(', ')}} × 4 políticas`,
     ].join('\n'),
   );
 
-  partes.push('## Las tres aserciones');
+  partes.push('## Las cuatro aserciones');
   partes.push(
     [
       '| # | Aserción | Resultado | Detalle |',

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { Campaign, Scene } from '@/content/schema';
 import type { RenderedChoice } from '@/engine/types';
 import { minimal } from '../fixtures/campaigns/minimal';
-import { agregar, porNumeroDePartida, resumir } from '../../tools/lib/simulate/agregado';
+import { PISO_TIRADAS_CODICIOSA, agregar, porNumeroDePartida, resumir } from '../../tools/lib/simulate/agregado';
 import { fusionarConMundo } from '../../tools/lib/simulate/campana';
 import { MAX_PASOS_POR_DEFECTO, parseArgs, rutaInforme } from '../../tools/lib/simulate/cli';
 import { alcanzablesSinMemoria, opcionesDeMemoria, todasLasOpciones, usaMemoria } from '../../tools/lib/simulate/grafo';
@@ -104,7 +104,8 @@ describe('políticas', () => {
     const lista = [opcion('a', 0.2, 0.5), opcion('b', 0.6, 0.1), opcion('c', 0.6, 0.1)];
     expect(elegirOpcion('codiciosa', lista, azar).id).toBe('b');
     expect(elegirOpcion('temeraria', lista, azar).id).toBe('a');
-    expect(elegirOpcion('codiciosa', [opcion('x', 0.9, 0.05), opcion('libre')], azar).id).toBe('libre');
+    // 0.9 supera el umbral de ceder (PROB_LIBRE = 0.7): la codiciosa tira en vez de ceder.
+    expect(elegirOpcion('codiciosa', [opcion('x', 0.9, 0.05), opcion('libre')], azar).id).toBe('x');
     expect(elegirOpcion('temeraria', [opcion('libre'), opcion('x', 0.9, 0.05)], azar).id).toBe('x');
   });
 
@@ -128,6 +129,37 @@ describe('políticas', () => {
   it('peorDadoConservado devuelve el índice del dado conservado más bajo', () => {
     const pending = { dice: [5, 2, 6], kept: [0, 2] } as Parameters<typeof peorDadoConservado>[0];
     expect(peorDadoConservado(pending)).toBe(0);
+  });
+});
+
+describe('política codiciosa', () => {
+  it('prefiere una tirada buena antes que ceder', () => {
+    const azar = (): number => 0;
+    // 0.8 > PROB_LIBRE (0.7): la tirada gana.
+    const lista = [opcion('libre'), opcion('tirada', 0.8, 0.1)];
+    expect(elegirOpcion('codiciosa', lista, azar).id).toBe('tirada');
+  });
+
+  it('cede cuando ninguna tirada llega al umbral', () => {
+    const azar = (): number => 0;
+    // 0.4 < PROB_LIBRE (0.7): ceder gana.
+    const lista = [opcion('libre'), opcion('tirada', 0.4, 0.3)];
+    expect(elegirOpcion('codiciosa', lista, azar).id).toBe('libre');
+  });
+});
+
+describe('política prudente', () => {
+  it('siempre elige la opción sin tirada si la hay', () => {
+    const azar = (): number => 0;
+    const lista = [opcion('tirada', 0.99, 0.01), opcion('libre')];
+    expect(elegirOpcion('prudente', lista, azar).id).toBe('libre');
+  });
+
+  it('si no hay ninguna sin tirada, elige la de mayor éxito', () => {
+    const azar = (): number => 0;
+    // No puede quedarse sin elegir: toda escena tiene que poder avanzar.
+    const lista = [opcion('a', 0.3, 0.5), opcion('b', 0.6, 0.2)];
+    expect(elegirOpcion('prudente', lista, azar).id).toBe('b');
   });
 });
 
@@ -221,9 +253,9 @@ describe('simulación de partidas y carreras', () => {
 
   it('combinaciones enumera clase × nivel × política en orden fijo', () => {
     const combos = combinaciones(CLASES, NIVELES, POLITICAS);
-    expect(combos).toHaveLength(4 * 2 * 3);
+    expect(combos).toHaveLength(4 * 2 * 4);
     expect(combos[0]).toEqual({ clase: 'guerrero', nivel: 1, politica: 'aleatoria' });
-    expect(combos.at(-1)).toEqual({ clase: 'clerigo', nivel: 3, politica: 'temeraria' });
+    expect(combos.at(-1)).toEqual({ clase: 'clerigo', nivel: 3, politica: 'prudente' });
   });
 });
 
@@ -238,9 +270,9 @@ describe('agregado e informe', () => {
     expect(resumir([1, 2, 3, 4]).mediana).toBe(2.5);
   });
 
-  it('cuenta cobertura, finales y las tres aserciones', () => {
+  it('cuenta cobertura, finales y las cuatro aserciones', () => {
     const agregado = agregar(minimal, carreras);
-    expect(agregado.carreras).toBe(48);
+    expect(agregado.carreras).toBe(64);
     expect(agregado.escenasTotales).toBe(3);
     expect(agregado.escenasVisitadas).toBe(3);
     expect(agregado.escenasNuncaVisitadas).toEqual([]);
@@ -248,7 +280,7 @@ describe('agregado e informe', () => {
     expect(agregado.finales.m_fin).toBeGreaterThan(0);
     // `minimal` tiene un solo final y las cuatro clases llegan: no falta ninguno.
     expect(agregado.aserciones.finalesFaltantesPorClase).toEqual([]);
-    expect(agregado.filas).toHaveLength(24);
+    expect(agregado.filas).toHaveLength(32);
   });
 
   it('distingue el Fallo en los dados del Fallo que le queda al jugador', () => {
@@ -293,20 +325,49 @@ describe('agregado e informe', () => {
     expect(agregado.global.enObjetivo).toBe(1);
   });
 
+  it('la cuarta aserción (piso de tiradas de la codiciosa) hace ok: false cuando no se llega al piso', () => {
+    // Oleada final de la Fase H, hallazgo D: `ok` es lo que fija el código de salida del comando
+    // (tools/lib/simulate/agregado.ts), y hasta ahora ningún test comprobaba que la cuarta
+    // aserción realmente lo apague — el test de proceso deriva su expectativa del propio stdout,
+    // así que pasaría igual si el piso no se evaluara nunca. Se aíslan las otras tres aserciones
+    // (cobertura completa de las 3 escenas de `minimal`, sin muertes, los cuatro finales
+    // presentes en las cuatro clases) para que la única que falle sea la de las tiradas.
+    const partida = (clase: (typeof CLASES)[number]): ResultadoPartida => ({
+      clase, nivel: 1, politica: 'codiciosa', carrera: 0, partida: 1,
+      desenlace: { kind: 'ending', endingId: 'm_fin' },
+      escenas: ['m_inicio', 'm_descanso', 'm_final'], opciones: [], palabras: 0, heridas: 0,
+      tiradas: 1, fallos: 0, fallosCrudos: 0, fortunaGastada: 0, poderUsado: false, hitos: [],
+      flags: [], nivelAntes: 1, nivelDespues: 1, xpDespues: 0, logRecortado: false,
+    });
+    const carrera: ResultadoCarrera = {
+      clase: 'guerrero', nivel: 1, politica: 'codiciosa', carrera: 0,
+      partidas: CLASES.map((clase) => partida(clase)),
+      xpFinal: 0, nivelFinal: 1, flagsPersonaje: [], flagsMundo: [],
+    };
+    const agregado = agregar(minimal, [carrera]);
+    // Las otras tres, en verde: si alguna de estas fallara, `ok: false` no probaría nada del piso.
+    expect(agregado.aserciones.escenasInalcanzables).toEqual([]);
+    expect(agregado.aserciones.muerteNivel1Codiciosa).toBe(0);
+    expect(agregado.aserciones.finalesFaltantesPorClase).toEqual([]);
+    // La cuarta, debajo del piso (PISO_TIRADAS_CODICIOSA = 3; acá la media da 1).
+    expect(agregado.aserciones.tiradasMediaCodiciosa).toBeLessThan(PISO_TIRADAS_CODICIOSA);
+    expect(agregado.aserciones.ok).toBe(false);
+  });
+
   it('porNumeroDePartida agrupa por posición dentro de la carrera', () => {
     const mapa = porNumeroDePartida(carreras.flatMap((c) => c.partidas));
     expect([...mapa.keys()].sort()).toEqual([1, 2, 3]);
-    expect(mapa.get(1)?.escenas.length).toBe(48);
+    expect(mapa.get(1)?.escenas.length).toBe(64);
   });
 
-  it('el informe es Markdown, trae las tres aserciones y no lleva fecha', () => {
+  it('el informe es Markdown, trae las cuatro aserciones y no lleva fecha', () => {
     const agregado = agregar(minimal, carreras);
     const md = informeMarkdown(minimal, config, agregado, porNumeroDePartida(carreras.flatMap((c) => c.partidas)));
     expect(md).toContain('# Informe de simulación — Campaña mínima');
-    expect(md).toContain('## Las tres aserciones');
+    expect(md).toContain('## Las cuatro aserciones');
     expect(md).toContain('## Cobertura');
     expect(md).toContain('## Rejugar: ¿se trivializa?');
-    expect(lineasDeAserciones(agregado)).toHaveLength(3);
+    expect(lineasDeAserciones(agregado)).toHaveLength(4);
     // Comparable entre commits: el mismo agregado tiene que dar el mismo texto, sin fecha adentro.
     expect(md).toBe(informeMarkdown(minimal, config, agregado, porNumeroDePartida(carreras.flatMap((c) => c.partidas))));
     expect(md).not.toMatch(/\d{4}-\d{2}-\d{2}/);

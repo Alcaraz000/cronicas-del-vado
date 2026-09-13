@@ -18,7 +18,7 @@ import { CLASES, NIVELES, POLITICAS, type ConfigSim, type ResultadoCarrera } fro
 /**
  * Simulador de partidas de "Crónicas del Vado" (spec §10).
  *
- * Es una herramienta de AUTOR: corre el motor real sobre la campaña real y **reporta**. Solo tres
+ * Es una herramienta de AUTOR: corre el motor real sobre la campaña real y **reporta**. Solo cuatro
  * aserciones hacen fallar el comando; todo lo demás es informe.
  *
  * Uso:

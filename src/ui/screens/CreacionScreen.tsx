@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ATTRS,
   ATTR_NAMES,
@@ -11,6 +11,7 @@ import {
 } from '@/content/catalog';
 import { useStore } from '@/state/store';
 import { Imagen } from '@/ui/components/Imagen';
+import { useEnfocarAlEntrar } from '@/ui/hooks/useEnfocarAlEntrar';
 import { S } from '@/ui/strings.es';
 import styles from './CreacionScreen.module.css';
 
@@ -63,6 +64,8 @@ export function CreacionScreen() {
   const [traits, setTraits] = useState<TraitId[]>([]);
   const [flojo, setFlojo] = useState<Attr | null>(null);
   const [errorAlCrear, setErrorAlCrear] = useState<string | null>(null);
+  const subtitulo = useRef<HTMLHeadingElement>(null);
+  useEnfocarAlEntrar(subtitulo, paso);
 
   /**
    * La clase condiciona todo lo demás: fija el retrato por defecto, el atributo
@@ -157,7 +160,9 @@ export function CreacionScreen() {
       </header>
 
       <main className={styles.cuerpo}>
-        <h2 className={styles.subtitulo}>{S.creacion.titulos[paso]}</h2>
+        <h2 ref={subtitulo} tabIndex={-1} className={styles.subtitulo}>
+          {S.creacion.titulos[paso]}
+        </h2>
 
         {paso === 1 && <PasoClase elegida={classId} onElegir={elegirClase} />}
 

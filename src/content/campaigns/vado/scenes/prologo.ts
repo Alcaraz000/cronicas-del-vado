@@ -73,11 +73,22 @@ import type { Scene } from '@/content/schema';
  * está en la lista de quemados de §2.7.
  *
  * TRES ANOTACIONES PARA EL DISEÑO (no se tocó nada; se anota y se sigue).
- * (a) `p_puente_amanecer` = 84 palabras es insatisfacible y no es culpa de ningún escritor. Con
- *     `text` base de 60 quedan 24 para cinco opciones, y dos de ellas (`bajar_al_vado_antes_de_que_
- *     aclare` y `seguir_la_orilla_hasta_el_sauce`) comparten `next` y no tienen `effects`, así que
- *     §2.5 obliga a pagarlas con texto. Esta versión aterriza en ~200. **Hay que subir la celda a
- *     ~200 en el outline §2, o colapsar dos de las cinco opciones.**
+ * (a) `p_puente_amanecer` = 84 palabras era una celda **mal calculada**, no exigente. Con `text` base
+ *     de 60 quedaban 24 para cinco opciones, y dos de ellas (`bajar_al_vado_antes_de_que_aclare` y
+ *     `seguir_la_orilla_hasta_el_sauce`) comparten `next` y no tienen `effects`, así que §2.5
+ *     obliga a pagarlas con texto. **SALDADO en la Fase H · tarea 4**: la celda sube a **160** por
+ *     el piso aritmético del outline §2.1 (`text` 60 + 5 desenlaces × 20 del piso de la biblia
+ *     §2.3), y la prosa que las 84 habían forzado a tirar está restituida —el texto base vuelve a
+ *     sus 70 palabras, la muela del sargento a `compartir_el_pan_con_la_guardia` y el silencio de
+ *     Orell a `preguntarle_por_tome`—. La escena mide 198 contra 160 y sus cinco desenlaces vuelven
+ *     a estar dentro de la banda de 20-60.
+ *     **Queda un resto por anotar, y es de la columna `text`, no de `pal`:** la escena escribe 70 de
+ *     base contra una celda `text` de 60, así que la versión original entera medía 202 y el tope del
+ *     linter para 160 son 200. Entró sacando **cuatro** palabras («para pasarlo» y «el ruido del
+ *     agua cambia y»). Si se quiere el original palabra por palabra, lo que corresponde es que
+ *     `text` pase de 60 a 70 —que es lo que la escena escribe y sigue en la banda 60-160— y con
+ *     ella `pal` a 170. **No se tocó: la autorización de la tarea 4 era sobre `pal` y sobre estas
+ *     tres celdas, no sobre la columna `text`.**
  * (b) Geografía: la biblia §1.3 pone la torre de la guardia en la punta **norte** del puente, pero
  *     el `canonPrompt` de `puente_viejo` la pinta en la punta **lejana**, con el pueblo detrás. Como
  *     el fondo pintado es lo que el jugador ve, esta prosa sigue la imagen: barricada cerca, torre
@@ -86,12 +97,37 @@ import type { Scene } from '@/content/schema';
  * (c) Ambigüedad del molino: §1.3 dice que el prólogo pasa «delante del molino a oscuras» y §1.1
  *     dice que el molino tiene luz. Acá manda §1.1: la ventana de arriba está encendida en
  *     `p_vado_oculto` y ninguna línea dice "a oscuras". **Resolver en la biblia antes del lote 2.**
- * (d) Presupuesto medido, escena por escena: `p_camino` 369/396 · `p_puente` 600/556 ·
- *     `p_puente_rechazo` 335/284 · `p_vado_oculto` 438/389 · `p_puente_amanecer` 202/84.
- *     Total 1.944 contra las 1.709 del outline §3 (+13,8 %). Descontando la celda insatisfacible
- *     de (a), son 1.742 contra 1.625 (+7,2 %). La causa que queda es la misma que ya
- *     está anotada: la tabla presupuesta 12 palabras de `outcome.text` para todo el prólogo y hay
- *     **18 opciones sin tirada cuyo único cambio posible es el texto**.
+ * (d) Presupuesto medido, escena por escena, DESPUÉS del recorte de la Fase H · tarea 4:
+ *     `p_camino` 349/396 · `p_puente` 573/556 · `p_puente_rechazo` 319/284 · `p_vado_oculto` 414/389
+ *     · `p_puente_amanecer` 198/160 (celda corregida, ver (a)). Total 1.853 contra las 1.785 del
+ *     outline §3 (+3,8 %); antes del recorte eran 1.944 contra 1.709 (+13,8 %). La causa del +3,5 %
+ *     que queda es la misma que ya estaba anotada: el prólogo tiene **18 opciones sin tirada cuyo
+ *     único cambio posible es el texto**, y la línea de outcomes de §3 no las paga a todas.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 4 — "los desenlaces entran en presupuesto". No se tocó ni una `choice`, ni un
+ * `label`, ni un `requires`, ni un `roll`, ni un `effects`, ni un `next`: entró y salió texto.
+ * Criterio de recorte, en este orden: (1) la oración que repite lo que la escena ya dijo; (2) la
+ * que explica al jugador la opción que acaba de elegir; (3) el adjetivo y la subordinada que no
+ * agregan información. NO se tocaron: lo que el jugador necesita para decidir lo que sigue, las
+ * líneas que anuncian un costo (Fase H · tarea 2), la telegrafía del sello (tarea 3) ni la de
+ * muerte (biblia §11), el piso dramático de §2.3 ni el detalle sensorial de §2.2.
+ *
+ * TRES CELDAS ESTABAN MAL CALCULADAS y se corrigieron en el outline §2.1, con la aritmética escrita
+ * en el propio documento: `pal` mínimo = `text` + (bandas × 25) + (desenlaces sin tirada con texto ×
+ * 20), los pisos de la biblia §2.3. Si ese mínimo no entra ni en el 25 % de tolerancia del linter, la
+ * celda pide un imposible. Eran `p_puente_amanecer` (84 ⇒ **160**), `a2_ley_guardia` (90 ⇒ **190**) y
+ * `a2_fuera_refugio` (90 ⇒ **170**): las tres tenían `pal` igual o casi igual a `text`, o sea 24, 0 y
+ * 0 palabras para cinco, cinco y cuatro desenlaces. **La prosa que esas celdas habían forzado a
+ * tirar está restituida** (en `p_puente_amanecer`, la muela del sargento y el silencio de Orell).
+ * Medidas las 46 celdas, no hay una cuarta: otras doce tienen el mínimo por encima de `pal` pero
+ * dentro de la tolerancia — son exigentes, no rotas, y no se tocaron.
+ *
+ * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
+ * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
+ * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
+ * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
 // ---------------------------------------------------------------------------
@@ -105,7 +141,7 @@ export const p_camino = {
   place: 'puente_viejo',
   onEnter: [{ give: 'carta_lacrada' }],
   text: [
-    'Hace once días que Tomé, el molinero de Aldamar, no aparece. A vos te escribieron porque no sos de acá, porque hacés esto y porque cobrás.',
+    'Hace once días que Tomé, el molinero de Aldamar, no aparece. Te escribieron porque no sos de acá, porque hacés esto y porque cobrás.',
     'La carta va contra las costillas, en un trapo encerado. «Mirá, hace once días que nadie le ve el humo al molino y somos sesenta y cuatro casas que comen de esa rueda. Hay una bolsa de plata apartada para quien lo traiga, y bueno.» Firma Berta, la alcaldesa.',
     {
       variants: [
@@ -118,14 +154,14 @@ export const p_camino = {
               { endingSeen: 'fin_heredero' },
             ],
           },
-          text: 'El camino es el mismo. Vos ya sabés que Tomé está muerto desde antes de que te llegara la carta, y bajás igual.',
+          text: 'El camino es el mismo. Ya sabés que Tomé está muerto desde antes de que te llegara la carta, y bajás igual.',
         },
         {
-          text: 'El camino baja hacia el agua entre juncos aplastados y las tablas podridas de un embarcadero. Hace rato que no cruzás a nadie en sentido contrario.',
+          text: 'El camino baja hacia el agua entre juncos aplastados y las tablas podridas de un embarcadero. Hace rato que no cruzás a nadie.',
         },
       ],
     },
-    'Al fondo está el puente viejo, con una barricada de tablones y barriles atravesada en la boca del lado de acá. El río golpea los pilares con un ruido bajo que te sube por las suelas antes de llegarte al oído. Alguien cerró el paso de un pueblo que vive de que la gente pase.',
+    'Al fondo está el puente viejo, con una barricada de tablones y barriles en la boca del lado de acá. El río golpea los pilares con un ruido bajo que te sube por las suelas antes de llegarte al oído. Alguien cerró el paso de un pueblo que vive de que la gente pase.',
   ],
   choices: [
     {
@@ -145,20 +181,20 @@ export const p_camino = {
         outcomes: {
           success: {
             text: [
-              'Bajás la pendiente agarrándote de los juncos. El barro se acaba en grava. Más adelante un sauce partido se acuesta sobre el río, y debajo del sauce la corriente cambia de ruido.',
+              'Bajás la pendiente agarrándote de los juncos. El barro se acaba en grava. Más adelante un sauce partido se acuesta sobre el río, y debajo la corriente cambia de ruido.',
             ],
             next: 'p_vado_oculto',
           },
           partial: {
             text: [
-              'Terminás el resbalón sentado en el río, con el agua al pecho y la ropa pesando el doble. La pendiente cedió con vos encima. Salís caminando contra la corriente: el sauce está adelante.',
+              'Terminás el resbalón sentado en el río, con el agua al pecho y la ropa pesando el doble. La pendiente cedió con vos encima. Salís contra la corriente: el sauce está adelante.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'p_vado_oculto',
           },
           failure: {
             text: [
-              'Los juncos no aguantan. Caés de costado contra una raíz y algo en las costillas te avisa que va a doler un rato largo. La orilla termina en zarza. Volvés al camino y encarás el puente.',
+              'Los juncos no aguantan. Caés de costado contra una raíz y algo en las costillas te avisa que va a doler un rato largo. La orilla termina en zarza: volvés al camino.',
             ],
             effects: [{ wound: 1 }],
             next: 'p_puente',
@@ -171,7 +207,7 @@ export const p_camino = {
       label: 'Leer otra vez la carta de Berta',
       outcome: {
         text: [
-          'Buena letra, renglones derechos, ni una tachadura. Abajo la cifra, y al lado de la cifra una palabra que no va en ningún contrato: «discreción».',
+          'Buena letra, renglones derechos, ni una tachadura. Abajo la cifra, y al lado una palabra que no va en ningún contrato: «discreción».',
         ],
         next: 'p_puente',
       },
@@ -182,7 +218,7 @@ export const p_camino = {
       label: 'Esperar a que afloje la lluvia',
       outcome: {
         text: [
-          'La lluvia no afloja. Lo que pasa mientras esperás es un carro que baja del puente, se cruza con vos y no para. El carrero te mira el tiempo justo para poder describirte después.',
+          'La lluvia no afloja. Lo que pasa es un carro que baja del puente, se cruza con vos y no para. El carrero te mira el tiempo justo para poder describirte después.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'p_puente',
@@ -196,7 +232,7 @@ export const p_camino = {
       lockedHint: 'Hace falta haberte criado donde el mapa se acaba.',
       outcome: {
         text: [
-          'Las nubes vienen del oeste, bajas y enteras, sin un corte. Eso no es un chaparrón: eso se queda tres días. Contás las noches que tenés y apurás el paso.',
+          'Las nubes vienen del oeste, bajas y enteras, sin un corte. Eso no es un chaparrón: se queda tres días. Contás las noches que tenés y apurás el paso.',
         ],
         next: 'p_puente',
       },
@@ -216,15 +252,15 @@ export const p_puente = {
   npcs: ['orell'],
   onEnter: [{ milestone: 'llegar_al_puente' }],
   text: [
-    'Dos faroles cuelgan de sendos postes y el viento les agacha la llama. La barricada es tablones y barriles de sal atados con soga de sirga. Huele a sebo quemado y a lana mojada. Al final del puente, una torre baja y los postigos cerrados de Aldamar.',
+    'Dos faroles cuelgan de sendos postes y el viento les agacha la llama. La barricada es tablones y barriles de sal atados con soga de sirga. Huele a sebo quemado y a lana mojada. Al final, una torre baja y los postigos cerrados de Aldamar.',
     {
       variants: [
         {
           when: { met: 'orell' },
-          text: 'Al sargento lo conocés: la cicatriz que le parte la ceja, el gambesón gris, el paso de quien ya hizo esta guardia mil veces. Para él sos un bulto que llega de noche por el camino del norte.',
+          text: 'Al sargento lo conocés: la cicatriz que le parte la ceja, el gambesón gris, el paso de quien ya hizo esta guardia mil veces. Para él sos un bulto que llega de noche del norte.',
         },
         {
-          text: 'Un hombre sale de atrás de los barriles con la ballesta cruzada al pecho. Tendrá cincuenta y pico: barba gris corta y una cicatriz blanca que le parte la ceja izquierda. No apunta a nadie y no hace falta.',
+          text: 'Un hombre sale de atrás de los barriles con la ballesta cruzada al pecho. Tendrá cincuenta y pico: barba gris corta y una cicatriz blanca en la ceja izquierda. No apunta a nadie y no hace falta.',
         },
       ],
     },
@@ -263,26 +299,26 @@ export const p_puente = {
                 ],
               },
             ],
-            effects: [{ set: 'run:orell_confia' }],
+            effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a1_plaza',
           },
           success: {
             text: [
-              'Hablás poco y no pedís dos veces. Orell escucha con la ballesta baja, deja correr un silencio largo y le hace una seña al chico. Corren un barril: queda un hueco de un hombro de ancho.',
+              'Hablás poco y no pedís dos veces. Orell escucha con la ballesta baja, deja correr un silencio largo y le hace una seña al chico. Corren un barril: queda un hueco de un hombro.',
             ],
-            effects: [{ set: 'run:orell_confia' }],
+            effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a1_plaza',
           },
           partial: {
             text: [
-              'Te deja pasar, pero antes te hace decir el nombre, de dónde venís y a quién buscás, y el chico lo anota en una tablilla. Esa tablilla sube a la torre con el relevo.',
+              'Te deja pasar, pero antes te hace decir el nombre, de dónde venís y a quién buscás, y el chico lo anota en una tablilla. La tablilla sube a la torre con el relevo.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a1_plaza',
           },
           failure: {
             text: [
-              'Repetís el argumento una vez de más. El sargento no contesta: se corre medio paso y te tapa el hueco con el cuerpo. El chico afloja el gancho de la ballesta. Quedó tu cara para acordarse.',
+              'Repetís el argumento una vez de más. El sargento no contesta: se corre medio paso y te tapa el hueco. El chico afloja el gancho de la ballesta. Quedó tu cara para acordarse.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'p_puente_rechazo',
@@ -302,7 +338,7 @@ export const p_puente = {
         outcomes: {
           success: {
             text: [
-              'Te parás lo bastante cerca como para que tenga que elegir. Orell no retrocede ni llama a nadie. «Pasá», dice, y lo dice para adentro. El chico saca los tablones sin que se lo pidan.',
+              'Te parás lo bastante cerca como para que tenga que elegir. Orell no retrocede ni llama a nadie. «Pasá», dice, y lo dice para adentro. El chico saca los tablones solo.',
             ],
             effects: [{ set: 'run:orell_humillado' }],
             next: 'a1_plaza',
@@ -316,7 +352,7 @@ export const p_puente = {
           },
           failure: {
             text: [
-              'El sargento te deja terminar. Después levanta dos dedos y el chico baja la punta de la lanza a la altura de tu cintura. «Dos relevos por noche. Todos con la misma orden».',
+              'El sargento te deja terminar. Después levanta dos dedos y el chico baja la punta de la lanza a tu cintura. «Dos relevos por noche. Todos con la misma orden».',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'p_puente_rechazo',
@@ -330,7 +366,7 @@ export const p_puente = {
       label: 'Entregarle la carta lacrada para cruzar',
       outcome: {
         text: [
-          'Orell rompe el lacre tapando el papel con el cuerpo. Lee dos veces, dobla la carta y se la guarda en el gambesón. «Esto sube a la torre. Vos pasá».',
+          'Orell rompe el lacre tapando el papel con el cuerpo. Lee dos veces, dobla la carta y se la guarda. «Esto sube a la torre. Vos pasá».',
         ],
         effects: [{ take: 'carta_lacrada' }],
         next: 'a1_plaza',
@@ -343,7 +379,7 @@ export const p_puente = {
       label: 'Mirar las runas del pilar',
       outcome: {
         text: [
-          'El primer pilar tiene una banda de signos a la altura del agua, comidos por el limo. No son letras de las que usás: una se repite cada cinco. El sargento te ve mirarlas.',
+          'El primer pilar tiene una banda de signos a la altura del agua, comidos por el limo. No son letras de las que usás: una se repite cada cinco. Orell te ve mirarlas.',
         ],
         effects: [{ set: 'run:vio_runas' }],
         next: 'p_puente_rechazo',
@@ -354,7 +390,7 @@ export const p_puente = {
       label: 'Esperar el relevo del alba',
       outcome: {
         text: [
-          'Te corrés bajo el arco, fuera de la luz, y aguantás. El chico sube a la torre y baja con otro, y el otro pregunta por el del camino.',
+          'Te corrés bajo el arco, fuera de la luz, y aguantás. El chico sube a la torre y baja con otro, que pregunta por el del camino.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'p_puente_amanecer',
@@ -368,7 +404,7 @@ export const p_puente = {
       lockedHint: 'Solo un Explorador le saca el paso al río de una mirada.',
       outcome: {
         text: [
-          'Desde el pretil el río se lee como una página: donde el agua se arruga hay piedra abajo. La arruga está media legua más abajo, junto a un sauce partido.',
+          'Desde el pretil el río se lee como una página: donde el agua se arruga hay piedra abajo. La arruga está media legua abajo, junto a un sauce partido.',
         ],
         next: 'p_vado_oculto',
       },
@@ -381,7 +417,7 @@ export const p_puente = {
       lockedHint: 'Hay que haber estado antes en el vado.',
       outcome: {
         text: [
-          'No hace falta mirar el agua: las piernas se acuerdan del sauce partido y del orden de las piedras. Te vas antes de que al sargento se le ocurra preguntar.',
+          'No hace falta mirar el agua: las piernas se acuerdan del sauce y del orden de las piedras. Te vas antes de que al sargento se le ocurra preguntar.',
         ],
         next: 'p_vado_oculto',
       },
@@ -400,8 +436,8 @@ export const p_puente_rechazo = {
   place: 'puente_viejo',
   npcs: ['orell'],
   text: [
-    'Orell te acompaña hasta donde se terminan los tablones y ahí se para. No te empuja. Mira cómo bajás los tres escalones de piedra hasta el camino y recién entonces vuelve. Apoyás la mano en el pretil: la piedra está fría y lisa, salvo un palmo tibio donde estuvo colgado el farol.',
-    'Atrás, los tablones vuelven a su lugar de a uno. La barricada tapa la boca del puente y nada más: el terraplén baja hacia el agua entre zarzas, y a la altura del segundo arco asoma un pilar caído. Río abajo el camino sigue.',
+    'Orell te acompaña hasta donde se terminan los tablones y ahí se para. No te empuja. Mira cómo bajás los tres escalones de piedra y recién entonces vuelve. Apoyás la mano en el pretil: la piedra está fría y lisa, salvo un palmo tibio donde estuvo colgado el farol.',
+    'Atrás, los tablones vuelven a su lugar de a uno. La barricada tapa la boca del puente y nada más: el terraplén baja entre zarzas y a la altura del segundo arco asoma un pilar caído. Río abajo el camino sigue.',
   ],
   choices: [
     {
@@ -414,13 +450,13 @@ export const p_puente_rechazo = {
         outcomes: {
           success: {
             text: [
-              'Entrás en la zarza de rodillas y salís bajo el primer arco, tapado de los faroles. Cruzás por la cornisa con el río haciendo ruido de olla debajo.',
+              'Entrás en la zarza de rodillas y salís bajo el primer arco, tapado de los faroles. Cruzás por la cornisa con el río sonando a olla debajo.',
             ],
             next: 'a1_plaza',
           },
           partial: {
             text: [
-              'Pisás mal en la cornisa y el río te recibe de costado. Salís veinte pasos más abajo, con una bota menos; la bota aparece entre dos juncos. Arriba nadie gritó.',
+              'Pisás mal en la cornisa y el río te recibe de costado. Salís veinte pasos más abajo, con una bota menos. Arriba nadie gritó.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'a1_plaza',
@@ -441,7 +477,7 @@ export const p_puente_rechazo = {
       label: 'Cruzar por el pilar caído',
       outcome: {
         text: [
-          'El pilar caído es una lengua de piedra a un palmo del agua. Vas a gatas. En la mitad el musgo cede bajo la mano y el hombro da contra el canto: el ruido lo escuchás por dentro. El brazo te queda muerto.',
+          'El pilar caído es una lengua de piedra a un palmo del agua. Vas a gatas. En la mitad el musgo cede y el hombro da contra el canto: el ruido lo escuchás por dentro. El brazo te queda muerto.',
         ],
         effects: [{ wound: 1 }],
         next: 'a1_plaza',
@@ -463,23 +499,26 @@ export const p_puente_rechazo = {
       label: 'Acampar hasta el relevo',
       outcome: {
         text: [
-          'Armás reparo bajo el talud y aguantás sentado. Dos veces en la noche el chico baja con el farol y te alumbra la cara. La segunda vez vuelve caminando rápido.',
+          'Armás reparo bajo el talud y aguantás sentado. Dos veces en la noche el chico baja con el farol y te alumbra la cara. La segunda vuelve caminando rápido.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'p_puente_amanecer',
       },
     },
     {
-      // [Guerrero] (biblia §9.5): enciende `run:orell_confia` sin tirada.
+      // [Guerrero] (biblia §9.5): enciende `run:orell_confia` sin tirada. Alcanzable en
+      // `p_puente_rechazo` después de que `intimidar_al_sargento` haya encendido
+      // `run:orell_humillado` (oleada final de la Fase H, hallazgo C): limpiarlo acá es lo que
+      // mantiene el par mutuamente excluyente.
       id: 'reconocer_el_escudo',
       label: 'Reconocer el escudo del sargento',
       requires: { class: 'guerrero' },
       lockedHint: 'Hay que haber servido para leer un escudo así.',
       outcome: {
         text: [
-          'El escudo del poste lleva la marca de una compañía que ya no existe. Decís el nombre y el año. Orell tarda en contestar. Después corre un tablón con la bota. «Andá».',
+          'El escudo del poste lleva la marca de una compañía que ya no existe. Decís el nombre y el año. Orell tarda en contestar y después corre un tablón con la bota. «Andá».',
         ],
-        effects: [{ set: 'run:orell_confia' }],
+        effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
         next: 'a1_plaza',
       },
     },
@@ -510,16 +549,16 @@ export const p_vado_oculto = {
   kind: 'normal',
   place: 'vado_oculto',
   text: [
-    'Media legua río abajo el barro se acaba y empieza la grava. El sauce está partido por un rayo viejo: la mitad muerta se acuesta sobre el agua, la otra sigue con hojas. Metés un pie y el frío te sube por la pantorrilla antes de que el agua te pase del tobillo.',
+    'Media legua río abajo el barro se acaba y empieza la grava. El sauce está partido por un rayo viejo: la mitad muerta se acuesta sobre el agua, la otra sigue con hojas. Metés un pie y el frío te sube por la pantorrilla antes de que el agua pase del tobillo.',
     'Debajo del sauce, una línea de piedras planas corta la corriente. Contás siete. La cuarta está más honda que las demás, o está más honda hoy.',
     {
       variants: [
         {
           when: { knows: 'vado_oculto' },
-          text: 'Río arriba, la misma ventana encendida que la otra vez. De las piedras ya sabés cuál falla: la cuarta, la del borde redondo, que se hunde un palmo cuando la pisás.',
+          text: 'Río arriba, la misma ventana encendida que la otra vez. Ya sabés qué piedra falla: la cuarta, la del borde redondo, que se hunde un palmo cuando la pisás.',
         },
         {
-          text: 'Río arriba, en mitad del agua, hay una isla baja y en la isla un edificio grande y negro con la rueda quieta: el molino. Tiene luz en la ventana de arriba. De este lado, un banco de grava pisoteado y marcas de quilla en el barro.',
+          text: 'Río arriba, en mitad del agua, hay una isla baja y en la isla un edificio grande y negro con la rueda quieta: el molino, con luz en la ventana de arriba. De este lado, grava pisoteada y marcas de quilla en el barro.',
         },
       ],
     },
@@ -530,7 +569,7 @@ export const p_vado_oculto = {
       label: 'Cruzar por las piedras del vado',
       outcome: {
         text: [
-          'Las piedras están cubiertas de un limo que no se ve. Vas de costado, apoyando el canto del pie. La cuarta se hunde un palmo y el agua te entra hasta la ingle.',
+          'Las piedras están cubiertas de un limo que no se ve. Vas de costado, apoyando el canto del pie. La cuarta se hunde un palmo y el agua te llega a la ingle.',
         ],
         effects: [{ addCondition: 'empapado' }],
         next: 'a1_plaza',
@@ -550,26 +589,26 @@ export const p_vado_oculto = {
         outcomes: {
           success: {
             text: [
-              'En la corteza muerta hay muescas de cuchillo a la altura del pecho: marcas de agua, once, cada una un dedo más alta que la anterior. Un reguero de barro sube por el caz hasta una trampilla.',
+              'En la corteza muerta hay muescas de cuchillo a la altura del pecho: marcas de agua, once, cada una un dedo más alta. Un reguero de barro sube por el caz hasta una trampilla.',
             ],
             next: 'a1_molino_trampilla',
           },
           partial: {
             text: [
-              'Que son marcas de agua lo sacás enseguida. Cuántas y de cuándo, no: la cuenta se te mezcla con la lluvia. Dejás el sauce y cruzás derecho a la puerta grande del molino.',
+              'Que son marcas de agua lo sacás enseguida. Cuántas y de cuándo, no: la cuenta se te mezcla con la lluvia. Cruzás derecho a la puerta grande del molino.',
             ],
             next: 'a1_molino',
           },
           failure: {
             text: [
-              'Le acercás la cara a la corteza y no sacás nada en limpio: tajos viejos, musgo, agua encima. Al retroceder, el pie se te va en la raíz mojada y la rodilla da contra el tronco.',
+              'Le acercás la cara a la corteza y no sacás nada en limpio: tajos viejos, musgo, agua encima. Al retroceder el pie se te va en la raíz mojada y la rodilla da contra el tronco.',
             ],
             effects: [{ wound: 1 }],
             next: 'a1_plaza',
           },
           fumble: {
             text: [
-              'Te subís a la rama muerta para llegar a las marcas de arriba. Cede en el nudo y te lleva con ella. El río te da vuelta una vez y te suelta en la grava, de cara.',
+              'Te subís a la rama muerta para llegar a las marcas de arriba. Cede en el nudo y te lleva. El río te da vuelta una vez y te suelta en la grava, de cara.',
             ],
             effects: [{ wound: 1 }, { addCondition: 'empapado' }],
             next: 'a1_plaza',
@@ -582,7 +621,7 @@ export const p_vado_oculto = {
       label: 'Subir por el caz hasta la trampilla',
       outcome: {
         text: [
-          'El caz es un canal de tablones que entra por debajo del piso del molino. Vas por el borde, con el agua sonando hueca abajo.',
+          'El caz es un canal de tablones que entra por debajo del molino. Vas por el borde, con el agua sonando hueca abajo.',
         ],
         next: 'a1_molino_trampilla',
       },
@@ -592,7 +631,7 @@ export const p_vado_oculto = {
       label: 'Rodear hasta la puerta del molino',
       outcome: {
         text: [
-          'Rodeás la isla por la grava. La puerta del molino da contra el viento y el candado no está puesto: está colgando.',
+          'Rodeás la isla por la grava. La puerta del molino da contra el viento y el candado no está puesto: cuelga.',
         ],
         next: 'a1_molino',
       },
@@ -602,7 +641,7 @@ export const p_vado_oculto = {
       label: 'Mirar la luz del molino antes de cruzar',
       outcome: {
         text: [
-          'La ventana de arriba tiene luz de farol, no de fuego, y la luz se mueve: alguien la lleva de una punta a la otra del piso.',
+          'La ventana de arriba tiene luz de farol, no de fuego, y se mueve: alguien la lleva de una punta a la otra.',
         ],
         next: 'a1_molino',
       },
@@ -615,7 +654,7 @@ export const p_vado_oculto = {
       lockedHint: 'Solo un Mago sabe con qué nombre se le habla a un río.',
       outcome: {
         text: [
-          'Le decís al río el nombre que tenía antes del pueblo. El agua no se abre ni se calla: te deja pasar, que es otra cosa. Cruzás con las botas secas.',
+          'Le decís al río el nombre que tenía antes del pueblo. No se abre ni se calla: te deja pasar, que es otra cosa. Cruzás con las botas secas.',
         ],
         next: 'a1_plaza',
       },
@@ -625,7 +664,10 @@ export const p_vado_oculto = {
 
 // ---------------------------------------------------------------------------
 // p_puente_amanecer — convergencia del prólogo. 5 opciones, las 5 libres, cero tiradas.
-// `onEnter` enciende `run:orell_confia`: esperar el relevo ES la fuente (biblia §7.2).
+// `onEnter` enciende `run:orell_confia`: esperar el relevo ES la fuente (biblia §7.2). También
+// limpia `run:orell_humillado` (oleada final de la Fase H, hallazgo C): esta escena es
+// alcanzable después de `p_puente.intimidar_al_sargento` (partial) o de `acampar_hasta_el_relevo`
+// en `p_puente_rechazo` con el humillado ya prendido, y el par es mutuamente excluyente.
 // La celda de 84 palabras del outline §2 es insatisfacible; ver nota (a) de la cabecera.
 // ---------------------------------------------------------------------------
 
@@ -635,7 +677,7 @@ export const p_puente_amanecer = {
   place: 'puente_viejo',
   variant: 'amanecer',
   npcs: ['orell'],
-  onEnter: [{ set: 'run:orell_confia' }],
+  onEnter: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
   text: [
     'Clarea sin sol. El río pasó de negro a marrón y ahora se le ven las cosas que arrastra. En la cabecera del puente el relevo afloja la cuerda de la ballesta y la cuerda chilla al ceder: ese es el ruido que hace una noche cuando se termina.',
     {
@@ -680,7 +722,7 @@ export const p_puente_amanecer = {
       label: 'Compartir el pan con la guardia',
       outcome: {
         text: [
-          'El pan es de ayer y hay que mojarlo para pasarlo. Comen de pie, sin hablar, mirando el agua. Al sargento le falta una muela del lado derecho y mastica del otro.',
+          'El pan es de ayer y hay que mojarlo. Comen de pie, sin hablar, mirando el agua. Al sargento le falta una muela del lado derecho y mastica del otro.',
         ],
         next: 'a1_plaza',
       },
@@ -700,7 +742,7 @@ export const p_puente_amanecer = {
       label: 'Seguir la orilla hasta el sauce partido',
       outcome: {
         text: [
-          'Seguís la orilla río abajo, pisando grava mojada. A media legua el ruido del agua cambia y se vuelve corto: ahí abajo hay piedra.',
+          'Seguís la orilla río abajo, pisando grava mojada. A media legua el ruido del agua se vuelve corto: ahí abajo hay piedra.',
         ],
         next: 'p_vado_oculto',
       },

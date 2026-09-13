@@ -57,12 +57,103 @@
   cursor: pointer;
 }
 
+/* Por debajo de 800px la grilla de dos columnas pasa a una sola columna de dos FILAS: el
+   visual arriba con una altura fija en proporción de la pantalla, y la hoja (`.columna`)
+   abajo con el resto. `38vh` es lo que deja lugar a un párrafo y a las opciones sin scrollear
+   el visual: más alto y la hoja queda demasiado chica para leer; más bajo y el fondo se ve
+   apenas una tira.
+
+   `.visual` deja de ser una grilla propia (fondo arriba, retrato abajo, apiladas) porque acá
+   el fondo tiene que OCUPAR toda la fila y el retrato pasa a superponerse (ver más abajo): un
+   `display: block` con el fondo estirado a la altura de la fila alcanza, y saca de encima
+   cualquier reparto de alto que la grilla interna quisiera hacer con dos hijos.
+
+   El fondo (y su placeholder sin arte, misma marca `[data-aspect='16:9']` en los dos) se
+   selecciona por atributo y no por su propia clase de módulo: `Imagen.module.css` y
+   `Placeholder.module.css` son otro CSS Module, con sus propias clases con hash, así que no
+   hay forma de nombrarlas desde acá. El atributo `data-aspect` es la marca pública que ya
+   usan las dos, puesta ahí para exactamente este tipo de selector externo. Se antepone
+   `.grid > .visual` (no solo `.visual`) para ganarle en especificidad a la regla
+   `[data-aspect='16:9']` de esos módulos sin pelear con el orden de importación, que ningún
+   CSS Module garantiza. */
 @media (max-width: 800px) {
-  .grid {
-    grid-template-columns: 1fr;
+  /* `.pantalla` pasa de `min-height: 100vh` (arriba de todo) a una altura FIJA acá: sin esto,
+     la fila `1fr` de `.grid` no tiene ninguna altura de verdad contra la cual repartirse.
+     Jugado en un teléfono real (375×812) y no solo leído: con `min-height` nomás, el
+     `height: auto` de `.pantalla` se calcula ANTES de saber cuánto mide `.grid`, y para esa
+     cuenta un `fr` sin contenedor de altura definida se comporta como `auto` (mide por
+     contenido) — así que `.grid` termina midiendo lo que el texto de la escena necesita
+     (fácil el doble de la pantalla), `.pantalla` crece para no cortarlo, y es la PÁGINA la
+     que scrollea —fondo incluido— en vez de la hoja. `min-height: 0` en `.grid` y en
+     `.columna` (ver más abajo) no alcanza para arreglar ESTO: evitan que cada uno se infle
+     por SU contenido, pero ninguno de los dos resuelve que el contenedor de arriba no tenía
+     una altura real de la cual partir. El test de `EscenaScreen.test.tsx` no lo detecta:
+     jsdom no calcula ninguna de estas alturas. */
+  .pantalla {
+    height: 100vh;
   }
 
+  .grid {
+    /* Mismo motivo que `.columna` más abajo, un nivel arriba: `.grid` es a la vez
+       contenedor de grilla (sus dos filas) Y ítem flex de `.pantalla`, así que también
+       tiene su propio `min-height: auto` implícito de ítem flex — sin pisarlo, intentaría
+       creer con el contenido igual que si `.pantalla` siguiera sin altura fija. */
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: 38vh 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  .visual {
+    display: block;
+    position: relative;
+  }
+
+  /* El fondo (o su placeholder) se recorta a la altura de la fila en vez de escalarse: sin
+     `aspect-ratio: auto` el elemento seguiría calculando su alto a partir del ancho (16/9) y
+     dejaría un hueco vacío debajo, porque en un teléfono angosto esa altura es bastante menos
+     que 38vh. `object-fit: cover`, ya puesto en `Imagen.module.css`, hace el recorte una vez
+     que el marco mide lo que tiene que medir. */
+  .grid > .visual > [data-aspect='16:9'] {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  /* El retrato del hablante: se achica bastante (no tiene que competir con la hoja por
+     espacio) y se superpone sobre el borde de arriba de la hoja, a la derecha para no tapar
+     nunca "Saltar lo leído" (sticky, alineado a la izquierda, arriba de `.columna`). No se
+     saca del todo: es la única pista de quién habla, y en las escenas con PNJ desaparecería
+     justo cuando más se necesita, con el visual reducido a una tira de fondo.
+     `position: absolute` (contenido por `.visual`, que ahora es `position: relative`) más un
+     corrimiento negativo lo clava a caballo entre el fondo y la hoja; al no ser `.columna`
+     quien lo dibuja, no se pierde bajo su `overflow-y`. */
+  .grid > .visual > [data-aspect='3:4'] {
+    position: absolute;
+    right: var(--esp-4);
+    bottom: calc(var(--esp-4) * -1);
+    width: 22vw;
+    max-width: 84px;
+  }
+
+  /* `.columna` es la hoja: fila de abajo, scroll propio, y visualmente despegada del fondo. */
   .columna {
+    /* Sin esto el ítem de grid pide su alto por contenido (el `min-height: auto` implícito de
+       todo ítem de grid/flex) y CRECE hasta mostrarlo entero en vez de respetar el `1fr` que
+       le tocó, así que la fila se estira, la página entera termina scrolleando y el
+       `overflow-y` de acá abajo nunca llega a activarse. Es la misma trampa de siempre con
+       flex/grid y contenido largo. */
+    min-height: 0;
     max-height: none;
+    overflow-y: auto;
+    padding: var(--esp-4);
+    border-radius: var(--radio) var(--radio) 0 0;
+    background: var(--color-superficie);
+    /* Sombra hacia ARRIBA (desplazamiento en Y negativo) para despegarla del fondo, no un
+       borde: un borde de 1px no se nota contra un fondo con fotografía debajo. `--color-velo`
+       es el mismo negro semitransparente que ya usan `Dialogo`/`Cajon`/`OpcionesModal` para
+       oscurecer detrás de un panel; acá cumple el mismo rol de "sombra", no haría falta un
+       token nuevo solo para esto. */
+    box-shadow: 0 calc(var(--esp-2) * -1) var(--esp-3) var(--color-velo);
   }
 }

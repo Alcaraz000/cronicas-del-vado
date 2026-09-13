@@ -94,6 +94,18 @@ describe('HubScreen', () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * Tarea 6 (Fase H): `ScreenRouter` desmonta la pantalla anterior entera, así que el control
+   * que tenía el foco al llegar acá ya no existe y el foco cae a `<body>`, invisible. El
+   * título recibe el foco por programa apenas se monta (ver `useEnfocarAlEntrar`).
+   */
+  it('lleva el foco al título apenas se monta, para no dejarlo perdido en <body>', async () => {
+    await montar();
+
+    const titulo = screen.getByRole('heading', { level: 1, name: S.hub.titulo });
+    expect(titulo).toHaveFocus();
+  });
+
   it('muestra la etiqueta de dificultad relativa al nivel del personaje activo', async () => {
     registrar([meta('c1', [3, 5])]);
     const casos = [

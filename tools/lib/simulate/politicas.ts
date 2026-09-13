@@ -15,6 +15,23 @@ export function probFallo(opcion: RenderedChoice): number {
 }
 
 /**
+ * Lo que vale ceder, para la política codiciosa.
+ *
+ * Una opción sin tirada no puede fallar, así que su probabilidad de éxito real es 1 y con ese
+ * número la codiciosa no tira un solo dado en toda la campaña: la aserción de muerte pasaba con
+ * 0,0 % porque nunca se tocaba un dado. Acá ceder se puntúa como una tirada que gana 7 de cada 10
+ * veces: si hay una mejor que eso, la toma.
+ *
+ * Es un botón de diseño, no una constante física. Subirlo hace al simulador más cobarde.
+ */
+export const PROB_LIBRE = 0.7;
+
+/** Puntaje de la política codiciosa: la probabilidad real, salvo ceder, que vale PROB_LIBRE. */
+function puntajeCodicioso(opcion: RenderedChoice): number {
+  return opcion.preview === undefined ? PROB_LIBRE : opcion.preview.odds.success;
+}
+
+/**
  * Índice del máximo según `puntaje`, con empate a favor del primero.
  * Se compara con un epsilon porque las probabilidades salen de divisiones exactas sobre 36 y 216:
  * sin él, dos opciones idénticas podrían desempatar por el ruido del punto flotante y el informe
@@ -50,18 +67,26 @@ export function elegirOpcion(
   if (opciones.length === 0) {
     throw new Error('No hay opciones para elegir');
   }
-  const indice =
-    politica === 'aleatoria'
-      ? Math.min(opciones.length - 1, Math.floor(azar() * opciones.length))
-      : politica === 'codiciosa'
-        ? indiceDelMaximo(opciones, probExito)
-        : indiceDelMaximo(opciones, probFallo);
-  return opciones[indice] as RenderedChoice;
+  if (politica === 'aleatoria') {
+    const indice = Math.min(opciones.length - 1, Math.floor(azar() * opciones.length));
+    return opciones[indice] as RenderedChoice;
+  }
+  if (politica === 'codiciosa') {
+    return opciones[indiceDelMaximo(opciones, puntajeCodicioso)] as RenderedChoice;
+  }
+  if (politica === 'prudente') {
+    // Cede siempre que pueda: la primera opción sin tirada. Si no hay ninguna, no le queda otra
+    // que arriesgar, y ahí elige la de mayor probabilidad real de éxito.
+    const libre = opciones.find((o) => o.preview === undefined);
+    return libre ?? (opciones[indiceDelMaximo(opciones, probExito)] as RenderedChoice);
+  }
+  // temeraria
+  return opciones[indiceDelMaximo(opciones, probFallo)] as RenderedChoice;
 }
 
 /**
  * Candidatas de una escena: las habilitadas que la partida todavía no eligió en ESA escena.
- * Es la regla que hace que las tres políticas terminen: sin ella, la codiciosa elige siempre la
+ * Es la regla que hace que las cuatro políticas terminen: sin ella, la codiciosa elige siempre la
  * misma primera opción del hub y nunca junta las tres pistas, y las excepciones que vuelven al hub
  * («mirar el pozo») se convierten en un bucle infinito. Un jugador tampoco lee dos veces el mismo
  * poste de bandos. Si ya se eligieron todas, se vuelven a habilitar todas.

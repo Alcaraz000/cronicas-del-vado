@@ -1,6 +1,18 @@
 # Crónicas del Vado
 
-RPG narrativo tipo novela visual, de fantasía medieval, que corre en el navegador sin servidor. Un personaje persistente atraviesa campañas cortas, ramificadas y resueltas con dados (2d6 con éxito parcial); el mundo lo recuerda dentro de la partida, entre partidas y entre campañas.
+Un RPG narrativo tipo novela visual, de fantasía medieval, que corre entero en el navegador: no hay que instalar nada ni crear una cuenta. Creás un personaje persistente y lo llevás a través de campañas cortas y ramificadas; el juego se acuerda de lo que hiciste dentro de la partida, entre partidas y entre campañas.
+
+**Se juega acá:** https://alcaraz000.github.io/cronicas-del-vado/
+
+## Cómo se juega
+
+Elegís una de cuatro clases —Guerrero, Explorador, Mago o Clérigo— y una campaña. Cada decisión importante se resuelve tirando dos dados de seis más un atributo, con la posibilidad de un éxito a medias. Las heridas se acumulan, la campaña se puede perder, y en algunas escenas el personaje puede morir para siempre.
+
+Hoy hay una sola campaña, **"El vado de Aldamar"**: 46 escenas, cuatro finales (uno de ellos oculto) y entre 30 y 45 minutos por partida.
+
+![Una escena de "El vado de Aldamar", con el fondo, el texto narrativo, las opciones y una tirada con su probabilidad de éxito](docs/captura-escena.png)
+
+La partida se guarda sola en el navegador (no en un servidor): si cambiás de navegador, de máquina, o borrás los datos del sitio, la perdés. Para llevarla con vos, en **Opciones** hay botones para exportar el guardado a un archivo y para importarlo de vuelta.
 
 El diseño aprobado está en `docs/superpowers/specs/2026-09-10-juegorol-design.md`.
 
@@ -41,4 +53,4 @@ Cada push a `main` ejecuta `.github/workflows/deploy.yml`: instala, corre `npm r
 
 ## Guardado
 
-La partida se guarda en `localStorage` bajo la clave `juegorol` en cada cambio de estado. Safari e iOS borran ese almacenamiento tras 7 días sin visitas; en esos navegadores conviene exportar la partida (opción disponible en fases posteriores).
+La partida se guarda en `localStorage` bajo la clave `juegorol` en cada cambio de estado. Safari e iOS borran ese almacenamiento tras 7 días sin visitas; en esos navegadores conviene exportar la partida desde Opciones.
