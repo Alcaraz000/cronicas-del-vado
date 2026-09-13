@@ -77,6 +77,30 @@ function montarEscena(campaign: Campaign, runOverrides: Partial<Run> = {}): void
   }));
 }
 
+/**
+ * Lista de los elementos sobre los que se llamó `scrollIntoView`, en orden, más un
+ * `restaurar()`. jsdom no implementa `scrollIntoView` (por eso el código lo llama detrás de un
+ * `typeof === 'function'`), así que acá se instala uno que solo anota el elemento.
+ */
+interface ScrollEspiado extends Array<Element> {
+  restaurar: () => void;
+}
+
+function espiarScrollIntoView(): ScrollEspiado {
+  const vistos = [] as unknown as ScrollEspiado;
+  // Vía `Reflect` y no por asignación directa: en el tipo de `Element` la propiedad no es
+  // opcional, así que no se puede borrar para dejar el prototipo como estaba.
+  const original: unknown = Reflect.get(Element.prototype, 'scrollIntoView');
+  Reflect.set(Element.prototype, 'scrollIntoView', function (this: Element): void {
+    vistos.push(this);
+  });
+  vistos.restaurar = (): void => {
+    if (original === undefined) Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    else Reflect.set(Element.prototype, 'scrollIntoView', original);
+  };
+  return vistos;
+}
+
 /** Una entrada 'scene' de log con la prosa que se quiera probar revelando. */
 function escenaLog(paragraphs: string[]): LogEntry {
   return {
@@ -236,7 +260,7 @@ describe('EscenaScreen — el revelado', () => {
     expect(screen.getByTestId('opcion-descansar')).toBeInTheDocument();
   });
 
-  it('Enter y Espacio cancelan la acción por defecto del navegador (la barra no scrollea la página)', () => {
+  it('con el foco en ninguna parte, Enter y Espacio cancelan la acción por defecto (la barra no scrollea)', () => {
     montarEscena(minimal, { log: [escenaLog(['Un párrafo cualquiera para revelar.'])] });
     render(<EscenaScreen />);
 
@@ -257,6 +281,114 @@ describe('EscenaScreen — el revelado', () => {
 
     expect(screen.queryByTestId('opcion-descansar')).not.toBeInTheDocument();
     expect(useStore.getState().characters[0]?.run?.sceneId).toBe(minimal.start);
+  });
+
+  it('al terminar de revelarse, el scroll va a donde nacen las opciones, no a la última línea', () => {
+    // `OptionList` y `RollPanel` se dibujan DEBAJO de `TextColumn`, y el autoscroll de la
+    // columna acaba de clavar la última línea de texto contra el borde de abajo: sin esto, en
+    // cuanto la escena es más larga que la pantalla las opciones nacen fuera de vista y hay que
+    // scrollear en cada escena para ver qué se puede hacer.
+    const vistos = espiarScrollIntoView();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un texto largo que tarda un rato en revelarse del todo.'])] });
+      render(<EscenaScreen />);
+
+      act(() => { vi.advanceTimersByTime(10_000); });
+
+      const opcion = screen.getByTestId('opcion-descansar');
+      const ultimo = vistos[vistos.length - 1];
+      expect(ultimo).toBeDefined();
+      expect(ultimo?.contains(opcion)).toBe(true);
+    } finally {
+      vistos.restaurar();
+    }
+  });
+});
+
+/**
+ * El `preventDefault()` de B2 cancelaba TODO Enter/Espacio que llegara a `window`, incluidos
+ * los que el navegador convierte en un click sobre el botón enfocado: con cualquier botón de la
+ * escena enfocado dejaban de funcionar las opciones, la barra, "Saltar lo leído" y —lo más
+ * grave— "Continuar" del panel de tirada, donde no hay atajo alternativo porque `OptionList`
+ * no está dibujada.
+ *
+ * jsdom no sintetiza ese click (no implementa la activación por teclado de un botón), así que
+ * lo que se puede y hay que fijar acá es el mecanismo exacto que se rompía: que el evento NO
+ * quede cancelado cuando el foco está en un control que se activa solo, y que el revelado no se
+ * lo quede. Con el evento vivo, el navegador hace lo suyo.
+ */
+describe('EscenaScreen — Enter y Espacio no le roban la tecla al botón enfocado', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0, reducedMotion: 'on' });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('con el foco en una opción, Enter es del botón: ni se cancela ni avanza el texto', () => {
+    montarEscena(minimal, { log: [escenaLog(['Primero.', 'Segundo.'])] });
+    render(<EscenaScreen />);
+
+    const opcion = screen.getByTestId('opcion-descansar');
+    opcion.focus();
+    expect(opcion).toHaveFocus();
+
+    expect(fireEvent.keyDown(opcion, { key: 'Enter', cancelable: true })).toBe(true);
+    expect(fireEvent.keyDown(opcion, { key: ' ', cancelable: true })).toBe(true);
+
+    // Y el click que el navegador sintetiza a partir de esa tecla sí elige la opción.
+    fireEvent.click(opcion);
+    expect(useStore.getState().characters[0]?.run?.sceneId).toBe('m_descanso');
+  });
+
+  it('con el foco en "Continuar" del panel de tirada, Enter es del botón', () => {
+    // El caso sin salida: con una tirada pendiente `OptionList` no se dibuja, así que las
+    // teclas 1-9 tampoco están. Si Enter tampoco activa el botón, el jugador de teclado se
+    // queda trabado en la tirada.
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.click(screen.getByTestId('opcion-trepar'));
+    const continuar = screen.getByRole('button', { name: S.tirada.continuar });
+    continuar.focus();
+
+    expect(fireEvent.keyDown(continuar, { key: 'Enter', cancelable: true })).toBe(true);
+
+    fireEvent.click(continuar);
+    expect(useStore.getState().ui.pending).toBeNull();
+  });
+
+  it('con el foco en "Saltar lo leído", la tecla es del botón y no del revelado', () => {
+    montarEscena(minimal, { log: [escenaLog(['Primero.', 'Segundo.'])] });
+    render(<EscenaScreen />);
+
+    // Un botón cualquiera de la barra permanente sirve igual para el caso: lo que se prueba es
+    // que un control enfocado se quede con su tecla.
+    const ficha = screen.getByRole('button', { name: S.barra.ficha });
+    ficha.focus();
+
+    expect(fireEvent.keyDown(ficha, { key: 'Enter', cancelable: true })).toBe(true);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('con el foco fuera de todo control, Espacio sigue avanzando el texto y sigue cancelado', () => {
+    // La otra dirección: lo que B2 vino a arreglar no se puede perder por el camino.
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+    vi.useFakeTimers();
+    try {
+      montarEscena(minimal, { log: [escenaLog(['Un párrafo que se completa con la barra.'])] });
+      render(<EscenaScreen />);
+
+      expect(screen.queryByText('Un párrafo que se completa con la barra.')).not.toBeInTheDocument();
+
+      expect(fireEvent.keyDown(document.body, { key: ' ', cancelable: true })).toBe(false);
+      expect(screen.getByText('Un párrafo que se completa con la barra.')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

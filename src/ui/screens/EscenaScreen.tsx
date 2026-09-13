@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
@@ -19,7 +19,7 @@ import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
 import { useRevelado } from '@/ui/hooks/useRevelado';
 import { hayModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
-import { esCampoDeTexto } from '@/ui/teclado';
+import { esCampoDeTexto, esControlActivable } from '@/ui/teclado';
 import { CargandoScreen } from './CargandoScreen';
 import styles from './EscenaScreen.module.css';
 
@@ -85,6 +85,8 @@ export function EscenaScreen() {
   const abandonRun = useStore((s) => s.abandonRun);
 
   const [fichaAbierta, setFichaAbierta] = useState(false);
+  /** Envuelve las opciones y el panel de tirada, para poder traerlos a la vista al terminar. */
+  const acciones = useRef<HTMLDivElement>(null);
 
   const rendered = useMemo(
     () => (campaign !== null && gs !== null ? renderScene(campaign, gs) : null),
@@ -100,7 +102,8 @@ export function EscenaScreen() {
     cps,
     instantaneo: cps === 0 || reducida,
   });
-  const { avanzar } = revelado;
+  const { avanzar, terminado } = revelado;
+  const hayTirada = pending !== null;
 
   // Al entrar a la escena, se piden de antemano los fondos de las escenas a las que puede
   // llevar: simple caché del navegador, sin bloquear el render ni evaluar reglas.
@@ -128,11 +131,15 @@ export function EscenaScreen() {
   }, []);
 
   // Enter y Espacio hacen lo mismo que un clic en la columna de texto: completan el párrafo
-  // en curso (o pasan al siguiente si ya estaba completo). Mismas guardas que la tecla C.
+  // en curso (o pasan al siguiente si ya estaba completo). Mismas guardas que la tecla C, más
+  // `esControlActivable`: si el foco está en un botón o un enlace, la tecla es de ÉL. El
+  // listener vive en `window` y ve todo lo que burbujea, así que sin esa guarda se queda con el
+  // Enter de cualquier botón de la pantalla y cancela el click que el navegador iba a
+  // sintetizar — el teclado deja de poder apretar nada.
   //
-  // `preventDefault` porque la barra espaciadora además scrollea la página, y la columna ya
-  // se está autoscrolleando sola para seguir al texto que se revela: sin esto las dos cosas
-  // pelean y el jugador termina en otro punto del log del que quería.
+  // `preventDefault` (solo cuando la tecla sí es nuestra) porque la barra espaciadora además
+  // scrollea la página, y la columna ya se está autoscrolleando sola para seguir al texto que
+  // se revela: sin esto las dos cosas pelean y el jugador termina en otro punto del log.
   //
   // La dependencia es `revelado.avanzar`, memoizado en el hook, y no el objeto `revelado`
   // entero: ese objeto es nuevo en cada render y con el tipeo a 40 cps este listener se
@@ -140,6 +147,7 @@ export function EscenaScreen() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
+      if (esControlActivable(event.target)) return;
       if (hayModalAbierto()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -149,6 +157,24 @@ export function EscenaScreen() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [avanzar]);
+
+  // Cuando el revelado termina, las opciones (o el panel de tirada) se dibujan DEBAJO de la
+  // columna de texto, y el autoscroll de `TextColumn` acaba de clavar la última línea contra el
+  // borde de abajo: lo que nace después queda justo fuera de vista, y en cuanto la escena es más
+  // larga que la pantalla hay que scrollear a mano en cada escena para ver qué se puede hacer.
+  //
+  // Este efecto corre DESPUÉS del de `TextColumn` (React ejecuta los efectos de los hijos antes
+  // que los del padre), así que es el que manda al final. También se dispara cuando la lista de
+  // opciones deja lugar al panel de tirada, que es el otro momento en que abajo nace algo que
+  // el jugador tiene que ver.
+  useEffect(() => {
+    if (!terminado) return;
+    const el = acciones.current;
+    // `block: 'nearest'` scrollea lo mínimo necesario: si las acciones entran, las trae
+    // enteras; si son más altas que la columna, las alinea por arriba, que es por donde se
+    // empiezan a leer. Y si ya estaban a la vista, no mueve nada.
+    if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
+  }, [terminado, hayTirada]);
 
   const onPick = useCallback(
     (choiceId: string): void => {
@@ -204,18 +230,20 @@ export function EscenaScreen() {
             </button>
           )}
           <TextColumn log={gs.run.log} revelado={revelado} />
-          {revelado.terminado &&
-            (pending !== null ? (
-              <RollPanel
-                pending={pending}
-                powerName={CLASSES[gs.character.classId].power.name}
-                onReroll={rerollDie}
-                onPower={usePower}
-                onContinue={commitRoll}
-              />
-            ) : (
-              <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
-            ))}
+          <div ref={acciones}>
+            {terminado &&
+              (pending !== null ? (
+                <RollPanel
+                  pending={pending}
+                  powerName={CLASSES[gs.character.classId].power.name}
+                  onReroll={rerollDie}
+                  onPower={usePower}
+                  onContinue={commitRoll}
+                />
+              ) : (
+                <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
+              ))}
+          </div>
         </main>
       </div>
     </div>
