@@ -299,14 +299,14 @@ export const p_puente = {
                 ],
               },
             ],
-            effects: [{ set: 'run:orell_confia' }],
+            effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a1_plaza',
           },
           success: {
             text: [
               'Hablás poco y no pedís dos veces. Orell escucha con la ballesta baja, deja correr un silencio largo y le hace una seña al chico. Corren un barril: queda un hueco de un hombro.',
             ],
-            effects: [{ set: 'run:orell_confia' }],
+            effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
             next: 'a1_plaza',
           },
           partial: {
@@ -506,7 +506,10 @@ export const p_puente_rechazo = {
       },
     },
     {
-      // [Guerrero] (biblia §9.5): enciende `run:orell_confia` sin tirada.
+      // [Guerrero] (biblia §9.5): enciende `run:orell_confia` sin tirada. Alcanzable en
+      // `p_puente_rechazo` después de que `intimidar_al_sargento` haya encendido
+      // `run:orell_humillado` (oleada final de la Fase H, hallazgo C): limpiarlo acá es lo que
+      // mantiene el par mutuamente excluyente.
       id: 'reconocer_el_escudo',
       label: 'Reconocer el escudo del sargento',
       requires: { class: 'guerrero' },
@@ -515,7 +518,7 @@ export const p_puente_rechazo = {
         text: [
           'El escudo del poste lleva la marca de una compañía que ya no existe. Decís el nombre y el año. Orell tarda en contestar y después corre un tablón con la bota. «Andá».',
         ],
-        effects: [{ set: 'run:orell_confia' }],
+        effects: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
         next: 'a1_plaza',
       },
     },
@@ -661,7 +664,10 @@ export const p_vado_oculto = {
 
 // ---------------------------------------------------------------------------
 // p_puente_amanecer — convergencia del prólogo. 5 opciones, las 5 libres, cero tiradas.
-// `onEnter` enciende `run:orell_confia`: esperar el relevo ES la fuente (biblia §7.2).
+// `onEnter` enciende `run:orell_confia`: esperar el relevo ES la fuente (biblia §7.2). También
+// limpia `run:orell_humillado` (oleada final de la Fase H, hallazgo C): esta escena es
+// alcanzable después de `p_puente.intimidar_al_sargento` (partial) o de `acampar_hasta_el_relevo`
+// en `p_puente_rechazo` con el humillado ya prendido, y el par es mutuamente excluyente.
 // La celda de 84 palabras del outline §2 es insatisfacible; ver nota (a) de la cabecera.
 // ---------------------------------------------------------------------------
 
@@ -671,7 +677,7 @@ export const p_puente_amanecer = {
   place: 'puente_viejo',
   variant: 'amanecer',
   npcs: ['orell'],
-  onEnter: [{ set: 'run:orell_confia' }],
+  onEnter: [{ set: 'run:orell_confia' }, { clear: 'run:orell_humillado' }],
   text: [
     'Clarea sin sol. El río pasó de negro a marrón y ahora se le ven las cosas que arrastra. En la cabecera del puente el relevo afloja la cuerda de la ballesta y la cuerda chilla al ceder: ese es el ruido que hace una noche cuando se termina.',
     {

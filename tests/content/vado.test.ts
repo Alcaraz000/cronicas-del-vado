@@ -802,6 +802,20 @@ describe('vado: ceder cuesta algo en las escenas bisagra (Fase H §2)', () => {
     }
   });
 
+  it('toda fuente de run:orell_confia limpia run:orell_humillado, en TODA la campaña (no solo el acto 2)', () => {
+    // Oleada final de la Fase H, hallazgo C: el test de arriba solo mira `a2_ley_orell`. El bug de
+    // verdad estaba en el prólogo: `p_puente_amanecer.onEnter` y `reconocer_el_escudo` (opción de
+    // Guerrero en `p_puente_rechazo`) encendían `run:orell_confia` sin limpiar `run:orell_humillado`,
+    // y las dos son alcanzables después de `p_puente.intimidar_al_sargento`, que enciende el
+    // humillado — una partida podía terminar con los dos flags prendidos a la vez. La invariante es
+    // pareja para toda fuente, recorriendo `bloquesDeEfectos()` (onEnter + todos los desenlaces de
+    // toda escena), no solo la rama A del acto 2.
+    for (const { etiqueta, effects } of bloquesDeEfectos()) {
+      if (!effects.some((e) => 'set' in e && e.set === 'run:orell_confia')) continue;
+      expect(effects, etiqueta).toContainEqual({ clear: 'run:orell_humillado' });
+    }
+  });
+
   it('ninguna escena enciende orell_confia en su onEnter dentro del acto 2', () => {
     for (const scene of escenas) {
       if (scene.id === 'p_puente_amanecer') continue; // la fuente del prólogo, biblia §7.2
