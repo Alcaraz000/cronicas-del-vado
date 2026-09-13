@@ -16,6 +16,9 @@ export const LARGO_OBJETIVO: readonly [number, number] = [24, 30];
 /** Tope de muerte a nivel 1 con política codiciosa (aserción 2 de la spec §10). */
 export const TOPE_MUERTE_CODICIOSA = 0.03;
 
+/** Piso de tiradas por partida con política codiciosa (aserción 4, Fase H). */
+export const PISO_TIRADAS_CODICIOSA = 3;
+
 export interface Resumen {
   n: number;
   media: number;
@@ -54,6 +57,8 @@ export interface FilaCombinacion extends Combinacion {
   colgadas: number;
   sinSalida: number;
   heridasMedia: number;
+  /** Hitos juntados por partida, en promedio. */
+  hitosMedia: number;
   /** Fallos / tiradas, sobre el total de la combinación, DESPUÉS de Fortuna y Poder. */
   tasaFallo: number;
   /** Fallos en los dados / tiradas: la dificultad cruda, antes de Fortuna y Poder. */
@@ -72,6 +77,8 @@ export interface Aserciones {
   partidasNivel1Codiciosa: number;
   /** 3. Por clase, los finales de la campaña que no se alcanzaron en ninguna partida. */
   finalesFaltantesPorClase: { clase: ClassId; faltan: string[] }[];
+  /** 4. Tiradas de media por partida con política codiciosa, en todos los niveles. */
+  tiradasMediaCodiciosa: number;
   ok: boolean;
 }
 
@@ -238,6 +245,7 @@ function fila(partidas: readonly ResultadoPartida[], carrerasDe: readonly Result
     colgadas: partidas.filter((p) => p.desenlace.kind === 'colgada').length,
     sinSalida: partidas.filter((p) => p.desenlace.kind === 'sin_salida').length,
     heridasMedia: partidas.reduce((s, p) => s + p.heridas, 0) / total,
+    hitosMedia: partidas.reduce((s, p) => s + p.hitos.length, 0) / total,
     tasaFallo: tiradas === 0 ? 0 : fallos / tiradas,
     tasaFalloCruda: tiradas === 0 ? 0 : fallosCrudos / tiradas,
     tiradasMedia: tiradas / total,
@@ -308,13 +316,20 @@ export function agregar(campaign: Campaign, carreras: readonly ResultadoCarrera[
   })).filter((f) => f.faltan.length > 0);
   const escenasInalcanzables = nuncaVisitadas.filter((id) => sinMemoria.has(id));
   const tasaMuerte = nivel1Codiciosa.length === 0 ? 0 : muertes / nivel1Codiciosa.length;
+  const codiciosa = partidas.filter((p) => p.politica === 'codiciosa');
+  const tiradasMediaCodiciosa = codiciosa.length === 0 ? 0 : codiciosa.reduce((s, p) => s + p.tiradas, 0) / codiciosa.length;
 
   const aserciones: Aserciones = {
     escenasInalcanzables,
     muerteNivel1Codiciosa: tasaMuerte,
     partidasNivel1Codiciosa: nivel1Codiciosa.length,
     finalesFaltantesPorClase,
-    ok: escenasInalcanzables.length === 0 && tasaMuerte < TOPE_MUERTE_CODICIOSA && finalesFaltantesPorClase.length === 0,
+    tiradasMediaCodiciosa,
+    ok:
+      escenasInalcanzables.length === 0 &&
+      tasaMuerte < TOPE_MUERTE_CODICIOSA &&
+      finalesFaltantesPorClase.length === 0 &&
+      tiradasMediaCodiciosa >= PISO_TIRADAS_CODICIOSA,
   };
 
   const base: Omit<Agregado, 'avisos'> = {

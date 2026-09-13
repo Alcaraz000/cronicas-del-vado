@@ -3,14 +3,19 @@ import type { ClassId } from '@/content/catalog';
 /**
  * Cómo elige el simulador entre las opciones habilitadas de una escena.
  * - `aleatoria`: al azar uniforme (es la que da cobertura).
- * - `codiciosa`: la de mayor probabilidad de éxito; ante empate, la primera.
+ * - `codiciosa`: la de mayor puntaje —la probabilidad real, salvo ceder, que vale PROB_LIBRE—;
+ *   ante empate, la primera.
  * - `temeraria`: la de mayor probabilidad de fallo; ante empate, la primera.
+ * - `prudente`: cede siempre que haya una opción sin tirada. Es el jugador que no quiere
+ *   arriesgar, y el instrumento con el que se mide si ceder cuesta algo.
  *
- * Una opción SIN tirada no puede fallar: vale éxito 1 y fallo 0 en las tres.
+ * Una opción SIN tirada no puede fallar: vale éxito 1 y fallo 0 para `probExito`/`probFallo`, que
+ * es lo que usan el informe, la temeraria y la prudente. La codiciosa puntúa distinto (ver
+ * `puntajeCodicioso` en politicas.ts) para no confundir "no puede fallar" con "conviene".
  */
-export type PoliticaId = 'aleatoria' | 'codiciosa' | 'temeraria';
+export type PoliticaId = 'aleatoria' | 'codiciosa' | 'temeraria' | 'prudente';
 
-export const POLITICAS: readonly PoliticaId[] = ['aleatoria', 'codiciosa', 'temeraria'];
+export const POLITICAS: readonly PoliticaId[] = ['aleatoria', 'codiciosa', 'temeraria', 'prudente'];
 
 /** Niveles de partida que se simulan (spec §10). */
 export const NIVELES: readonly number[] = [1, 3];
