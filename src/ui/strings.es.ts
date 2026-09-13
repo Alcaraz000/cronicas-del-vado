@@ -17,6 +17,11 @@ const TAGS_ES: Record<Tag, string> = {
   huida: 'Huida',
 };
 
+/** "+2", "-1", "+0": los chips de modificador siempre llevan signo explícito. */
+function conSigno(n: number): string {
+  return n >= 0 ? `+${n}` : `${n}`;
+}
+
 /**
  * Todas las cadenas de la interfaz en español. Ningún componente escribe texto
  * de UI "a mano": lo toma de acá. Las funciones son plantillas con parámetros.
@@ -148,6 +153,8 @@ export const S = {
       2: 'Estás Malherido: un Fallo acá te mata.',
       3: 'Estás Malherido: un Fallo acá te mata.',
     },
+    seguirIgual: 'Seguir igual',
+    volver: 'Volver',
   },
   tirada: {
     titulo: 'Tirada',
@@ -167,6 +174,18 @@ export const S = {
       advantage: 'Con ventaja: 3d6, se conservan los 2 mayores',
       disadvantage: 'Con desventaja: 3d6, se conservan los 2 menores',
       cancelled: 'Ventaja y desventaja se anulan: 2d6',
+    },
+    /**
+     * Texto de los chips que descomponen un modificador (tarea 6): atributo, dificultad
+     * y Veterano llevan su propio número con signo; una fuente de ventaja/desventaja lleva
+     * el símbolo según su `kind` y la etiqueta que ya trae del engine.
+     */
+    chip: {
+      atributo: (nombre: string, valor: number): string => `${nombre} ${conSigno(valor)}`,
+      dificultad: (nombre: string, valor: number): string => `${nombre} ${conSigno(valor)}`,
+      veterano: (valor: number): string => `Veterano ${conSigno(valor)}`,
+      fuente: (simbolo: string, etiqueta: string): string => `${simbolo} ${etiqueta}`,
+      simbolo: { advantage: '▲', disadvantage: '▼' },
     },
   },
   log: {

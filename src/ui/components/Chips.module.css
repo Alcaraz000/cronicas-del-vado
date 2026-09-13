@@ -1,0 +1,29 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-1);
+  font-family: var(--fuente-ui);
+  font-size: var(--tam-ui-chico);
+}
+
+.chip {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--color-superficie-alta);
+  color: var(--color-texto-suave);
+}
+
+.chip[data-tono='ventaja'] {
+  color: var(--color-exito);
+}
+
+.chip[data-tono='desventaja'] {
+  color: var(--color-peligro);
+}
+
+/* El tachado no se comunica solo por color: el atributo data-tachado es lo que
+   pueden leer los tests, pero acá además se ve. */
+.chip[data-tachado='true'] {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

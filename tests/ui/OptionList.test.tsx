@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { OptionList } from '@/ui/components/OptionList';
 import { S } from '@/ui/strings.es';
 import type { RenderedChoice, RollPreview } from '@/engine/types';
@@ -66,19 +66,30 @@ describe('OptionList', () => {
     vi.restoreAllMocks();
   });
 
-  it('muestra label, badge, chip de atributo, fuentes, riesgo y porcentajes', () => {
+  it('muestra label, badge, chips de modificador descompuestos, riesgo y porcentajes', () => {
     render(<OptionList choices={opciones} showOdds={true} wounds={1} onPick={onPick} />);
 
     expect(screen.getByText('Leer la inscripción')).toBeInTheDocument();
     expect(screen.getByText('[Aprendiz de escriba]')).toBeInTheDocument();
-    expect(screen.getByText('Saber +2 · Normal')).toBeInTheDocument();
-    expect(screen.getByText('▲ Aprendiz de escriba')).toHaveAttribute('data-cancelled', 'false');
+
+    // "leer": Saber +2, sin chip de dificultad (Normal no pesa), fuente de ventaja sin anular.
+    expect(screen.getByText('Saber +2')).toBeInTheDocument();
+    expect(screen.queryByText(/Normal/)).toBeNull();
+    const fuenteVentaja = screen.getByText('▲ Aprendiz de escriba');
+    expect(fuenteVentaja).toHaveAttribute('data-tono', 'ventaja');
+    expect(fuenteVentaja).toHaveAttribute('data-tachado', 'false');
     expect(screen.getByText(S.opciones.riesgo.arriesgado)).toHaveAttribute('data-riesgo', 'arriesgado');
     expect(screen.getByText('Éxito 42 % · Con costo 42 % · Fallo 17 %')).toBeInTheDocument();
 
-    expect(screen.getByText('Vigor -1 · Difícil')).toBeInTheDocument();
-    expect(screen.getByText('▲ Situación')).toHaveAttribute('data-cancelled', 'true');
-    expect(screen.getByText('▼ Debilidad: Mago')).toHaveAttribute('data-cancelled', 'true');
+    // "forzar": Vigor +0, Difícil -1, ambas fuentes anuladas (ventaja y desventaja se cancelan).
+    expect(screen.getByText('Vigor +0')).toBeInTheDocument();
+    expect(screen.getByText('Difícil -1')).toBeInTheDocument();
+    const fuenteVentajaAnulada = screen.getByText('▲ Situación');
+    expect(fuenteVentajaAnulada).toHaveAttribute('data-tono', 'ventaja');
+    expect(fuenteVentajaAnulada).toHaveAttribute('data-tachado', 'true');
+    const fuenteDesventajaAnulada = screen.getByText('▼ Debilidad: Mago');
+    expect(fuenteDesventajaAnulada).toHaveAttribute('data-tono', 'desventaja');
+    expect(fuenteDesventajaAnulada).toHaveAttribute('data-tachado', 'true');
     expect(screen.getByText(S.opciones.riesgo.peligroso)).toHaveAttribute('data-riesgo', 'peligroso');
     expect(screen.getByText('Éxito 8 % · Con costo 33 % · Fallo 58 %')).toBeInTheDocument();
 
@@ -90,7 +101,7 @@ describe('OptionList', () => {
   it('oculta los porcentajes cuando showOdds es false', () => {
     render(<OptionList choices={opciones} showOdds={false} wounds={0} onPick={onPick} />);
     expect(screen.queryByText(/Éxito \d+ %/)).toBeNull();
-    expect(screen.getByText('Saber +2 · Normal')).toBeInTheDocument();
+    expect(screen.getByText('Saber +2')).toBeInTheDocument();
   });
 
   it('una opción bloqueada con lockedHint está deshabilitada, muestra la pista y no elige', () => {
@@ -121,24 +132,35 @@ describe('OptionList', () => {
     expect(onPick).toHaveBeenCalledWith('forzar');
   });
 
-  it('una opción que lleva a escena mortal pide confirmación con el texto según heridas', () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('una opción que lleva a escena mortal muestra un Dialogo de peligro con el texto según heridas; cancelar no elige', () => {
     render(<OptionList choices={opciones} showOdds={true} wounds={1} onPick={onPick} />);
 
     fireEvent.click(screen.getByTestId('opcion-bajar'));
-    expect(confirmar).toHaveBeenCalledWith(S.opciones.confirmMortal[1]);
+    const dialogo = screen.getByRole('dialog');
+    expect(dialogo).toHaveAttribute('data-tono', 'peligro');
+    expect(within(dialogo).getByText(S.opciones.confirmMortal[1])).toBeInTheDocument();
     expect(onPick).not.toHaveBeenCalled();
 
-    confirmar.mockReturnValue(true);
+    fireEvent.click(within(dialogo).getByRole('button', { name: S.opciones.volver }));
+    expect(onPick).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('confirmar el Dialogo de escena mortal llama a onPick con el id pendiente', () => {
+    render(<OptionList choices={opciones} showOdds={true} wounds={1} onPick={onPick} />);
+
     fireEvent.click(screen.getByTestId('opcion-bajar'));
+    fireEvent.click(screen.getByRole('button', { name: S.opciones.seguirIgual }));
+
     expect(onPick).toHaveBeenCalledWith('bajar');
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('la confirmación también se pide al elegir por teclado y usa el texto de Malherido', () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<OptionList choices={opciones} showOdds={true} wounds={2} onPick={onPick} />);
     fireEvent.keyDown(window, { key: '3' });
-    expect(confirmar).toHaveBeenCalledWith(S.opciones.confirmMortal[2]);
+    const dialogo = screen.getByRole('dialog');
+    expect(within(dialogo).getByText(S.opciones.confirmMortal[2])).toBeInTheDocument();
     expect(onPick).not.toHaveBeenCalled();
   });
 
