@@ -67,10 +67,14 @@ import type { Scene } from '@/content/schema';
  * `fin_heredero` "Salís de la". Las ocho primeras palabras son distintas entre sí, ninguna está en
  * la lista de quemados de §2.7 y ninguna coincide con la de una escena a la que esta apunta.
  *
- * Cupos gastados por este lote: `usted` ×2 (Pell en `cl_molino`, **uno por variante**: uno en la
- * banda base y uno en la de `run:mausi_informo`. La versión anterior escribía dos en cada una y el
- * linter, que cuenta lo escrito y no lo leído, veía 4 y hacía saltar el cupo de campaña a 10 de 8;
- * la Fase H · tarea 4 sacó uno de cada variante y el total volvió a 8). Puteadas: 0
+ * Cupos gastados por este lote: `usted` ×2 escritos (Pell en `cl_molino`, **uno por variante**: uno
+ * en la banda base y uno en la de `run:mausi_informo`). **Costo declarado**: como las dos variantes
+ * son mutuamente excluyentes, **una partida lee UNO**, no los dos que el outline §6 le reparte a
+ * esta escena para que el tic definitorio de Pell no se adelgace justo en el clímax. La versión
+ * anterior escribía dos en cada variante —una partida leía dos, que es lo que el reparto quiere—
+ * pero el linter cuenta lo **escrito** y no lo leído, veía 4 y hacía saltar el cupo de campaña a 10
+ * de 8. Mientras el cupo se mida sobre lo escrito, las dos cosas no se pueden tener a la vez; esta
+ * es la mejor disponible y se paga en voz. Puteadas: 0
  * (Dravos, Halvar, Orell y Berta las tienen prohibidas por §1.4, Pell nunca termina una, e Ilse gasta
  * las suyas en el acto 2). Adverbios en -mente: 0. `muy`: 0. `de repente`/`de pronto`: 0.
  * `parece que`: 0. `como si fuera`: 0. `no podés evitar`: 0. Enumeración de tres: 1 (`fin_crecida`).
@@ -172,7 +176,7 @@ import type { Scene } from '@/content/schema';
  * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
  * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
  * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
- * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
  * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
@@ -189,15 +193,15 @@ export const cl_molino = {
   npcs: ['dravos', 'halvar', 'pell'],
   onEnter: [{ clock: 'pelea', delta: -3 }],
   text: [
-    'Adentro el agua te pasa el tobillo y está más tibia que la del río: lleva dos días encerrada acá. La rueda gira sin carga y la harina hace grumos en las paredes.',
+    'Adentro el agua te pasa el tobillo y está más tibia que la del río: lleva dos días encerrada. La rueda gira sin carga y la harina hace grumos en las paredes.',
     {
       variants: [
         {
           when: { met: 'halvar' },
-          text: 'Al mercader ya lo conocés: la barba trenzada, los anillos, el maletín al pecho. Vino a cobrar algo que ya es suyo.',
+          text: 'Al mercader ya lo conocés: la barba trenzada, los anillos, el maletín al pecho. Vino a cobrar lo que ya es suyo.',
         },
         {
-          text: 'Contra la pared hay una mesa seca sobre caballetes y dos hombres. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota encima. El otro, barba trenzada y anillos de plata.',
+          text: 'Contra la pared hay una mesa seca sobre caballetes y dos hombres. Uno es el capitán: sobretodo índigo, guantes en el cinto, sin una gota. El otro, barba trenzada y anillos de plata.',
         },
       ],
     },
@@ -242,14 +246,14 @@ export const cl_molino = {
           },
           partial: {
             text: [
-              'Escuchás la mitad. Dravos habla de once meses y catorce hombres, y baja la voz donde importa. Un saco cede bajo tu rodilla y el capitán calla.',
+              'Escuchás la mitad. Dravos habla de once meses y catorce hombres, y baja la voz donde importa. Un saco cede bajo tu rodilla y calla.',
             ],
             next: 'cl_halvar',
           },
           // El fallo enciende `run:dravos_sabe` (flags.ts: "el fallo de cl_molino.escuchar").
           failure: {
             text: [
-              'El tablón que pisás devuelve el agua y el ruido llena el molino. Halvar cierra el maletín. El capitán se corre y te deja ver qué hay encima.',
+              'El tablón que pisás devuelve el agua y el ruido llena el molino. Halvar cierra el maletín y el capitán se corre: te deja ver qué hay encima.',
             ],
             effects: [{ set: 'run:dravos_sabe' }],
             next: 'cl_dravos',
@@ -274,7 +278,7 @@ export const cl_molino = {
       label: 'Encarar a Dravos y quedarte sin puerta atrás',
       outcome: {
         text: [
-          'Salís al claro y decís lo que viniste a decir. Pell se corre a la puerta y se queda ahí, con la lanza cruzada.',
+          'Salís al claro y decís lo que viniste a decir. Dravos no levanta la voz: dobla el papel y busca los guantes. Pell se corre a la puerta y se queda ahí, con la lanza cruzada.',
         ],
         effects: [{ addCondition: 'perseguido' }],
         next: 'cl_dravos',
@@ -285,7 +289,7 @@ export const cl_molino = {
       label: 'Sentarte a la mesa con Halvar',
       outcome: {
         text: [
-          'Corrés un cajón con el pie y te sentás sin que te ofrezcan. Halvar te mira las botas. «Amigo», dice.',
+          'Corrés un cajón con el pie y te sentás sin que te ofrezcan. Halvar te mira las botas. «Amigo».',
         ],
         next: 'cl_halvar',
       },
@@ -320,7 +324,7 @@ export const cl_molino = {
       lockedHint: 'Nadie te acusó de nada todavía.',
       outcome: {
         text: [
-          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte. Le pide la cuerda.',
+          'Bajás las manos y las dejás a la vista. Dravos reformula lo que no dijiste: que venís a entregarte. Pide la cuerda.',
         ],
         effects: [{ set: 'run:dravos_sabe' }],
         next: 'cl_dravos',

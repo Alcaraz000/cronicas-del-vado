@@ -141,7 +141,7 @@ import type { Scene } from '@/content/schema';
  * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
  * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
  * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
- * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
  * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
@@ -309,7 +309,7 @@ export const a1_berta_despacho = {
         },
       ],
     },
-    'El escritorio está cargado: cartas apiladas por tamaño, un sello de lacre gastado, un cofre de roble con la llave puesta. No lo cubre. Tampoco te lo ofrece.',
+    'El escritorio está cargado: cartas apiladas por tamaño, un sello de lacre gastado, un cofre de roble con la llave puesta. No lo cubre ni te lo ofrece.',
   ],
   choices: [
     // La única tirada de la escena. El fallo cobra `sospecha` (biblia §7.1, "revisar el escritorio
@@ -332,7 +332,7 @@ export const a1_berta_despacho = {
           },
           partial: {
             text: [
-              'La carta la ves igual, y ella te ve verla. No dice nada. Al rato entra un guardia a buscar el correo y le da dos cartas en vez de una.',
+              'La carta la ves igual, y ella te ve verla. No dice nada. Al rato entra un guardia a buscar el correo y ella le da dos cartas en vez de una.',
             ],
             effects: [{ set: 'run:berta_miente' }, { clock: 'sospecha', delta: 1 }],
             next: 'a1_alcaldesa',
@@ -362,7 +362,7 @@ export const a1_berta_despacho = {
       label: 'Buscar a Ilse en el zaguán',
       outcome: {
         text: [
-          'Dejás a Berta con la cifra a medias. Ilse acomoda sacos en el zaguán, y los acomoda igual con vos parado ahí.',
+          'Dejás a Berta con la cifra a medias. Ilse acomoda sacos en el zaguán, igual con vos parado ahí.',
         ],
         next: 'a1_ilse_patio',
       },
@@ -430,7 +430,7 @@ export const a1_ilse_patio = {
           },
           partial: {
             text: [
-              'La arpillera se te va de la mano y el farol rueda hasta el pie de Ilse. Lo levanta y no dice nada del pan ni de la manta. Detrás de la tapia alguien corre un postigo y lo deja así.',
+              'La arpillera se te va de la mano y el farol rueda hasta el pie de Ilse. No dice nada del pan ni de la manta. Detrás de la tapia alguien corre un postigo y lo deja así.',
             ],
             effects: [{ set: 'run:pista_molino' }, { clock: 'sospecha', delta: 1 }],
             next: 'a1_molino',
@@ -450,7 +450,7 @@ export const a1_ilse_patio = {
       label: 'Escucharla sin apurarla',
       outcome: {
         text: [
-          'Cargan un rato sin hablar. Después habla sola: los escalones del molino, que Tomé bajaba de a dos con un saco. Habla en pasado y se da cuenta a mitad de la frase.',
+          'Cargan un rato sin hablar. Después habla sola: los escalones del molino, que Tomé bajaba de a dos con un saco. Habla en pasado y se da cuenta a mitad de frase.',
         ],
         effects: [{ set: 'run:ilse_confia' }],
         next: 'a1_alcaldesa',
@@ -684,7 +684,7 @@ export const a1_molino_pell = {
         },
       ],
     },
-    'El bulto de arpillera sigue a sus pies y no lo levanta. Atado con soga de sirga, mide un antebrazo y tiene la punta oscura de mojada.',
+    'El bulto de arpillera sigue a sus pies y no lo levanta. Está atado con soga de sirga, mide un antebrazo y tiene la punta oscura de mojada. Por el tejido asoma algo blanco, apelmazado.',
   ],
   choices: [
     // La tirada `facil` del molino y uno de los 6 `crit` del cupo de campaña (outline §5/r04).
@@ -698,7 +698,7 @@ export const a1_molino_pell = {
         outcomes: {
           crit: {
             text: [
-              'Le decís lo que vas a hacer y por qué, con el nombre de Berta adelante. Pell va hasta la muela y vuelve con la barra de hierro.',
+              'Le decís lo que vas a hacer y por qué, con el nombre de Berta adelante. Pell va hasta la muela y vuelve con la barra.',
               {
                 speaker: 'pell',
                 variants: [{ text: '—La trampilla se abre con esto. Yo no la abrí nunca.' }],
@@ -709,14 +709,14 @@ export const a1_molino_pell = {
           },
           success: {
             text: [
-              'Hablás despacio y no le preguntás nada que tenga que negar. El chico se corre dos pasos y deja el paso libre. «Yo a esta hora salgo a la ronda», dice, y sale.',
+              'Hablás despacio y no le preguntás nada que tenga que negar. El chico se corre dos pasos y deja el paso. «Yo a esta hora salgo a la ronda», dice, y sale.',
             ],
             effects: [{ set: 'run:pell_amigo' }],
             next: 'a1_molino_trampilla',
           },
           partial: {
             text: [
-              'Le ganás la conversación y él se da cuenta. Se pone colorado y contesta lo que no le preguntaste. Después sale a contarle al cabo lo que vio, que eso sí lo sabe hacer.',
+              'Le ganás la conversación y él se da cuenta. Se pone colorado y contesta lo que no le preguntaste. Después va a contarle al cabo lo que vio, que eso sí lo sabe hacer.',
             ],
             effects: [{ set: 'run:pell_amigo' }, { clock: 'sospecha', delta: 1 }],
             next: 'a1_molino',
@@ -736,7 +736,7 @@ export const a1_molino_pell = {
       label: 'Preguntarle qué lleva en la arpillera',
       outcome: {
         text: [
-          'El chico se pone el bulto atrás de la pierna, que es la respuesta. «Eso es de la casa. Digo, de la casa del molino. Del molino.» Sale con el bulto al pecho.',
+          'El chico se pone el bulto atrás de la pierna, que es la respuesta. «Eso es de la casa. Digo, de la casa del molino. Del molino.» Sale con él al pecho.',
         ],
         next: 'a1_molino_rueda',
       },
@@ -746,7 +746,7 @@ export const a1_molino_pell = {
       label: 'Dejarlo ir y entrar igual',
       outcome: {
         text: [
-          'Te corrés y el chico sale casi corriendo. Adentro queda el molino entero y la tapa del piso.',
+          'Te corrés y el chico sale casi corriendo. Queda el molino entero y la tapa del piso.',
         ],
         next: 'a1_molino_trampilla',
       },
@@ -800,9 +800,9 @@ export const a1_molino_trampilla = {
   // (biblia §5). Un `take` de algo que no tenés es inocuo, así que va sin condición.
   onEnter: [{ take: 'palanca_de_molino' }],
   text: [
-    'Una tapa de roble a ras del piso, con herraje y sin candado. Pesa lo que una puerta y no se queda abierta sola: la calzás. Por la juntura sube aire a piedra mojada y hierro frío.',
-    'Abajo hay una escalera de las que se atan arriba y nueve escalones hasta un piso de agua quieta. La madera está mojada hasta la mitad, y hasta la mitad nomás.',
-    'En la cara de adentro de la tapa hay signos tallados en una banda. Unos comidos por los años; otros con el corte fresco, hecho sin pulso.',
+    'Una tapa de roble a ras del piso, con herraje y sin candado. Pesa lo que una puerta y no queda abierta sola: la calzás. Por la juntura sube aire a piedra mojada y hierro frío.',
+    'Abajo hay una escalera de las que se atan arriba y nueve escalones hasta un piso de agua quieta. La madera está mojada hasta la mitad, y hasta ahí nomás.',
+    'En la cara de adentro de la tapa hay signos tallados. Unos comidos por los años; otros con el corte fresco, hecho sin pulso.',
   ],
   choices: [
     // Único `fumble` de esta tanda (outline §5/r04).
@@ -817,21 +817,21 @@ export const a1_molino_trampilla = {
         outcomes: {
           success: {
             text: [
-              'Bajás despacio y no tocás el agua. Desde el último escalón seco se ve el cuarto: redondo, de piedra más vieja que el molino, con canales que van todos a un punto. Ahí hay una piedra encajada.',
+              'Bajás despacio y no tocás el agua. Desde el último escalón seco se ve el cuarto: redondo, de piedra más vieja que el molino, con canales que van a un punto. Ahí hay una piedra encajada.',
             ],
             effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
             next: 'a1_molino_rueda',
           },
           partial: {
             text: [
-              'Se te va el pie en el penúltimo escalón, podrido. Quedás colgado del travesaño con el peso en una muñeca. La piedra del medio la ves igual. Subís con la muñeca hinchada.',
+              'Se te va el pie en el penúltimo escalón, podrido. Quedás colgado del travesaño con el peso en una muñeca. La piedra la ves igual. Subís con la muñeca hinchada.',
             ],
             effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }, { wound: 1 }],
             next: 'a1_molino_rueda',
           },
           failure: {
             text: [
-              'Vas bajando bien hasta que la escalera se corre un palmo. El agua te llega a la cintura y está más fría de lo que el molino deja pensar.',
+              'Vas bajando bien hasta que la escalera se corre un palmo. El agua te llega a la cintura y está más fría de lo que el molino deja pensar. Salís por donde entraste y la tapa se cierra sola atrás tuyo.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'a1_molino',
@@ -852,7 +852,7 @@ export const a1_molino_trampilla = {
       label: 'Leer las marcas talladas en la tapa',
       outcome: {
         text: [
-          'Pasás el pulgar por la banda. No son letras de las que usás, y hay una que vuelve cada cinco. Las frescas están copiadas encima de las viejas por alguien que copiaba sin entender.',
+          'Pasás el pulgar por la banda. No son letras de las que usás, y hay uno que vuelve cada cinco. Los frescos están copiados encima de los viejos por alguien que copiaba sin entender.',
         ],
         effects: [{ set: 'run:vio_runas' }],
         next: 'a1_molino_rueda',
@@ -886,7 +886,7 @@ export const a1_molino_trampilla = {
       lockedHint: 'La escalera canta y vos no sabés dónde pisar',
       outcome: {
         text: [
-          'Pisás contra los montantes y la escalera no canta. Abajo, en el medio del cuarto, hay una piedra encajada y los canales van a ella.',
+          'Pisás contra los montantes y la escalera no canta. Abajo hay una piedra encajada en el medio del cuarto y los canales van a ella.',
         ],
         effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
         next: 'a1_molino_rueda',
@@ -899,7 +899,7 @@ export const a1_molino_trampilla = {
       lockedHint: 'No sabrías qué estás mirando',
       outcome: {
         text: [
-          'Ahora sabés qué mirás: la banda sigue abajo, en el zócalo, y termina en un hueco del tamaño de una hogaza. Hay piedra adentro y le falta una esquina.',
+          'Ahora sabés qué mirás: la banda sigue en el zócalo y termina en un hueco del tamaño de una hogaza. Hay piedra adentro y le falta una esquina.',
         ],
         effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
         next: 'a1_molino_rueda',

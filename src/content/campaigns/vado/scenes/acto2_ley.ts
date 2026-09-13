@@ -50,7 +50,8 @@ import type { Scene } from '@/content/schema';
  * (mismo `requires`, misma tirada, mismo intento único). Lo único que cambió en `a2_ley_cartas`:
  *   1. Un párrafo nuevo, al final del `text` de escena, antes de las opciones: dice que el lacre
  *      del pie de las cartas no es un adorno (líneas que se repiten iguales), sin adelantar qué
- *      significan. Presupuesto de la escena: 547 → 568 de 459 (+24 %, dentro del piso de aviso).
+ *      significan. Presupuesto de la escena: 547 → 568 de 459 (+24 %); la Fase H · tarea 4 la
+ *      bajó a 496 (+8 %) sin tocar ese párrafo.
  *   2. `reconocer_el_sigilo.label` pasa de "Reconocer el sigilo del lacre" a "Leer lo que dice el
  *      lacre" (biblia §10: la etiqueta anuncia que hay algo escrito, no nombra el objeto sin más).
  * La contraparte en la rama B, `a2_fuera_sello.leer_la_piedra`, se tocó igual en
@@ -197,7 +198,7 @@ import type { Scene } from '@/content/schema';
  * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
  * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
  * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
- * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
  * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
@@ -247,7 +248,7 @@ export const c1_cuerpo = {
           text: 'La última vez le abriste un pozo en la grava con las manos. La grava está lisa y él está donde estaba.',
         },
         {
-          text: 'Río arriba, la rueda del molino sigue quieta. Del pueblo no bajó nadie: el camino de la orilla está sin pisar desde que llueve.',
+          text: 'Río arriba, la rueda del molino sigue quieta. Del pueblo no bajó nadie: el camino está sin pisar desde que llueve.',
         },
       ],
     },
@@ -263,7 +264,7 @@ export const c1_cuerpo = {
         outcomes: {
           success: {
             text: [
-              'Le abrís el delantal sin darlo vuelta. En el bolsillo hay un cincel con el filo volcado. Del cuello le cuelga un cordón con un engarce vacío del tamaño de una uña, con polvo gris adentro.',
+              'Le abrís el delantal sin darlo vuelta. En el bolsillo hay un cincel con el filo volcado. Del cuello le cuelga un cordón con un engarce vacío del tamaño de una uña, con polvo gris.',
             ],
             effects: [{ set: 'run:vio_el_sello' }, { milestone: 'ver_el_sello' }],
             next: 'c1_acusacion',
@@ -281,7 +282,7 @@ export const c1_cuerpo = {
           },
           failure: {
             text: [
-              'Apoyás la rodilla en la cuarta piedra y se hunde un palmo. Terminás sentado contra él, con el río empujándolos a los dos. Salís sin haberle abierto el delantal.',
+              'Apoyás la rodilla en la cuarta piedra y se hunde un palmo. Terminás sentado contra él, con el río empujándolos. Salís sin haberle abierto el delantal.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'c1_acusacion',
@@ -294,7 +295,7 @@ export const c1_cuerpo = {
       label: 'Enterrarlo vos, con las manos',
       outcome: {
         text: [
-          'Cavás con las manos en la grava, arriba de la línea del agua, y lo arrastrás hasta el pozo. Del banco del norte, un hombre que carga una barca se queda quieto.',
+          'Cavás con las manos en la grava, arriba de la línea del agua. Del banco del norte, un hombre que carga una barca se queda quieto.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }, { clock: 'sospecha', delta: 1 }],
         next: 'c1_acusacion',
@@ -305,7 +306,7 @@ export const c1_cuerpo = {
       label: 'Desatar la soga que lo tenía ahí',
       outcome: {
         text: [
-          'El nudo se hinchó y hay que abrirlo con el cuchillo. Cuando cede, el cuerpo gira y queda mirando río abajo. El hierro sigue clavado en la piedra.',
+          'El nudo se hinchó y hay que abrirlo con el cuchillo. Cuando cede, el cuerpo gira y queda mirando río abajo. El hierro sigue en la piedra.',
         ],
         next: 'c1_acusacion',
       },
@@ -315,7 +316,7 @@ export const c1_cuerpo = {
       label: 'Mirar la grava antes de que llueva más',
       outcome: {
         text: [
-          'La lluvia llenó la mitad de las marcas. Quedan dos surcos de talones que bajan del camino y, al costado, pisadas hondas de alguien que caminaba para atrás.',
+          'La lluvia llenó la mitad de las marcas. Quedan dos surcos de talones que bajan del camino y, al costado, pisadas de alguien que caminaba para atrás.',
         ],
         next: 'c1_acusacion',
       },
@@ -337,7 +338,7 @@ export const c1_cuerpo = {
       lockedHint: 'No es tu oficio despedir a un muerto.',
       outcome: {
         text: [
-          'Lo sacás del agua antes de decir nada, porque el rito se dice en tierra. Le cerrás los dedos, le ponés grava a puñados y decís los nombres en el orden que te enseñaron.',
+          'Lo sacás del agua antes de decir nada, porque el rito se dice en tierra. Le cerrás los dedos, le ponés grava a puñados y decís los nombres en el orden que te enseñaron. La lluvia tapa el ruido y no te ve nadie.',
         ],
         effects: [{ set: 'char:vado.tome_enterrado' }],
         next: 'c1_acusacion',
@@ -1192,7 +1193,7 @@ export const a2_ley_cartas = {
       ],
     },
     'Abajo hay rollos atados que no son cartas. La cinta de uno está gastada de abrirlo y volverlo a atar.',
-    'El lacre del pie no es un adorno: tres líneas nacen de un punto y se repiten en cada carta.',
+    'El lacre del pie no es un adorno: tres líneas nacen de un punto y se repiten, iguales, en cada carta.',
   ],
   choices: [
     {
@@ -1220,7 +1221,7 @@ export const a2_ley_cartas = {
           },
           failure: {
             text: [
-              'El orden de las fechas no es el de los montones y se te va media vela sin sacar nada. Al bajar, el cabo del brasero te pregunta cuánto estuviste arriba.',
+              'El orden de las fechas no es el de los montones y se te va media vela. Al bajar, el cabo del brasero te pregunta cuánto estuviste arriba.',
             ],
             effects: [{ clock: 'sospecha', delta: 1 }],
             next: 'a2_ley_berta',
@@ -1297,7 +1298,7 @@ export const a2_ley_cartas = {
           },
           failure: {
             text: [
-              'Mirás el sigilo hasta que las líneas se te mueven solas y no cierra: tres canales y un círculo podrían ser cualquier cosa. Cuando volvés a mirarlo ya no ves más que cera.',
+              'Mirás el sigilo hasta que las líneas se te mueven solas: tres canales y un círculo podrían ser cualquier cosa. Cuando volvés a mirarlo ya no ves más que cera.',
             ],
             effects: [{ set: 'run:piedra_leida' }],
             next: 'a2_ley_berta',
@@ -1351,7 +1352,7 @@ export const a2_ley_halvar = {
   place: 'vado_oculto',
   npcs: ['halvar'],
   text: [
-    'En el banco de grava del norte hay una barca chata amarrada a dos estacas, con brasero. Sale un olor a clavo de olor y a vino caliente que en este barro no tiene derecho.',
+    'En el banco de grava del norte hay una barca chata amarrada, con brasero. Sale un olor a clavo de olor y a vino caliente que en este barro no tiene derecho.',
     {
       variants: [
         {
@@ -1443,7 +1444,7 @@ export const a2_ley_halvar = {
       lockedHint: 'No sabés lo suficiente de él para apurarlo.',
       outcome: {
         text: [
-          'Le ponés la mano adelante antes de que termine y él te la toma. Su hombre lo anota con tu nombre: acá todo lo que se cierra se escribe.',
+          'Le ponés la mano adelante antes de que termine y él te la toma. Su hombre lo anota: acá todo lo que se cierra se escribe.',
         ],
         effects: [{ set: 'run:trato_con_halvar' }, { clock: 'sospecha', delta: 1 }],
         next: 'a2_ley_guardia',

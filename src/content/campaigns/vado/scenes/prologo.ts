@@ -78,9 +78,17 @@ import type { Scene } from '@/content/schema';
  *     `seguir_la_orilla_hasta_el_sauce`) comparten `next` y no tienen `effects`, así que §2.5
  *     obliga a pagarlas con texto. **SALDADO en la Fase H · tarea 4**: la celda sube a **160** por
  *     el piso aritmético del outline §2.1 (`text` 60 + 5 desenlaces × 20 del piso de la biblia
- *     §2.3), y la prosa que las 84 habían forzado a tirar está restituida —la muela del sargento en
- *     `compartir_el_pan_con_la_guardia` y el silencio de Orell en `preguntarle_por_tome`—. La escena
- *     mide 192 contra 160 y sus cinco desenlaces vuelven a estar dentro de la banda de 20-60.
+ *     §2.3), y la prosa que las 84 habían forzado a tirar está restituida —el texto base vuelve a
+ *     sus 70 palabras, la muela del sargento a `compartir_el_pan_con_la_guardia` y el silencio de
+ *     Orell a `preguntarle_por_tome`—. La escena mide 198 contra 160 y sus cinco desenlaces vuelven
+ *     a estar dentro de la banda de 20-60.
+ *     **Queda un resto por anotar, y es de la columna `text`, no de `pal`:** la escena escribe 70 de
+ *     base contra una celda `text` de 60, así que la versión original entera medía 202 y el tope del
+ *     linter para 160 son 200. Entró sacando **cuatro** palabras («para pasarlo» y «el ruido del
+ *     agua cambia y»). Si se quiere el original palabra por palabra, lo que corresponde es que
+ *     `text` pase de 60 a 70 —que es lo que la escena escribe y sigue en la banda 60-160— y con
+ *     ella `pal` a 170. **No se tocó: la autorización de la tarea 4 era sobre `pal` y sobre estas
+ *     tres celdas, no sobre la columna `text`.**
  * (b) Geografía: la biblia §1.3 pone la torre de la guardia en la punta **norte** del puente, pero
  *     el `canonPrompt` de `puente_viejo` la pinta en la punta **lejana**, con el pueblo detrás. Como
  *     el fondo pintado es lo que el jugador ve, esta prosa sigue la imagen: barricada cerca, torre
@@ -91,8 +99,8 @@ import type { Scene } from '@/content/schema';
  *     `p_vado_oculto` y ninguna línea dice "a oscuras". **Resolver en la biblia antes del lote 2.**
  * (d) Presupuesto medido, escena por escena, DESPUÉS del recorte de la Fase H · tarea 4:
  *     `p_camino` 349/396 · `p_puente` 573/556 · `p_puente_rechazo` 319/284 · `p_vado_oculto` 414/389
- *     · `p_puente_amanecer` 192/160 (celda corregida, ver (a)). Total 1.847 contra las 1.785 del
- *     outline §3 (+3,5 %); antes del recorte eran 1.944 contra 1.709 (+13,8 %). La causa del +3,5 %
+ *     · `p_puente_amanecer` 198/160 (celda corregida, ver (a)). Total 1.853 contra las 1.785 del
+ *     outline §3 (+3,8 %); antes del recorte eran 1.944 contra 1.709 (+13,8 %). La causa del +3,5 %
  *     que queda es la misma que ya estaba anotada: el prólogo tiene **18 opciones sin tirada cuyo
  *     único cambio posible es el texto**, y la línea de outcomes de §3 no las paga a todas.
  *
@@ -118,7 +126,7 @@ import type { Scene } from '@/content/schema';
  * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
  * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
  * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
- * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
  * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
@@ -665,12 +673,12 @@ export const p_puente_amanecer = {
   npcs: ['orell'],
   onEnter: [{ set: 'run:orell_confia' }],
   text: [
-    'Clarea sin sol. El río pasó de negro a marrón y arrastra cosas que se le ven. En la cabecera, el relevo afloja la cuerda de la ballesta: chilla al ceder, y ese es el ruido de una noche que se termina.',
+    'Clarea sin sol. El río pasó de negro a marrón y ahora se le ven las cosas que arrastra. En la cabecera del puente el relevo afloja la cuerda de la ballesta y la cuerda chilla al ceder: ese es el ruido que hace una noche cuando se termina.',
     {
       speaker: 'orell',
       variants: [
         {
-          text: '—Pasá. Doce guardias y ninguna novedad. —Corre un tablón con la bota—. La alcaldesa está en la plaza.',
+          text: '—Pasá. Doce guardias y ninguna novedad. —Corre un tablón con la bota—. La alcaldesa está en la plaza a esta hora.',
         },
       ],
     },
@@ -708,7 +716,7 @@ export const p_puente_amanecer = {
       label: 'Compartir el pan con la guardia',
       outcome: {
         text: [
-          'El pan es de ayer y hay que mojarlo para pasarlo. Comen de pie, sin hablar, mirando el agua. Al sargento le falta una muela del lado derecho y mastica del otro.',
+          'El pan es de ayer y hay que mojarlo. Comen de pie, sin hablar, mirando el agua. Al sargento le falta una muela del lado derecho y mastica del otro.',
         ],
         next: 'a1_plaza',
       },
@@ -728,7 +736,7 @@ export const p_puente_amanecer = {
       label: 'Seguir la orilla hasta el sauce partido',
       outcome: {
         text: [
-          'Seguís la orilla río abajo, pisando grava mojada. A media legua el ruido del agua cambia y se vuelve corto: ahí abajo hay piedra.',
+          'Seguís la orilla río abajo, pisando grava mojada. A media legua el ruido del agua se vuelve corto: ahí abajo hay piedra.',
         ],
         next: 'p_vado_oculto',
       },

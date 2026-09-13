@@ -217,7 +217,7 @@ import type { Scene } from '@/content/schema';
  * TENSIÓN QUE QUEDA A LA VISTA, y que es decisión de prosa, no aritmética: la tabla §2 presupuesta
  * 28 palabras por `outcome.text` y solo para una parte de las opciones libres, así que en las doce
  * celdas exigentes entrar en la celda **obliga igual** a escribir desenlaces por debajo de las 20
- * palabras de la biblia §2.3. Los avisos del linter quedaron en 141 contra los 117 del principio:
+ * palabras de la biblia §2.3. Los avisos del linter quedaron en 143 contra los 117 del principio:
  * esa diferencia es el precio de los 22 errores de presupuesto que quedaron en 0.
  */
 
@@ -242,10 +242,10 @@ export const a2_fuera_fuga = {
       variants: [
         {
           when: { met: 'ilse' },
-          text: 'A la hija de la alcaldesa la reconocés por la trenza. Esta vez no espera a que la mires: te agarra la manga y tira.',
+          text: 'A la hija de la alcaldesa la reconocés por la trenza. Esta vez no espera: te agarra la manga y tira.',
         },
         {
-          text: 'Una chica de tu altura te cierra el paso entre dos carros. Trenza colorada, delantal de cuero, harina hasta el codo. No pregunta: te agarra la manga y tira.',
+          text: 'Una chica de tu altura te cierra el paso entre dos carros. Trenza colorada, delantal de cuero, harina hasta el codo. No pregunta: te agarra y tira.',
         },
       ],
     },
@@ -264,7 +264,7 @@ export const a2_fuera_fuga = {
       label: 'Seguir a Ilse por el caz hasta el sótano',
       outcome: {
         text: [
-          'Entrás atrás de ella con el agua hasta la rodilla. La boca de piedra baja y termina en una escalera de mano.',
+          'Entrás atrás de ella con el agua hasta la rodilla. La boca de piedra termina en una escalera de mano.',
         ],
         next: 'a2_fuera_sotano',
       },
@@ -284,7 +284,7 @@ export const a2_fuera_fuga = {
       label: 'Esconderte con ella en el molino hasta la noche',
       outcome: {
         text: [
-          'Cruzan por el borde del caz y suben al piso de tablones. Hay dónde tirarse.',
+          'Cruzan por el borde del caz y suben al piso de tablones. El molino está vacío de gente y hay dónde tirarse entre las bolsas.',
         ],
         next: 'a2_fuera_refugio',
       },
@@ -294,7 +294,7 @@ export const a2_fuera_fuga = {
       label: 'Salir por los techos y perderte en la vega',
       outcome: {
         text: [
-          'Pasás de alero en alero hasta la última casa. El tejero que repone pizarras te ve de cerca.',
+          'Pasás de alero en alero hasta la última casa. El tejero que repone pizarras te ve de cerca y no dice nada todavía.',
         ],
         effects: [{ clock: 'sospecha', delta: 1 }],
         next: 'a2_fuera_refugio',
@@ -448,7 +448,7 @@ export const a2_fuera_sotano = {
       lockedHint: 'Solo un Explorador marca un camino sin perderlo.',
       outcome: {
         text: [
-          'Agarrás la tiza de Tomé y marcás la vuelta antes de mirar nada: una raya por bloque, a la altura del hombro.',
+          'Agarrás la tiza de Tomé y marcás la vuelta antes de mirar nada: una raya por bloque, a la altura del hombro. El que sabe salir se queda lo que quiera.',
         ],
         next: 'a2_fuera_sello',
       },
@@ -460,7 +460,7 @@ export const a2_fuera_sotano = {
       lockedHint: 'Ilse todavía no te muestra lo que guarda.',
       outcome: {
         text: [
-          'Nombrás lo que guarda, sin rodeos. No dice que sí: baja los escalones que le faltaban y se sienta en el borde del agua, de espaldas.',
+          'Nombrás lo que guarda. No dice que sí: baja los escalones que le faltaban y se sienta en el borde del agua, de espaldas.',
         ],
         next: 'a2_fuera_medallon',
       },
@@ -472,7 +472,7 @@ export const a2_fuera_sotano = {
       lockedHint: 'No viste nunca esas marcas.',
       outcome: {
         text: [
-          'Lo que hay debajo de la tiza es lo del pilar del puente: la misma figura que vuelve cada cinco. Quien la copió lo hizo de apuro, y le salió torcida.',
+          'Lo que hay debajo de la tiza es lo del pilar del puente: la misma figura que vuelve cada cinco. Quien la copió lo hizo de apuro.',
         ],
         next: 'a2_fuera_ilse',
       },
@@ -495,7 +495,7 @@ export const a2_fuera_sello = {
   place: 'sotano_del_sello',
   text: [
     'Cabe en las dos manos. Está encajada en un zócalo redondo y los canales vienen todos a morir ahí. Antes de tocarla se te entumecen las yemas, como cuando agarrás hierro en invierno.',
-    'Le falta un pedazo. En el borde hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. La talla no es un adorno: el agua gastó pareja toda la piedra y a esas líneas no las tocó.',
+    'Le falta un pedazo. En el borde hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. La talla no es un adorno: el agua gastó parejo el resto de la piedra, pero a esas líneas no las tocó.',
     'Ilse se quedó en la escalera. Desde ahí no se ve el zócalo, y por eso se quedó ahí.',
   ],
   choices: [
@@ -589,7 +589,7 @@ export const a2_fuera_sello = {
       label: 'Arrancar el sello de una y cargarlo',
       outcome: {
         text: [
-          'Metés los dedos en la mella y tirás. La piedra sale de golpe y el canto te abre los nudillos. Ilse dice tu nombre una sola vez y no lo vuelve a decir. Arriba se contestan dos silbidos.',
+          'Metés los dedos en la mella y tirás. La piedra sale de golpe y el canto te abre los nudillos. Ilse dice tu nombre una vez y no lo vuelve a decir. Arriba se contestan dos silbidos.',
         ],
         effects: [
           { give: 'sello_del_vado' },
