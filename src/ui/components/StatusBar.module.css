@@ -34,3 +34,17 @@
   background: transparent;
   color: var(--color-texto);
 }
+
+/* "Ficha" solo mira; "Abandonar" cierra la partida y no se deshace. Con el mismo aspecto en
+   una barra que está siempre en pantalla, la destructiva se aprieta por inercia: lleva el
+   borde y el texto de peligro para que la mano dude antes de llegar. */
+.abandonar {
+  border-color: var(--color-peligro);
+  color: var(--color-peligro-texto);
+}
+
+/* Deshabilitada mientras hay una tirada en curso: sin el rojo, que ahí no advierte de nada. */
+.abandonar:disabled {
+  border-color: var(--color-borde);
+  color: var(--color-texto-suave);
+}

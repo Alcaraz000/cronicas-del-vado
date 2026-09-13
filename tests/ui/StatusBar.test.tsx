@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { StatusBar } from '@/ui/components/StatusBar';
@@ -122,5 +124,28 @@ describe('StatusBar', () => {
     expect(botonFicha).not.toBeDisabled();
     fireEvent.click(botonFicha);
     expect(onOpenFicha).toHaveBeenCalledOnce();
+  });
+
+  it('Abandonar no se ve igual que Ficha: la acción destructiva tiene jerarquía propia', () => {
+    // Los dos botones viven en una barra que está siempre en pantalla; uno solo mira la ficha
+    // y el otro cierra la partida sin vuelta atrás. jsdom no aplica los módulos CSS, así que
+    // la regla se lee del archivo: lo que importa fijar es que "abandonar" tenga su propia
+    // declaración con los tokens de peligro y que "ficha" no la tenga.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    /**
+     * Cuerpo de la regla cuyo selector es EXACTAMENTE `selector`, sin comentarios ni espacios
+     * (así da igual cómo esté formateado el archivo o con qué fin de línea se guardó).
+     */
+    const cuerpoDe = (selector: string): string | null => {
+      for (const [, sel = '', cuerpo = ''] of css.matchAll(/([^{}]*)\{([^}]*)\}/g)) {
+        if (sel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '') === selector) return cuerpo;
+      }
+      return null;
+    };
+
+    expect(cuerpoDe('.abandonar')).toMatch(/var\(--color-peligro/);
+    // La regla que los dos comparten sigue siendo neutra: el rojo es solo del destructivo.
+    expect(cuerpoDe('.ficha,.abandonar')).toMatch(/var\(--color-borde\)/);
+    expect(cuerpoDe('.ficha,.abandonar')).not.toMatch(/var\(--color-peligro/);
   });
 });

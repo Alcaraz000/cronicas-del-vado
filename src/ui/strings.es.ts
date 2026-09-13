@@ -178,12 +178,15 @@ export const S = {
      * banda además lleva un símbolo propio, así que un jugador que no distingue colores igual
      * lee si le fue bien.
      */
+    // `fumble` NO lleva la calavera: ese carácter ya es `S.opciones.mortal`, la marca de una
+    // opción que lleva a escena mortal, y las dos cosas conviven en la misma pantalla. Un
+    // icono que no distingue no aporta nada, y la fase se puso como criterio icono Y texto.
     icono: {
       crit: '✦',
       success: '✓',
       partial: '±',
       failure: '✗',
-      fumble: '☠',
+      fumble: '⊗',
     },
     modo: {
       normal: 'Tirada normal: 2d6',

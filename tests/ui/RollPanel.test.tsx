@@ -138,6 +138,15 @@ describe('RollPanel', () => {
     expect(sello).toHaveTextContent(S.tirada.banda.fumble);
   });
 
+  it('los iconos de banda son todos distintos entre sí y del de escena mortal', () => {
+    // "Fallo grave" y "lleva a una escena mortal" son dos cosas distintas que conviven en la
+    // misma pantalla (el sello de la tirada y la marca de una opción). Si comparten carácter,
+    // el icono no distingue nada y la regla de la fase —icono Y texto— queda a medias.
+    const iconos = Object.values(S.tirada.icono);
+    expect(new Set(iconos).size).toBe(iconos.length);
+    expect(iconos).not.toContain(S.opciones.mortal);
+  });
+
   it('los botones de Fortuna y Poder aparecen recién cuando la tirada se asentó', () => {
     vi.useFakeTimers();
     render(
