@@ -10,7 +10,7 @@ Elegís una de cuatro clases —Guerrero, Explorador, Mago o Clérigo— y una c
 
 Hoy hay una sola campaña, **"El vado de Aldamar"**: 46 escenas, cuatro finales (uno de ellos oculto) y entre 30 y 45 minutos por partida.
 
-![Una escena de "El vado de Aldamar", con el fondo, el retrato de un personaje y el texto narrativo](docs/captura-escena.png)
+![Una escena de "El vado de Aldamar", con el fondo, el texto narrativo, las opciones y una tirada con su probabilidad de éxito](docs/captura-escena.png)
 
 La partida se guarda sola en el navegador (no en un servidor): si cambiás de navegador, de máquina, o borrás los datos del sitio, la perdés. Para llevarla con vos, en **Opciones** hay botones para exportar el guardado a un archivo y para importarlo de vuelta.
 
