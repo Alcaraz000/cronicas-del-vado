@@ -1,4 +1,6 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Campaign } from '@/content/schema';
@@ -485,5 +487,73 @@ describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/**
+ * jsdom no calcula layout ni evalúa `@media`, así que esto no puede probar que la hoja se vea
+ * bien en un teléfono — eso se juega a mano, emulando 375×812 (ver el informe de la tarea).
+ * Lo único que un test puede fijar acá es la DECLARACIÓN: que el bloque de móvil de verdad
+ * apile una fila de altura fija para el visual y convierta `.columna` en su propio scroll, en
+ * vez de quedar, como antes, con `max-height: none` y sin tope real. Mismo método que ya usa
+ * `StatusBar.test.tsx` para su regla `.abandonar`: leer el archivo y buscar la regla exacta.
+ */
+describe('EscenaScreen — hoja inferior en móvil', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
+
+  /**
+   * Cuerpo del primer `@media (max-width: 800px) { ... }` de un CSS, contando llaves: adentro
+   * hay varias reglas propias, así que cortar en la primera '}' que aparece se queda corto.
+   */
+  function bloqueMovil(hoja: string): string {
+    const inicio = hoja.indexOf('@media (max-width: 800px)');
+    expect(inicio, 'no se encontró @media (max-width: 800px) en EscenaScreen.module.css').toBeGreaterThan(-1);
+    const apertura = hoja.indexOf('{', inicio);
+    let profundidad = 0;
+    let fin = apertura;
+    for (; fin < hoja.length; fin++) {
+      if (hoja[fin] === '{') profundidad++;
+      else if (hoja[fin] === '}') {
+        profundidad--;
+        if (profundidad === 0) break;
+      }
+    }
+    return hoja.slice(apertura + 1, fin);
+  }
+
+  /** Cuerpo de la regla cuyo selector es EXACTAMENTE `selector`, sin comentarios ni espacios. */
+  function cuerpoDe(bloque: string, selector: string): string | null {
+    for (const [, sel = '', cuerpo = ''] of bloque.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+      if (sel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '') === selector) return cuerpo;
+    }
+    return null;
+  }
+
+  it('en móvil la columna es una hoja con su propio scroll', () => {
+    const movil = bloqueMovil(css);
+
+    const columna = cuerpoDe(movil, '.columna');
+    expect(columna, '.columna no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(columna).toMatch(/overflow-y\s*:\s*auto/);
+    // Sin esto el ítem de grid crece con el contenido en vez de respetar la fila que le toca,
+    // y el scroll de arriba nunca llega a hacer falta (la página entera scrollea).
+    expect(columna).toMatch(/min-height\s*:\s*0/);
+
+    // La fila de arriba (el visual) necesita una altura fija en proporción de la pantalla:
+    // es lo que declara cuánto mide el fondo antes de que la hoja empiece.
+    const grid = cuerpoDe(movil, '.grid');
+    expect(grid, '.grid no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(grid).toMatch(/grid-template-rows\s*:\s*[\d.]+vh/);
+  });
+
+  it('la hoja se despega del fondo: esquinas de arriba redondeadas y sombra hacia arriba', () => {
+    const movil = bloqueMovil(css);
+    const columna = cuerpoDe(movil, '.columna');
+    expect(columna).toMatch(/border-radius\s*:\s*var\(--radio\)/);
+    expect(columna).toMatch(/background\s*:\s*var\(--color-superficie\)/);
+    // El desplazamiento en Y es negativo (sombra hacia ARRIBA, no un borde parejo): puede
+    // escribirse como `-Npx` o como `calc(... * -1)`, así que el negativo se busca suelto en
+    // el valor entero y no pegado al `0` del desplazamiento en X.
+    expect(columna).toMatch(/box-shadow\s*:[^;]*-/);
   });
 });

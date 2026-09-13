@@ -48,7 +48,11 @@ export function StatusBar({
       <span className={styles.dato} title={S.barra.fortuna}>
         {S.barra.fortuna}: <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
       </span>
-      <span className={styles.dato}>
+      {/* En la hoja móvil (Fase H, tarea 5) esta es la línea que no entra: el lugar y las
+          marcas de heridas/Fortuna se quedan, "Condiciones: ..." se oculta con la clase
+          propia de acá abajo. `.dato` sigue puesta para no perder el color/tamaño de las
+          otras dos líneas de la barra. */}
+      <span className={`${styles.dato} ${styles.condiciones}`}>
         {S.barra.condiciones}: {nombresCondiciones}
       </span>
       <div className={styles.acciones}>

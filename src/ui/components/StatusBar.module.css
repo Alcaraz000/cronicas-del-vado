@@ -48,3 +48,14 @@
   border-color: var(--color-borde);
   color: var(--color-texto-suave);
 }
+
+/* Fase H, tarea 5: en la hoja móvil la barra se compacta. El lugar y las marcas de heridas y
+   Fortuna entran igual (son cortas, con símbolos); "Condiciones: sin condiciones" es la línea
+   más larga de las tres y la que menos falta hace con la barra siempre a la vista — la Ficha
+   (tecla C) ya muestra las condiciones con detalle. Mismo punto de corte que
+   `EscenaScreen.module.css` (800px), para que los dos cambien de layout juntos. */
+@media (max-width: 800px) {
+  .condiciones {
+    display: none;
+  }
+}
