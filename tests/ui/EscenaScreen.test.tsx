@@ -306,6 +306,22 @@ describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
     expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
   });
 
+  it('al cerrar la Ficha el teclado vuelve: la tecla 1 elige de nuevo', () => {
+    // La otra mitad del bloqueo, y la que más caro sale si falla: si el modal no se
+    // descontara al cerrarse, el teclado quedaría muerto para el resto de la partida sin que
+    // nada lo delate.
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    expect(escenaActual()).toBe('m_descanso');
+  });
+
   it('con la confirmación de abandono abierta, la tecla 1 no elige por detrás', () => {
     montarEscena(minimal);
     render(<EscenaScreen />);
