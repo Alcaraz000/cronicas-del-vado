@@ -27,16 +27,23 @@
   --color-aviso: #d19a3a;
 
   /* Texto de "peligro" (Chips en tono desventaja, error de creación de personaje). Mismo
-     valor que --color-peligroso a propósito, para que se lean como el mismo rojo: #b5443a
-     original daba 2,75:1 sobre --color-superficie-alta, no llegaba a 4,5:1 (tarea 12). */
-  --color-peligro-texto: #d47a71;
+     valor que --color-peligroso a propósito, para que se lean como el mismo rojo.
+
+     Por qué no es #b5443a, el rojo original: como TEXTO no llega a 4,5:1 contra ningún
+     fondo, ni siquiera contra negro puro (tope 3,85:1). La claridad es lo único que la
+     regla obliga a mover, así que se conserva el tono exacto del original (hue 5°) y se
+     sube la saturación de 51 a 76, que es lo que le devuelve el carácter de rojo: un
+     primer intento subió solo la claridad y quedó un salmón desvaído.
+     4,81:1 sobre --color-superficie-alta, 6,00:1 sobre --color-fondo. */
+  --color-peligro-texto: #e96b60;
 
   /* Etiquetas de riesgo de una tirada (Seguro / Arriesgado / Peligroso), sobre
-     --color-superficie-alta. --color-peligroso subido desde #b5443a (2,75:1, no llegaba a
-     4,5:1 — tarea 12); --color-seguro y --color-arriesgado ya daban 4,5:1 o más. */
+     --color-superficie-alta. --color-peligroso lleva el mismo valor que
+     --color-peligro-texto y por el mismo motivo, explicado ahí arriba;
+     --color-seguro y --color-arriesgado ya daban 4,5:1 o más. */
   --color-seguro: #5f9e5a;
   --color-arriesgado: #d19a3a;
-  --color-peligroso: #d47a71;
+  --color-peligroso: #e96b60;
 
   /* Tipografía */
   --fuente-juego: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
