@@ -1065,3 +1065,72 @@ describe('vado: fin_heredero deja la reliquia en el personaje (§13.1)', () => {
     expect(character.relics).toEqual(['sello_del_vado']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Fase H · tarea 3 — el sello se telegrafía, y la carta que nadie podía usar
+// ---------------------------------------------------------------------------
+
+describe('vado: el sello es invisible, no inaccesible (Fase H §3)', () => {
+  /**
+   * Las dos puertas del camino A (biblia §9.4) no cambian de mecánica: siguen siendo la misma
+   * tirada de Saber · difícil con un intento por partida. Lo único que cambia es que el texto de
+   * escena, antes de ofrecer la opción, dice que hay algo para leer, y que la etiqueta promete que
+   * hay algo escrito en vez de nombrar el objeto sin más.
+   */
+  it('las dos escenas de la piedra dicen que hay algo escrito antes de ofrecer leerla', () => {
+    const casos: { sceneId: string; choiceId: string }[] = [
+      { sceneId: 'a2_ley_cartas', choiceId: 'reconocer_el_sigilo' },
+      { sceneId: 'a2_fuera_sello', choiceId: 'leer_la_piedra' },
+    ];
+    for (const { sceneId, choiceId } of casos) {
+      const scene = campaign.scenes[sceneId] as Scene;
+      // El aviso vive en el texto de ESCENA (lo que se lee antes de elegir), no en el desenlace.
+      const textoDeEscena = JSON.stringify(scene.text).toLowerCase();
+      expect(textoDeEscena, `${sceneId}: el texto de escena no dice que hay algo para leer`).toContain('adorno');
+
+      const choice = scene.choices.find((c) => c.id === choiceId);
+      expect(choice, `${sceneId}/${choiceId}`).toBeDefined();
+      // "Leer la piedra" no promete nada; "Leer lo que dice la piedra" sí (biblia §10).
+      expect(choice?.label.toLowerCase(), `${sceneId}/${choiceId}`).toContain('dice');
+    }
+  });
+
+  /**
+   * BLOQUEADO (Fase H · tarea 3, brief §"la carta que nadie podía usar"). El brief pide condicionar
+   * `cl_halvar.leerle_el_libro_de_rutas` con `requires: { item: 'carta_de_halvar' }`, con la premisa
+   * de que hoy es una opción que la rama B "nunca puede elegir". Verificado contra el código y el
+   * diseño, la premisa no se sostiene:
+   *
+   * 1. **Hoy no tiene `requires`**: es una de las 4 opciones libres de `cl_halvar` (`OPCIONES_DEL_
+   *    OUTLINE.cl_halvar = [7, 4]`, arriba). Agregarle un `requires` la saca de esa cuenta y deja la
+   *    escena en 3 libres, y `LIMITS.minChoices = 4` (`src/content/catalog.ts`) es un piso, no un
+   *    objetivo: `r03_choices` lo aplica como error. **Confirmado corriendo `npm run validate` con el
+   *    cambio puesto**: `vado › cl_halvar › [r03_choices] La escena cl_halvar tiene 3 opciones sin
+   *    requires; debe tener al menos 4`, y rompe además esta misma suite (la cuenta exacta de
+   *    `cl_halvar` y el total de 252/179/41 opciones de la campaña).
+   * 2. **El diseño ya explica esta opción como la vía LIBRE, a propósito.** `design/00-biblia.md`
+   *    (ficha de Halvar) dice: "*Vías:* las cartas de la torre; su libro de rutas, con los peajes del
+   *    año que viene ya anotados (`cl_halvar.leerle_el_libro_de_rutas`); la negociación del clímax con
+   *    `carta_de_halvar`" — tres caminos DISTINTOS al mismo secreto, y este es el que no pide el
+   *    objeto. Depende de `run:sabe_de_halvar` (solo da ventaja, no gatea) y esa flag se gana en el
+   *    ACTO 1 (`a1_taberna.robar_el_libro` u `a1_orell_mesa`), disponible para las dos ramas por
+   *    igual: no hay asimetría de rama que arreglar acá.
+   * 3. **La opción que sí usa `carta_de_halvar` ya está bien gateada.** `cl_halvar.leerle_lo_que_
+   *    firmo_berta` (abajo en el archivo) ya tiene `requires: { item: 'carta_de_halvar' }` y
+   *    `lockedHint: 'No tenés la carta de Halvar encima.'`, exactamente el patrón que el brief pide
+   *    copiar. Se revisaron las 8 apariciones de `requires: { item: … }` en las escenas de la
+   *    campaña (`carta_lacrada` ×2, `farol_de_sebo`, `cuaderno_de_tome` ×2, `carta_de_halvar` ×2,
+   *    `sello_del_vado`) y las 8 ya tienen `requires` y `lockedHint`: no hay ninguna opción de la
+   *    campaña que pida un objeto sin avisarlo.
+   *
+   * No se tocó `cl_halvar` para no romper r03 ni contradecir la biblia. Este test queda escrito y en
+   * `skip`, con la aserción que pide el brief, para que quede a mano si alguien decide más adelante
+   * cuál es el objeto/escena correcto o cómo compensar la cuenta de libres. Detalle completo en
+   * `.superpowers/sdd/2026-09-13-fase-h-pulido-y-lanzamiento/task-3-report.md`.
+   */
+  it.skip('la opción de la carta en el clímax pide el objeto y explica qué falta', () => {
+    const opcion = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'leerle_el_libro_de_rutas');
+    expect(opcion?.requires).toBeDefined();
+    expect(opcion?.lockedHint).toBeTruthy();
+  });
+});

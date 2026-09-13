@@ -180,6 +180,20 @@ import type { Scene } from '@/content/schema';
  *     mismo desvío que midió el lote 1 y por la misma causa: opciones sin tirada cuyo único
  *     cambio posible es el texto, más las cinco variantes (memoria y objeto) que una sola partida
  *     no lee enteras (~105 palabras). **La ruta base de una partida está en ~3.500.**
+ *
+ * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 3 — "el sello es invisible, no inaccesible". Ver la nota gemela en
+ * `scenes/acto2_ley.ts` (informe de Fase E §8.2). **No se tocó la mecánica** de `leer_la_piedra`
+ * (mismo `requires: { not: { flag: 'run:piedra_leida' } }`, misma tirada, mismo intento único).
+ * Lo único que cambió en `a2_fuera_sello`:
+ *   1. El párrafo 2 del `text` de escena suma una cláusula: la talla de la piedra no es un
+ *      adorno, porque el agua gastó parejo el resto de la piedra y a esas líneas no las tocó
+ *      —siguen tan netas como si fueran de anoche—, sin adelantar qué dicen. Presupuesto de la
+ *      escena: 392 → 411 de 339 (+21 %, dentro del piso de aviso).
+ *   2. `leer_la_piedra.label` pasa de "Leer la piedra hasta entenderla" a "Leer lo que dice la
+ *      piedra" (biblia §10: la etiqueta anuncia que hay algo escrito, no nombra el objeto).
+ * Igual que con `a2_ley_cartas.reconocer_el_sigilo`, `npm run simulate` con la misma semilla da
+ * los mismos 118/9416 en `fin_heredero` antes y después: el simulador no lee prosa.
  */
 
 // ---------------------------------------------------------------------------
@@ -456,13 +470,13 @@ export const a2_fuera_sello = {
   place: 'sotano_del_sello',
   text: [
     'Cabe en las dos manos. Está encajada en un zócalo redondo, en el medio del piso, y los canales vienen todos a morir ahí. Antes de tocarla se te entumecen las yemas, igual que cuando agarrás hierro al aire libre en invierno.',
-    'Le falta un pedazo. En el borde de arriba hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. Alrededor la talla sigue, apretada y pareja, y no se entiende.',
+    'Le falta un pedazo. En el borde de arriba hay una mella fresca, del tamaño de una uña, con la piedra clara adentro: el resto está oscuro de años. Alrededor, la talla no es un adorno: el agua gastó parejo el resto de la piedra, pero a esas líneas no las tocó, tan netas como si fueran de anoche.',
     'Ilse se quedó en la escalera. Desde ahí no se ve el zócalo, y por eso se quedó ahí.',
   ],
   choices: [
     {
       id: 'leer_la_piedra',
-      label: 'Leer la piedra hasta entenderla',
+      label: 'Leer lo que dice la piedra',
       requires: { not: { flag: 'run:piedra_leida' } },
       lockedHint: 'Esa piedra ya te dijo todo lo que iba a decirte.',
       roll: {

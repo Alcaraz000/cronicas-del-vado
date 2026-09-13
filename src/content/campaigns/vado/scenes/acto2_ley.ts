@@ -44,6 +44,21 @@ import type { Scene } from '@/content/schema';
  * `a2_fuera_fuga`, `a2_fuera_sotano` (`scenes/acto2_fuera.ts`) y `c2_anochece` (`scenes/desenlace.ts`).
  *
  * ---------------------------------------------------------------------------------------------
+ * FASE H · TAREA 3 — "el sello es invisible, no inaccesible". Informe de Fase E §8.2: solo el
+ * 14,4 % de las partidas enciende `char:vado.sabe_del_sello`, y la brecha entre clases es ruido
+ * (1,58–2,04 %): no es una puerta angosta, es una puerta que no se ve. **No se tocó la mecánica**
+ * (mismo `requires`, misma tirada, mismo intento único). Lo único que cambió en `a2_ley_cartas`:
+ *   1. Un párrafo nuevo, al final del `text` de escena, antes de las opciones: dice que el lacre
+ *      del pie de las cartas no es un adorno (líneas que se repiten iguales), sin adelantar qué
+ *      significan. Presupuesto de la escena: 547 → 568 de 459 (+24 %, dentro del piso de aviso).
+ *   2. `reconocer_el_sigilo.label` pasa de "Reconocer el sigilo del lacre" a "Leer lo que dice el
+ *      lacre" (biblia §10: la etiqueta anuncia que hay algo escrito, no nombra el objeto sin más).
+ * La contraparte en la rama B, `a2_fuera_sello.leer_la_piedra`, se tocó igual en
+ * `scenes/acto2_fuera.ts`. El simulador no puede medir el efecto (juega sin leer prosa): la traza
+ * de `npm run simulate` con la misma semilla da los mismos 118/9416 en `fin_heredero` antes y
+ * después, como se espera de un cambio que le habla a una persona y no a una política.
+ *
+ * ---------------------------------------------------------------------------------------------
  * REGISTROS DEL LOTE (biblia §12 / outline §6.3). `design/arranques.md`,
  * `design/detalles-sensoriales.md` y `design/cupos.md` todavía no existen en el repo (deuda del
  * lote 1, anotada en la biblia §13.7): estas filas van acá para que se copien cuando se creen.
@@ -1152,6 +1167,7 @@ export const a2_ley_cartas = {
       ],
     },
     'Abajo de todo hay rollos atados que no son cartas. La cinta de uno está gastada de abrirlo y volverlo a atar.',
+    'El lacre del pie no es un adorno: tres líneas nacen de un punto y se repiten, iguales, en cada carta.',
   ],
   choices: [
     {
@@ -1220,7 +1236,7 @@ export const a2_ley_cartas = {
     },
     {
       id: 'reconocer_el_sigilo',
-      label: 'Reconocer el sigilo del lacre',
+      label: 'Leer lo que dice el lacre',
       requires: { not: { flag: 'run:piedra_leida' } },
       lockedHint: 'Ese lacre ya te dijo todo lo que iba a decirte.',
       roll: {
