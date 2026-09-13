@@ -254,6 +254,23 @@ describe('FinScreen', () => {
     ).toBeInTheDocument();
   });
 
+  /**
+   * Tarea 6 (Fase H): `ScreenRouter` desmonta la pantalla anterior entera, así que el control
+   * que tenía el foco al llegar acá ya no existe y el foco cae a `<body>`, invisible. El
+   * título recibe el foco por programa apenas se monta (ver `useEnfocarAlEntrar`).
+   */
+  it('lleva el foco al título del desenlace apenas se monta, para no dejarlo perdido en <body>', () => {
+    const estado = estadoEn('p_umbral', 2);
+    const pendiente = engine.beginRoll(campaign, estado, 'forzar_puerta');
+    const final = engine.commitRoll(campaign, estado, { ...pendiente, band: 'failure' as const });
+    montarFinCon(final);
+
+    render(<FinScreen />);
+
+    const titulo = screen.getByRole('heading', { level: 1, name: S.fin.derrota });
+    expect(titulo).toHaveFocus();
+  });
+
   it('cierra la partida una sola vez aunque StrictMode invoque el efecto dos veces', () => {
     // En desarrollo la app corre bajo StrictMode (src/main.tsx) y React invoca los efectos
     // dos veces al montar. Si `finishRun` no fuera idempotente, la XP se cobraría doble y la

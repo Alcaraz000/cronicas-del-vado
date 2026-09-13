@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { campaignTitle } from '@/content/campaigns';
 import { CLASSES } from '@/content/catalog';
 import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { OpcionesModal } from '@/ui/components/OpcionesModal';
+import { useEnfocarAlEntrar } from '@/ui/hooks/useEnfocarAlEntrar';
 import { S } from '@/ui/strings.es';
 import styles from './InicioScreen.module.css';
 
@@ -21,13 +22,17 @@ export function InicioScreen() {
   const continueRun = useStore((s) => s.continueRun);
 
   const [opciones, setOpciones] = useState(false);
+  const titulo = useRef<HTMLHeadingElement>(null);
+  useEnfocarAlEntrar(titulo);
 
   const sinPersonajes = characters.length === 0;
   const enCurso = activo?.run ?? null;
 
   return (
     <div className={styles.pantalla}>
-      <h1 className={styles.titulo}>{S.titulo}</h1>
+      <h1 ref={titulo} tabIndex={-1} className={styles.titulo}>
+        {S.titulo}
+      </h1>
       <p className={styles.personaje}>
         {activo === null
           ? S.inicio.sinPersonaje

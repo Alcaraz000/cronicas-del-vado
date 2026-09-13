@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { campaignTitle, CAMPAIGNS, listCampaigns } from '@/content/campaigns';
 import { ATTRS, ATTR_NAMES, CLASSES, LIMITS } from '@/content/catalog';
 import type { CampaignMeta } from '@/content/schema';
@@ -15,6 +15,7 @@ import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { Imagen } from '@/ui/components/Imagen';
 import { OpcionesModal } from '@/ui/components/OpcionesModal';
+import { useEnfocarAlEntrar } from '@/ui/hooks/useEnfocarAlEntrar';
 import { S } from '@/ui/strings.es';
 import styles from './HubScreen.module.css';
 
@@ -159,6 +160,8 @@ export function HubScreen() {
   const deleteCharacter = useStore((s) => s.deleteCharacter);
 
   const [opciones, setOpciones] = useState(false);
+  const titulo = useRef<HTMLHeadingElement>(null);
+  useEnfocarAlEntrar(titulo);
 
   const metas = useMemo(() => listCampaigns(false), []);
   const totales = useTotalDeFinales(metas);
@@ -205,7 +208,9 @@ export function HubScreen() {
   return (
     <div className={styles.pantalla}>
       <header className={styles.encabezado}>
-        <h1 className={styles.titulo}>{S.hub.titulo}</h1>
+        <h1 ref={titulo} tabIndex={-1} className={styles.titulo}>
+          {S.hub.titulo}
+        </h1>
         <button type="button" className={styles.secundario} onClick={() => setOpciones(true)}>
           {S.hub.opciones}
         </button>

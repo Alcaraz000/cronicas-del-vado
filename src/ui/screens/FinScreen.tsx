@@ -15,6 +15,7 @@ import {
 } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { Parrafos } from '@/ui/components/Parrafos';
+import { useEnfocarAlEntrar } from '@/ui/hooks/useEnfocarAlEntrar';
 import { derivarCronica, lineasDeMemoria } from '@/ui/memoria';
 import { S } from '@/ui/strings.es';
 import styles from './FinScreen.module.css';
@@ -111,6 +112,9 @@ export function FinScreen() {
     parrafos: [],
   };
 
+  const titulo = useRef<HTMLHeadingElement>(null);
+  useEnfocarAlEntrar(titulo);
+
   const resumen = endSummary?.xp ?? null;
   const muerto = desenlace.kind === 'death';
 
@@ -140,7 +144,9 @@ export function FinScreen() {
   return (
     <div className={styles.pantalla} data-outcome={desenlace.kind}>
       <p className={styles.etiqueta}>{S.fin.final}</p>
-      <h1 className={styles.titulo}>{desenlace.titulo}</h1>
+      <h1 ref={titulo} tabIndex={-1} className={styles.titulo}>
+        {desenlace.titulo}
+      </h1>
       <div className={styles.epilogo}>
         <Parrafos parrafos={desenlace.parrafos} />
       </div>
