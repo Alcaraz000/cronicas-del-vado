@@ -45,6 +45,10 @@ const conArte: Campaign = {
   },
   npcs: {
     mensajero: { id: 'mensajero', name: 'El mensajero', portrait: 'orell', voice: '', canonPrompt: '' },
+    // Un segundo PNJ que NO está en `scene.npcs` (o sea, no es el del sprite) pero sí habla:
+    // hace falta para los bloques de dos hablantes, que son cinco en la campaña publicada
+    // (`a1_ronda`, `c1_acusacion`, `a2_fuera_sotano`, `cl_desenlace`, `cl_halvar`).
+    escriba: { id: 'escriba', name: 'La escriba', portrait: 'berta', voice: '', canonPrompt: '' },
   },
   places: {
     plaza_vieja: {
@@ -832,6 +836,118 @@ describe('EscenaScreen — la placa del hablante', () => {
 
       expect(screen.getByText(/Se va sin esperar respuesta/)).toBeInTheDocument();
       expect(screen.getByTestId('placa-hablante')).toHaveTextContent('El mensajero');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
+   * El bloque con DOS hablantes, que hasta la ronda 2 quedaba MAL ATRIBUIDO y no solo sin
+   * atribuir: la regla de CSS escondía el prefijo de todos los párrafos y la placa nombra a uno
+   * solo —el último—, así que la línea del primero quedaba dibujada debajo del cartel del otro.
+   * En la campaña publicada son cinco bloques y caen en tres de los momentos más cargados del
+   * juego: `a1_ronda`, `c1_acusacion`, `a2_fuera_sotano`, `cl_desenlace` (el clímax, donde la
+   * línea de Berta caía bajo un cartel que dice "Ilse") y `cl_halvar`.
+   *
+   * La regla ahora: se esconde SOLO el prefijo que la placa repite; los demás se quedan.
+   */
+  it('con dos hablantes, solo se esconde el prefijo que la placa repite: el del anterior se ve', () => {
+    montarEscena(conArte, {
+      log: [
+        escenaLog([
+          { speaker: 'mensajero', text: '—Yo lo vi entrar, y no salió.' },
+          { speaker: 'escriba', text: '—Y yo lo vi salir por atrás.' },
+        ]),
+      ],
+    });
+    render(<EscenaScreen />);
+
+    const marcas = [...screen.getByTestId('columna-texto').querySelectorAll('[data-hablante]')];
+    expect(marcas).toHaveLength(2);
+    // El primero conserva su prefijo a la vista; el segundo es el que la placa está diciendo.
+    expect(marcas[0]).toHaveAttribute('data-hablante', 'propio');
+    expect(marcas[0]).toHaveTextContent('El mensajero');
+    expect(marcas[1]).toHaveAttribute('data-hablante', 'placa');
+    expect(marcas[1]).toHaveTextContent('La escriba');
+
+    expect(screen.getByTestId('placa-hablante')).toHaveTextContent('La escriba');
+  });
+
+  /**
+   * La otra mitad del arreglo: la hoja de estilos tiene que esconder SOLO el prefijo marcado
+   * `placa`. Con `[data-hablante]` a secas volvería el bug entero sin que ningún test de DOM se
+   * entere, porque jsdom no aplica módulos CSS — por eso esto se lee del archivo.
+   */
+  it('la hoja esconde únicamente el prefijo que la placa repite, no todos', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8');
+
+    const soloLaPlaca = cuerpoDe(css, ".columna[data-hablante='placa']");
+    expect(soloLaPlaca, 'la regla dejó de apuntar solo al prefijo de la placa').not.toBeNull();
+    expect(soloLaPlaca).toMatch(/clip-path\s*:\s*inset\(50%\)/);
+    // Y sigue siendo ocultamiento VISUAL: `display: none` se llevaría el nombre del árbol de
+    // accesibilidad, que es de donde lo toma la región viva.
+    expect(soloLaPlaca).not.toMatch(/display\s*:\s*none/);
+
+    // La regla vieja, que se llevaba puestos todos los prefijos, no puede volver.
+    expect(cuerpoDe(css, '.columna[data-hablante]'), 'volvió la regla que esconde TODOS los prefijos').toBeNull();
+  });
+
+  it('en el scrollback, las entradas anteriores conservan su prefijo: la placa nombra a una sola', () => {
+    montarEscena(conArte, {
+      log: [
+        escenaLog([{ speaker: 'mensajero', text: '—Vengo de lejos y con prisa.' }]),
+        escenaLog([{ speaker: 'escriba', text: '—Entonces firmá acá.' }]),
+      ],
+    });
+    render(<EscenaScreen />);
+
+    const marcas = [...screen.getByTestId('columna-texto').querySelectorAll('[data-hablante]')];
+    expect(marcas.map((m) => m.getAttribute('data-hablante'))).toEqual(['propio', 'placa']);
+    expect(screen.getByTestId('placa-hablante')).toHaveTextContent('La escriba');
+  });
+
+  /**
+   * La divergencia es el riesgo real de este arreglo: son dos puntas del mismo hecho —a quién
+   * nombra el cartel y a qué párrafo se le esconde el prefijo— y si un día se calcularan
+   * distinto, la placa diría uno y el prefijo se escondería en otro sin que nada lo delate. Hoy
+   * dependen de la misma función (`indiceDeLaPlaca`); esto lo fija carácter por carácter del
+   * revelado, que es donde el par se mueve.
+   */
+  it('la placa y el prefijo escondido son SIEMPRE el mismo párrafo, también a mitad del revelado', () => {
+    useStore.getState().setPrefs({ cps: 40 });
+    vi.useFakeTimers();
+    try {
+      montarEscena(conArte, {
+        log: [
+          escenaLog([
+            'Se juntan los dos en la plaza y ninguno se saluda.',
+            { speaker: 'mensajero', text: '—Yo lo vi entrar, y no salió.' },
+            { speaker: 'escriba', text: '—Y yo lo vi salir por atrás.' },
+            'Ninguno de los dos afloja.',
+          ]),
+        ],
+      });
+      render(<EscenaScreen />);
+
+      const vistos = new Set<string>();
+      for (let tic = 0; tic < 60; tic++) {
+        const placa = screen.queryByTestId('placa-hablante');
+        const marcada = screen.getByTestId('columna-texto').querySelector("[data-hablante='placa']");
+        if (placa === null) {
+          expect(marcada, 'hay un prefijo escondido sin placa que lo reemplace').toBeNull();
+        } else {
+          expect(marcada, 'la placa nombra a alguien y ningún prefijo está escondido').not.toBeNull();
+          // "La escriba: " empieza por "La escriba": son el mismo párrafo.
+          expect(marcada?.textContent?.startsWith(placa.textContent ?? '')).toBe(true);
+          vistos.add(placa.textContent ?? '');
+        }
+        act(() => { vi.advanceTimersByTime(100); });
+      }
+
+      // Y el recorrido pasó de verdad por los dos hablantes: si no, el bucle no probaría nada.
+      expect([...vistos].sort()).toEqual(['El mensajero', 'La escriba']);
+      // Al final, con la narración ya revelada, la placa sigue puesta en el último que habló.
+      expect(screen.getByTestId('placa-hablante')).toHaveTextContent('La escriba');
     } finally {
       vi.useRealTimers();
     }

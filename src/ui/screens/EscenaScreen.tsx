@@ -11,7 +11,7 @@ import { precargarImagen } from '@/ui/assets';
 import { Ficha } from '@/ui/components/Ficha';
 import { Imagen } from '@/ui/components/Imagen';
 import { OptionList } from '@/ui/components/OptionList';
-import { useNombresDePnj } from '@/ui/components/Parrafos';
+import { indiceDeLaPlaca, useNombresDePnj } from '@/ui/components/Parrafos';
 import { RollPanel } from '@/ui/components/RollPanel';
 import { StatusBar } from '@/ui/components/StatusBar';
 import { TextColumn } from '@/ui/components/TextColumn';
@@ -64,23 +64,23 @@ function spriteIdDe(campaign: Campaign, npcId: string): string {
  * **Por qué se queda, para que nadie lo "arregle" dentro de seis meses.** Sacarla en cuanto
  * aparece un párrafo de narración parece más prolijo y es peor:
  *
- * El prefijo del hablante está escondido a la VISTA dentro de la caja (`TextColumn.module.css`
- * lo saca con `position: absolute` + `clip-path`, no con `display: none`, así que un lector de
- * pantalla sigue recibiendo "Orell: …" y el efecto es puramente visual). Sacar la placa en una
- * entrada `[Orell habla, narración]` dejaría ese diálogo **visualmente sin atribución**: el
- * jugador lee una línea entrecomillada y no hay nada en pantalla que diga quién la dijo.
- * Contados sobre la campaña `vado` publicada (381 bloques de texto entre escenas, desenlaces de
- * opción y de banda, y finales): **14 bloques** tienen un párrafo con hablante seguido de
- * narración, y en **13** de ellos el bloque TERMINA en narración — o sea, 13 diálogos que
- * quedarían huérfanos en pantalla. Ren'Py también deja la placa puesta entre líneas del mismo
- * hablante.
+ * El prefijo del hablante que la placa repite está escondido a la VISTA dentro de la caja
+ * (`TextColumn.module.css` lo saca con `position: absolute` + `clip-path`, no con
+ * `display: none`, así que un lector de pantalla sigue recibiendo "Orell: …" y el efecto es
+ * puramente visual). Sacar la placa en una entrada `[Orell habla, narración]` dejaría ese
+ * diálogo **visualmente sin atribución**: el jugador lee una línea entrecomillada y no hay nada
+ * en pantalla que diga quién la dijo. Contados sobre la campaña `vado` publicada (381 bloques de
+ * texto entre escenas, desenlaces de opción y de banda, y finales): **14 bloques** tienen un
+ * párrafo con hablante seguido de narración, y en **13** de ellos el bloque TERMINA en narración
+ * — o sea, 13 diálogos que quedarían huérfanos en pantalla. Ren'Py también deja la placa puesta
+ * entre líneas del mismo hablante.
  *
- * **El caso que esta regla no cubre, dicho para que no se descubra como sorpresa:** hay 5
- * bloques con DOS hablantes distintos (`a1_ronda`, `c1_acusacion`, `a2_fuera_sotano`,
- * `cl_desenlace`, `cl_halvar`). Ahí la placa nombra al último que habló y la línea del primero
- * queda igual de huérfana. No es algo que este `for` pueda arreglar: sale de que la caja muestre
- * un bloque entero con una sola placa, y apagar la placa en la narración lo empeoraría (quedarían
- * huérfanas las dos). Es material de la tarea 3, que es la que decide qué muestra la caja.
+ * **El bloque con dos hablantes.** Hay 5 (`a1_ronda`, `c1_acusacion`, `a2_fuera_sotano`,
+ * `cl_desenlace`, `cl_halvar`) donde la placa nombra al último que habló. Eso está bien —nombra
+ * a quien habla ahora— y lo que estaba mal era esconder TAMBIÉN el prefijo del anterior, que
+ * dejaba su línea dibujada debajo del cartel del otro. Se esconde solo el prefijo que la placa
+ * repite; el del hablante anterior se queda a la vista. La cuenta de cuál es ese párrafo es
+ * `indiceDeLaPlaca`, compartida con `Parrafos`, que es quien lo marca.
  *
  * Ojo con `rendered.portraitNpc`, que NO sirve para esto: cuando ningún párrafo tiene `speaker`
  * cae al primer PNJ de la escena, y ese está presente pero no está hablando.
@@ -92,15 +92,11 @@ function hablanteVisible(
 ): string | null {
   const ultima = log[log.length - 1];
   if (ultima === undefined || (ultima.kind !== 'scene' && ultima.kind !== 'outcome')) return null;
-  // El párrafo en curso cuenta recién cuando tiene al menos un carácter revelado: es el mismo
-  // corte que usa `Parrafos` para decidir si lo dibuja, así que la placa y el texto aparecen
-  // juntos y no la placa un tic antes.
-  const hasta = parrafosVisibles + (caracteresVisibles > 0 ? 1 : 0);
-  for (let i = Math.min(hasta, ultima.paragraphs.length) - 1; i >= 0; i--) {
-    const speaker = ultima.paragraphs[i]?.speaker;
-    if (speaker !== undefined) return speaker;
-  }
-  return null;
+  // La cuenta no se hace acá: sale de `indiceDeLaPlaca`, la misma función con la que `Parrafos`
+  // decide a qué prefijo esconder. Es a propósito y es lo único que garantiza que el cartel y el
+  // prefijo que ese cartel reemplaza sean SIEMPRE el mismo párrafo, también a mitad del revelado.
+  const i = indiceDeLaPlaca(ultima.paragraphs, parrafosVisibles, caracteresVisibles);
+  return i === null ? null : (ultima.paragraphs[i]?.speaker ?? null);
 }
 
 /**

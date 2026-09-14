@@ -16,12 +16,12 @@ export interface TextColumnProps {
   revelado?: Revelado;
 }
 
-function Entrada({ entry, revelado }: { entry: LogEntry; revelado?: Revelado }) {
+function Entrada({ entry, revelado, conPlaca }: { entry: LogEntry; revelado?: Revelado; conPlaca: boolean }) {
   switch (entry.kind) {
     case 'scene':
       return (
         <section className={styles.escena} data-scene={entry.sceneId}>
-          <Parrafos parrafos={entry.paragraphs} visibles={revelado?.parrafosVisibles} caracteres={revelado?.caracteresVisibles} />
+          <Parrafos parrafos={entry.paragraphs} visibles={revelado?.parrafosVisibles} caracteres={revelado?.caracteresVisibles} conPlaca={conPlaca} />
         </section>
       );
     case 'choice':
@@ -40,7 +40,7 @@ function Entrada({ entry, revelado }: { entry: LogEntry; revelado?: Revelado }) 
     case 'outcome':
       return (
         <section className={styles.resultado}>
-          <Parrafos parrafos={entry.paragraphs} visibles={revelado?.parrafosVisibles} caracteres={revelado?.caracteresVisibles} />
+          <Parrafos parrafos={entry.paragraphs} visibles={revelado?.parrafosVisibles} caracteres={revelado?.caracteresVisibles} conPlaca={conPlaca} />
         </section>
       );
   }
@@ -79,8 +79,18 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
       aria-busy={revelado !== undefined && !revelado.terminado}
       onClick={() => revelado?.avanzar()}
     >
+      {/* `conPlaca` va en una sola entrada: la placa del hablante nombra SIEMPRE a la última, que
+          es la que el revelado está dibujando. Las anteriores conservan cada prefijo a la vista
+          —es lo único que en el scrollback dice quién habló— y por eso se pide `revelado` además
+          del índice: sin revelado esta columna dibuja el log entero y no hay ninguna placa a la
+          que un prefijo le sobre. */}
       {log.map((entry, i) => (
-        <Entrada key={i} entry={entry} revelado={i === log.length - 1 ? revelado : undefined} />
+        <Entrada
+          key={i}
+          entry={entry}
+          revelado={i === log.length - 1 ? revelado : undefined}
+          conPlaca={revelado !== undefined && i === log.length - 1}
+        />
       ))}
       <div ref={fin} />
     </div>
