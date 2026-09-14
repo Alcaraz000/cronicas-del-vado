@@ -15,6 +15,11 @@ export interface StatusBarProps {
   /** Abre la Ficha (tarea 5). Ver la ficha es seguro en cualquier momento: nunca se deshabilita. */
   onOpenFicha: () => void;
   /**
+   * Abre el historial de la partida (tarea 3). Como la Ficha: solo mira, así que tampoco se
+   * deshabilita nunca, ni con una tirada pendiente.
+   */
+  onOpenHistorial: () => void;
+  /**
    * true mientras hay una tirada pendiente. El store no limpia `run.pending` al
    * abandonar (tarea 13), así que la UI evita ese camino: en vez de ofrecer
    * "Abandonar", lo deshabilita hasta que la tirada se consolide o se descarte.
@@ -34,6 +39,7 @@ export function StatusBar({
   conditions,
   onAbandon,
   onOpenFicha,
+  onOpenHistorial,
   abandonDisabled = false,
 }: StatusBarProps) {
   const [confirmando, setConfirmando] = useState(false);
@@ -67,9 +73,27 @@ export function StatusBar({
       <span className={`${styles.dato} ${styles.condiciones}${sinCondiciones ? ` ${styles.condicionesVacias}` : ''}`}>
         {S.barra.condiciones}: {nombresCondiciones}
       </span>
+      {/* Los dos cajones juntos y el destructivo aparte, al final. "Ficha" e "Historial" se abren
+          los dos con una letra (C y H), los dos solo miran y los dos se montan sobre el mismo
+          `Cajon`: son la misma clase de cosa y se leen mejor como un par.
+
+          Por qué el historial va ACÁ y no montado sobre el filo de la caja, que era la otra
+          candidata. Medido en el navegador a 375×812: el cromo mide 91 px de alto con dos
+          botones y 91 px con tres —el grupo pasa de 152 a 233 px y entra en el mismo renglón—,
+          y 104 px en los dos casos a 125 % de letra. O sea, a la medida en la que se juega no
+          le come ni un píxel más de arte; recién a 150 % suma un renglón (118 → 159 px, un 5 %
+          de la pantalla), y ahí el cromo ya venía envuelto igual. Sobre el filo de la caja, en
+          cambio, choca con la placa del hablante: con el nombre más ancho del reparto ("Capitán
+          Dravos", borde derecho en 221 / 272 / 323 px según la escala) y el botón midiendo
+          73 / 90 / 108 px pegado al borde derecho, se pisan 3 px a 125 % y 72 px a 150 %. Y al
+          lado de "Saltar lo leído" costaba un renglón fijo de los 298 px de alto que tiene la
+          columna de texto en esa pantalla, que es el espacio que menos sobra. */}
       <div className={styles.acciones}>
         <button type="button" className={styles.ficha} onClick={onOpenFicha} title={S.barra.fichaTitulo}>
           {S.barra.ficha}
+        </button>
+        <button type="button" className={styles.historial} onClick={onOpenHistorial} title={S.barra.historialTitulo}>
+          {S.barra.historial}
         </button>
         <button
           type="button"

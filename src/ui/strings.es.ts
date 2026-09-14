@@ -133,6 +133,8 @@ export const S = {
     sinCondiciones: 'sin condiciones',
     ficha: 'Ficha',
     fichaTitulo: 'Ver tu ficha de personaje (tecla C)',
+    historial: 'Historial',
+    historialTitulo: 'Ver todo lo que pasó en la partida (tecla H)',
     abandonar: 'Abandonar',
     abandonarDeshabilitado: 'No podés abandonar mientras hay una tirada en curso',
     confirmarAbandonoTitulo: 'Abandonar la partida',
@@ -251,6 +253,15 @@ export const S = {
     // `aria-label` y eso es lo que se anuncia en su lugar.
     finalOculto: '● ● ● ●',
     finalOcultoEtiqueta: 'Un final que todavía no descubriste',
+  },
+  /**
+   * El cajón del historial (tarea 3): la caja de la escena muestra la última entrada del log y
+   * todo lo anterior vive acá. El botón dice "Historial" a secas —es lo que entra en el cromo—
+   * y el cajón se titula entero, que es donde hay lugar para decirlo.
+   */
+  historial: {
+    titulo: 'Historial de la partida',
+    vacio: 'Todavía no pasó nada que recordar.',
   },
   ficha: {
     titulo: 'Ficha de personaje',

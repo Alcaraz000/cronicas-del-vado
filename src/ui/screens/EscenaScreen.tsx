@@ -9,6 +9,7 @@ import { selectGameState } from '@/state/selectors';
 import { useStore } from '@/state/store';
 import { precargarImagen } from '@/ui/assets';
 import { Ficha } from '@/ui/components/Ficha';
+import { Historial } from '@/ui/components/Historial';
 import { Imagen } from '@/ui/components/Imagen';
 import { OptionList } from '@/ui/components/OptionList';
 import { indiceDeLaPlaca, useNombresDePnj } from '@/ui/components/Parrafos';
@@ -141,6 +142,7 @@ export function EscenaScreen() {
   const abandonRun = useStore((s) => s.abandonRun);
 
   const [fichaAbierta, setFichaAbierta] = useState(false);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
   const accionesRef = useRef<HTMLDivElement>(null);
 
   const rendered = useMemo(
@@ -168,17 +170,24 @@ export function EscenaScreen() {
     for (const fondoId of proximosFondos(scene, campaign)) precargarImagen('fondo', fondoId);
   }, [campaign, rendered]);
 
-  // La tecla C abre la Ficha: mirar el personaje es seguro en cualquier momento, incluso con
-  // una tirada pendiente. Mismas guardas que OptionList para 1-9: si el foco está en un campo
-  // de texto, si ya hay un modal abierto, o si es un atajo del navegador (Ctrl/Meta/Alt+C),
+  // Los dos cajones de la pantalla, con una letra cada uno: C abre la Ficha y H el historial
+  // (tarea 3). Mirar el personaje o releer lo que pasó es seguro en cualquier momento, incluso
+  // con una tirada pendiente. Mismas guardas que OptionList para 1-9: si el foco está en un
+  // campo de texto, si ya hay un modal abierto, o si es un atajo del navegador (Ctrl/Meta/Alt),
   // no dispara nada.
+  //
+  // Un solo listener para las dos teclas y no uno por cajón: las guardas son exactamente las
+  // mismas y duplicarlas es la forma más barata de que un día una quede desactualizada. La
+  // guarda de `hayModalAbierto()` es la que hace que H no abra el historial por detrás de la
+  // Ficha —ni al revés—, porque los dos se cuentan solos al atrapar el foco.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (esCampoDeTexto(event.target)) return;
       if (hayModalAbierto()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.key !== 'c' && event.key !== 'C') return;
-      setFichaAbierta(true);
+      const tecla = event.key.toLowerCase();
+      if (tecla === 'c') setFichaAbierta(true);
+      else if (tecla === 'h') setHistorialAbierto(true);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -277,10 +286,15 @@ export function EscenaScreen() {
           conditions={gs.run.conditions}
           onAbandon={abandonRun}
           onOpenFicha={() => setFichaAbierta(true)}
+          onOpenHistorial={() => setHistorialAbierto(true)}
           abandonDisabled={pending !== null}
         />
       </div>
       <Ficha abierto={fichaAbierta} onCerrar={() => setFichaAbierta(false)} />
+      {/* El log entero, que hasta la tarea 3 se apilaba en la caja. Recibe `gs.run.log` tal cual,
+          la misma referencia que mira el revelado: la caja se queda con el tramo que escribió el
+          último paso y acá está todo, incluido ese tramo. */}
+      <Historial log={gs.run.log} abierto={historialAbierto} onCerrar={() => setHistorialAbierto(false)} />
 
       {/* El sprite recortado (tarea 1), no el retrato: un cuadro 3:4 CON fondo pegado sobre el
           arte se lee como una foto pegada encima. `retrato` sigue siendo lo correcto en la

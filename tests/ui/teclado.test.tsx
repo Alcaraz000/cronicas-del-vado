@@ -70,6 +70,10 @@ describe('recorrido con teclado: inicio → creación → hub → escena', () =>
 
     fireEvent.keyDown(window, { key: '3' });
 
+    // 5. La elección quedó en el log, que desde la tarea 3 se lee en el cajón del historial y no
+    // apilado en la caja. Se abre con la tecla H, que es el otro atajo propio de esta pantalla:
+    // el recorrido de teclado lo cubre igual que cubría el 1-9.
+    fireEvent.keyDown(window, { key: 'h' });
     await screen.findByText('› Rodear por el patio');
     expect(selectGameState(useStore.getState())?.run.sceneId).toBe('p_patio');
     expect(useStore.getState().ui.screen).toBe('escena');

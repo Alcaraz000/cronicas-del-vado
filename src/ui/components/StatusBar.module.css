@@ -57,6 +57,7 @@
    de un cuadro. El borde y el texto alcanzan, y el degradado de `.barra` les sostiene el
    contraste. */
 .ficha,
+.historial,
 .abandonar {
   padding: 0.3em 0.9em;
   border: 1px solid var(--color-borde);
@@ -65,9 +66,10 @@
   color: var(--color-texto);
 }
 
-/* Solo "Ficha": el borde rojo de "Abandonar" es una advertencia y no se cambia ni al pasar por
-   encima — es justo el momento en que tiene que seguir avisando. */
-.ficha:hover {
+/* "Ficha" e "Historial": el borde rojo de "Abandonar" es una advertencia y no se cambia ni al
+   pasar por encima — es justo el momento en que tiene que seguir avisando. */
+.ficha:hover,
+.historial:hover {
   border-color: var(--borde-acento);
 }
 

@@ -23,6 +23,7 @@ describe('StatusBar', () => {
         conditions={['asustado']}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     expect(screen.getByText('Torre abandonada')).toBeInTheDocument();
@@ -41,6 +42,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     expect(screen.getByText(new RegExp(S.barra.sinCondiciones))).toBeInTheDocument();
@@ -57,12 +59,39 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={onOpenFicha}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const boton = screen.getByRole('button', { name: S.barra.ficha });
     expect(boton).toHaveAttribute('title', expect.stringContaining('C'));
     fireEvent.click(boton);
     expect(onOpenFicha).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * El historial es el otro cajón de la pantalla (tarea 3) y vive al lado de la Ficha, no
+   * montado sobre el filo de la caja: medido a 375×812, el tercer botón entra en el mismo
+   * renglón del cromo (91 px de alto con dos botones y con tres; el grupo pasa de 152 a 233 px)
+   * mientras que sobre el filo chocaba con la placa del hablante a 125 % y a 150 %.
+   */
+  it('el botón Historial menciona la tecla H y llama a onOpenHistorial', () => {
+    const onOpenHistorial = vi.fn();
+    render(
+      <StatusBar
+        placeName="Torre abandonada"
+        wounds={0}
+        fortune={3}
+        fortuneMax={3}
+        conditions={[]}
+        onAbandon={vi.fn()}
+        onOpenFicha={vi.fn()}
+        onOpenHistorial={onOpenHistorial}
+      />,
+    );
+    const boton = screen.getByRole('button', { name: S.barra.historial });
+    expect(boton).toHaveAttribute('title', expect.stringContaining('H'));
+    fireEvent.click(boton);
+    expect(onOpenHistorial).toHaveBeenCalledOnce();
   });
 
   it('Abandonar pide confirmación con un Dialogo de tono peligro y solo llama a onAbandon si se confirma', () => {
@@ -76,6 +105,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={onAbandon}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
 
@@ -111,6 +141,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={onAbandon}
         onOpenFicha={onOpenFicha}
+        onOpenHistorial={vi.fn()}
         abandonDisabled={true}
       />,
     );
@@ -145,9 +176,10 @@ describe('StatusBar', () => {
     };
 
     expect(cuerpoDe('.abandonar')).toMatch(/var\(--color-peligro/);
-    // La regla que los dos comparten sigue siendo neutra: el rojo es solo del destructivo.
-    expect(cuerpoDe('.ficha,.abandonar')).toMatch(/var\(--color-borde\)/);
-    expect(cuerpoDe('.ficha,.abandonar')).not.toMatch(/var\(--color-peligro/);
+    // La regla que los TRES comparten (la tarea 3 sumó "Historial") sigue siendo neutra: el rojo
+    // es solo del destructivo.
+    expect(cuerpoDe('.ficha,.historial,.abandonar')).toMatch(/var\(--color-borde\)/);
+    expect(cuerpoDe('.ficha,.historial,.abandonar')).not.toMatch(/var\(--color-peligro/);
   });
 
   it('el cromo FLOTA sobre el arte: un degradado que se desvanece, no una barra sólida con borde', () => {
@@ -212,6 +244,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
@@ -228,6 +261,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
@@ -244,6 +278,7 @@ describe('StatusBar', () => {
         conditions={['perseguido']}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');

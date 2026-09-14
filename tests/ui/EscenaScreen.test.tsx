@@ -742,6 +742,158 @@ describe('EscenaScreen — las proporciones en móvil', () => {
 });
 
 /**
+ * El historial detrás de un botón (tarea 3). Hasta acá la caja acumulaba TODA la partida y se
+ * scrolleaba: ninguna novela visual hace eso, y de paso era lo que dejaba el borde de arriba de
+ * la caja cortando una línea de texto por la mitad apenas empezaba la segunda escena.
+ *
+ * Sale barato porque `useRevelado` solo mira `log[log.length - 1]`: todo lo anterior era dibujo.
+ */
+describe('EscenaScreen — el historial detrás de un botón', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0 });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  /** Tres entradas: dos escenas con una elección en el medio. La última es la que va en la caja. */
+  function montarConPartida(): void {
+    montarEscena(conArte, {
+      log: [
+        escenaLog(['La plaza al amanecer, con el puesto todavía cerrado.']),
+        { kind: 'choice', sceneId: conArte.start, choiceId: 'seguir', label: 'Seguir camino' },
+        escenaLog(['El mensajero te espera del otro lado del puente.']),
+      ],
+    });
+  }
+
+  it('la caja muestra lo que escribió el último paso: la partida anterior ya no está en pantalla', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    const caja = screen.getByTestId('columna-texto');
+    expect(caja).toHaveTextContent('El mensajero te espera del otro lado del puente.');
+    expect(caja).not.toHaveTextContent('La plaza al amanecer');
+    expect(caja).not.toHaveTextContent('Seguir camino');
+  });
+
+  /**
+   * El desenlace de una opción NUNCA es la última entrada del log: `choose` y `commitRoll`
+   * escriben el 'outcome' y en la misma acción llaman a `enter()`, que apila la escena nueva
+   * (`src/engine/resolve.ts`). Mostrar "la última entrada" a secas, que es lo que decía el plan,
+   * dejaba fuera de la pantalla 335 de los 344 desenlaces con texto de la campaña publicada
+   * —9.809 palabras— y el jugador se enteraba de lo que le pasó recién abriendo el historial.
+   */
+  it('el desenlace de la opción se lee en la caja, pegado a la escena que abrió', () => {
+    montarEscena(conArte, {
+      log: [
+        escenaLog(['La plaza al amanecer.']),
+        { kind: 'choice', sceneId: conArte.start, choiceId: 'seguir', label: 'Seguir camino' },
+        { kind: 'outcome', paragraphs: [{ text: 'Cruzás el puente sin mirar a los guardias.' }] },
+        escenaLog(['Del otro lado el mercado ya está armado.']),
+      ],
+    });
+    render(<EscenaScreen />);
+
+    const caja = screen.getByTestId('columna-texto');
+    expect(caja).toHaveTextContent('Cruzás el puente sin mirar a los guardias.');
+    expect(caja).toHaveTextContent('Del otro lado el mercado ya está armado.');
+    // Y el tramo corta en la elección: ni la línea "› …" ni la escena anterior vuelven.
+    expect(caja).not.toHaveTextContent('Seguir camino');
+    expect(caja).not.toHaveTextContent('La plaza al amanecer');
+  });
+
+  it('el botón Historial abre el cajón, y ahí sí están las entradas anteriores', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    expect(screen.queryByTestId('historial')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: S.barra.historial }));
+
+    const cajon = screen.getByTestId('historial');
+    expect(cajon).toHaveTextContent('La plaza al amanecer, con el puesto todavía cerrado.');
+    expect(cajon).toHaveTextContent('› Seguir camino');
+    expect(cajon).toHaveTextContent('El mensajero te espera del otro lado del puente.');
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.historial.titulo);
+  });
+
+  it('la tecla H lo abre y Esc lo cierra, igual que la C de la Ficha', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.historial.titulo);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Mayúscula también: es la misma tecla con Shift, y el jugador no tiene por qué saberlo.
+    fireEvent.keyDown(window, { key: 'H' });
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.historial.titulo);
+  });
+
+  it('la tecla H no abre el historial si el foco está en un campo de texto', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(input, { key: 'h' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    input.remove();
+  });
+
+  it('la tecla H no abre el historial por detrás de otro modal', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'c' });
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+
+    fireEvent.keyDown(window, { key: 'h' });
+
+    // Sigue estando la Ficha, y una sola: el historial no se abrió abajo ni encima.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(S.ficha.titulo);
+  });
+
+  it('Ctrl+H (y Alt, y Meta) son del navegador, no del juego', () => {
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    fireEvent.keyDown(window, { key: 'h', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'h', altKey: true });
+    fireEvent.keyDown(window, { key: 'h', metaKey: true });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('el botón del historial vive en el cromo, al lado del de la Ficha', () => {
+    // Medido a 375×812 en el navegador, que es lo que decidió dónde va: el cromo mide 91 px de
+    // alto con dos botones y 91 px con tres (el grupo pasa de 152 a 233 px y entra en el mismo
+    // renglón), y 104 px en los dos casos a 125 %. Recién a 150 % suma un renglón (118 → 159).
+    // Montado sobre el filo de la caja, en cambio, chocaba con la placa del hablante: con el
+    // nombre más ancho ("Capitán Dravos": borde derecho en 221 / 272 / 323 px) y el botón de
+    // 73 / 90 / 108 px pegado a la derecha, se pisan 3 px a 125 % y 72 px a 150 %.
+    montarConPartida();
+    render(<EscenaScreen />);
+
+    const cromo = screen.getByRole('banner');
+    const boton = screen.getByRole('button', { name: S.barra.historial });
+    expect(cromo.contains(boton)).toBe(true);
+    // Y en el mismo grupo que "Ficha", que es el otro cajón: los dos se abren con una letra.
+    expect(boton.parentElement).toBe(screen.getByRole('button', { name: S.barra.ficha }).parentElement);
+  });
+});
+
+/**
  * La placa del hablante: el elemento chico más fuerte de la pantalla, y la señal que más
  * rápido dice "novela visual". El género la pone claramente por encima del diálogo (Ren'Py
  * usa 45 contra 33, un 1,36×) y la monta sobre el borde de arriba de la caja.
@@ -892,18 +1044,32 @@ describe('EscenaScreen — la placa del hablante', () => {
     expect(cuerpoDe(css, '.columna[data-hablante]'), 'volvió la regla que esconde TODOS los prefijos').toBeNull();
   });
 
-  it('en el scrollback, las entradas anteriores conservan su prefijo: la placa nombra a una sola', () => {
+  /**
+   * El scrollback se mudó al cajón del historial (tarea 3), así que la regla se parte en dos y
+   * las dos siguen importando: en la CAJA queda una sola entrada y su prefijo es el que la placa
+   * repite, y en el CAJÓN —donde no hay ninguna placa— el prefijo de la entrada anterior es lo
+   * único que dice quién habló, así que se queda entero.
+   */
+  it('la entrada anterior conserva su prefijo, pero ahora en el cajón: en la caja queda una sola', () => {
     montarEscena(conArte, {
       log: [
         escenaLog([{ speaker: 'mensajero', text: '—Vengo de lejos y con prisa.' }]),
+        // La 'choice' del medio no es decorado: el motor escribe una antes de cada escena nueva,
+        // y es la marca donde corta el tramo que la caja dibuja (ver `entradasDelUltimoPaso`).
+        { kind: 'choice', sceneId: conArte.start, choiceId: 'seguir', label: 'Seguir camino' },
         escenaLog([{ speaker: 'escriba', text: '—Entonces firmá acá.' }]),
       ],
     });
     render(<EscenaScreen />);
 
-    const marcas = [...screen.getByTestId('columna-texto').querySelectorAll('[data-hablante]')];
-    expect(marcas.map((m) => m.getAttribute('data-hablante'))).toEqual(['propio', 'placa']);
+    const enLaCaja = [...screen.getByTestId('columna-texto').querySelectorAll('[data-hablante]')];
+    expect(enLaCaja.map((m) => m.getAttribute('data-hablante'))).toEqual(['placa']);
     expect(screen.getByTestId('placa-hablante')).toHaveTextContent('La escriba');
+
+    fireEvent.keyDown(window, { key: 'h' });
+    const enElCajon = [...screen.getByTestId('historial').querySelectorAll('[data-hablante]')];
+    expect(enElCajon.map((m) => m.getAttribute('data-hablante'))).toEqual(['propio', 'propio']);
+    expect(enElCajon[0]).toHaveTextContent('El mensajero');
   });
 
   /**
