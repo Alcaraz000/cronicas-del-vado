@@ -168,8 +168,19 @@ del vocabulario visual que la fase anterior construyó, tiene **cero estados int
 termina en x = 539,8 px **en las cinco medidas**, dejando el 71,9 % del ancho sin usar a 1919×905.
 
 - **La portada a sangre detrás de todo**, oscurecida, con el nombre del juego encima. El arte es el
-  sujeto y el menú es el subtítulo. Es la convención literal del género, y resuelve de raíz el 87 %
-  de pantalla vacía sin inventar relleno.
+  sujeto y el menú es el subtítulo. Es la convención literal del género.
+
+> **Corrección del 14 de septiembre, hecha al revisar la tarea 3.** Esta línea decía que el fondo a
+> sangre "resuelve de raíz el 87 % de pantalla vacía". **Es falso, y de la peor manera: el número se
+> autocumple.** Una imagen `inset: 0` cubre el viewport por construcción, así que medir "vacío
+> contando el arte" da ~0 % aunque no se toque nada más — el mismo 0,7 % sale dejando el formulario
+> viejo intacto y agregándole sólo el fondo. Un número que no distingue el trabajo hecho de no hacer
+> nada no mide el trabajo hecho. **Medido sin contar el arte, el vacío pasa de 90,1 % a 72,8 %**: una
+> mejora real de 17,3 puntos, no la de dos órdenes de magnitud que sugería. Y empeora en pantallas
+> más grandes (81,2 % a 2560×1440), porque la columna de contenido se clava para preservar la medida.
+> Eso es correcto por diseño, pero significa que "viewport vacío" **no sirve como criterio de
+> aceptación** de esta pantalla. Lo que la reconstrucción tiene que defender es que se lea como un
+> menú de novela visual y no como un formulario, y eso se argumenta con la convención del género.
 - **La campaña como tarjeta grande con la imagen dominante**, no como miniatura de catálogo de
   160 px sobre un archivo de 900×1200. La grilla pasa de `auto-fill` (que abre columnas vacías y
   **achica la tarjeta cuanto más grande la pantalla**) a un layout que no trabaje al revés.
