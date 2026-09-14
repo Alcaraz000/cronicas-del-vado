@@ -31,9 +31,21 @@ import { partirBandera, tomarValor } from './lib/args';
 /** La raíz del repo (o del worktree) desde el que se está corriendo: `tools/..`. */
 const RAIZ = path.resolve(fileURLToPath(import.meta.url), '../..');
 
-/** Medida pedida por el README: la imagen tiene que salir exactamente así. */
-const ANCHO = 1280;
-const ALTO = 800;
+/**
+ * Medida de la foto. **El alto no es decorativo: es lo que decide si la prosa entra en la caja.**
+ *
+ * `.caja` mide `height: 44%` de la pantalla (`EscenaScreen.module.css`), y adentro las opciones se
+ * quedan con lo suyo y el texto con lo que sobra. O sea que el lugar para la prosa sale del ALTO de
+ * la ventana y de nada más: medido con `a1_orell_mesa`, 1440×900 y 1600×900 dan exactamente el
+ * mismo desborde (28 px), porque ensanchar reacomoda las líneas pero no cambia cuántas entran.
+ *
+ * Desborde medido a lo largo del alto: 800 → 55 px · 864 → 43 px · 900 → 28 px · 960 → 1 px ·
+ * 970 → entra. De ahí este 970: a 960 entra por 1 px, que es empatar, y 970 es el primer redondo con
+ * margen de verdad. Y de ahí también que 1440×900 —que parecía la medida obvia para un README— no
+ * sirva: se queda a una línea.
+ */
+const ANCHO = 1440;
+const ALTO = 970;
 
 const SALIDA_POR_DEFECTO = 'docs/captura-escena.png';
 
@@ -45,9 +57,78 @@ const SALIDA_POR_DEFECTO = 'docs/captura-escena.png';
  */
 const PUERTO_POR_DEFECTO = 5179;
 
-/** La escena que se fotografía, y la de arranque que hay que cruzar para llegar. Ver `jugarHastaLaEscena`. */
-const ESCENA = 'p_puente';
-const ESCENA_DE_ARRANQUE = 'p_camino';
+/**
+ * El camino hasta la escena que se fotografía: en qué escena hay que estar y qué opción se elige
+ * para salir de ella. La última de la lista es la que sale en la foto.
+ *
+ * **Las cuatro opciones son `outcome` sin tirada**, y eso no es comodidad: con dados de por medio la
+ * foto saldría distinta en cada corrida —otra banda, otro texto, otras Heridas— y una captura que
+ * cambia sola no sirve para documentar nada.
+ *
+ * **Por qué `a1_orell_mesa` y no una escena más vistosa. Leé esto antes de "mejorar" la captura:
+ * las dos escenas que dan más ganas ya se probaron y las dos se cayeron por medirlas.**
+ *
+ * Lo que tiene que verse es una escena con hablante (para que estén la placa y el recorte) **y con la
+ * prosa entera adentro de la caja**. Que la prosa entre no es un capricho: la caja no crece, y lo que
+ * no entra scrollea, así que la foto sale empezando a mitad de frase. El jugador nunca ve eso mal
+ * —lee mientras se tipea y el autoscroll lo sigue—, pero una foto quieta que arranca en «aprender:
+ * «El paso está cerrado…» se lee como texto roto.
+ *
+ * - **`p_puente`** (la barricada del prólogo, la primera elegida) es la que más juego muestra: dos
+ *   tiradas con fichas, riesgo y probabilidades, una opción de clase y una cerrada con su motivo.
+ *   Sus 7 opciones con fichas se llevan el tope del 60 % de la caja (`.acciones` en
+ *   `EscenaScreen.module.css`) y a la columna le quedan cuatro líneas para 105 palabras: **223 px de
+ *   más a 1280×800**, y como el lugar para la prosa sale del alto (ver `ALTO`), entrar entera le
+ *   pediría **unos 2070 px de alto**. O sea que no es cuestión de agrandar la ventana: no entra nunca.
+ * - **`c2_otra_orilla`** (el molino, acto 2) es la única escena corta con hablante que tiene una
+ *   opción con tirada, así que sería la única capaz de mostrar prosa entera Y el sistema de dados, y
+ *   encima sin ningún "ya elegida". Tiene camino sin dados —15 pasos por la rama de la ley— y
+ *   **entra a 1450 px de alto** (a 1360 le faltan 36; a 1200, 107). Se descartó por la forma: a
+ *   1280×1450 la imagen es VERTICAL, y ninguna ventana de navegador tiene esa forma — en un README se
+ *   lee como una tira estirada. La del Ancla Seca parece una pantalla de juego, y el criterio es lo
+ *   que dice un desconocido mirando la captura, no cuántas cosas entran en ella. Si el sistema de
+ *   tiradas merece una frase, va en el texto del README, no en esta foto.
+ *
+ * Lo que esta escena NO muestra, para que nadie lo descubra de nuevo: sus cuatro opciones salen
+ * marcadas "· ya elegida". Sale del DESTINO, no del id de la opción (`alreadySeen` en
+ * `engine/resolve.ts`), y es estructural: la única arista de entrada a `a1_orell_mesa` viene de
+ * `a1_taberna`, las cuatro opciones vuelven a `a1_taberna`, y `seen` se deriva al SALIR de una
+ * escena — que es justo cómo se entró. Lo ve cualquier jugador la primera vez que se sienta en esa
+ * mesa, así que la foto muestra lo que el juego hace.
+ *
+ * Escenas con hablante, ordenadas por lo que ocupan (palabras de prosa | opciones), con el desborde
+ * medido a 1280×800, que es la medida con la que esto empezó:
+ *
+ *   60 | 4 | orell  | a1_orell_mesa          55 px de más  ← la elegida (entra a 970 de alto)
+ *   68 | 4 | mausi  | a1_taberna_trastienda 151 px de más
+ *   70 | 5 | orell  | p_puente_amanecer     141 px de más
+ *   78 | 6 | ilse   | a2_fuera_fuga         más prosa y más opciones que la primera
+ *   86 | 4 | orell  | c2_otra_orilla        más prosa que la primera
+ *
+ * A 1280×800 no entra NINGUNA: a esa altura la columna da para tres líneas y media, y una escena con
+ * hablante son dos párrafos como mínimo. `a1_orell_mesa` es la que menos se pasa porque es la más
+ * corta **y** porque se llega por un desenlace sin texto; las dos últimas no se midieron una por una
+ * porque no pueden ganarle —más prosa, y encima se entra a las dos por desenlaces que sí llevan
+ * párrafo—. Lo que resolvió el empate fue el alto de la ventana, que es de donde sale el lugar para
+ * la prosa (ver `ALTO`).
+ *
+ * Si algún día `a1_orell_mesa` crece y deja de entrar, el script falla diciéndolo y la lista de acá
+ * arriba es por dónde seguir: la siguiente que entre, con un camino sin tiradas hasta ella.
+ *
+ * Ojo con el último paso: `sentarte_en_la_mesa_de_orell` es un desenlace **sin texto**, y eso
+ * también cuenta. La caja muestra lo que escribió el último paso (desenlace + escena, ver
+ * `entradasDelUltimoPaso` en `TextColumn.tsx`), así que una opción con desenlace en prosa metería
+ * ese párrafo arriba de la escena y se comería el lugar que la escena necesita para entrar.
+ */
+const RUTA = [
+  { escena: 'p_camino', opcion: 'seguir_hasta_el_puente' },
+  { escena: 'p_puente', opcion: 'entregarle_la_carta_para_cruzar' },
+  { escena: 'a1_plaza', opcion: 'entrar_al_ancla_seca' },
+  { escena: 'a1_taberna', opcion: 'sentarte_en_la_mesa_de_orell' },
+];
+
+/** La escena de la foto: a la que llega el último paso de `RUTA`. */
+const ESCENA = 'a1_orell_mesa';
 
 /**
  * Prefijos de los `alt` que escribe `EscenaScreen` (`S.placeholder` en `src/ui/strings.es.ts`).
@@ -317,44 +398,53 @@ async function levantarServidor(puerto: number): Promise<Servidor> {
  * Es lo mismo que hace un jugador apurado, y el estado final al que se llega es idéntico.
  */
 async function esperarEscenaLista(page: Page, escena: string): Promise<void> {
-  // Primero, que la escena que esperamos esté DIBUJADA. Sin esto hay una carrera fina: apenas se
-  // hace clic en una opción, el atributo `aria-busy` que se lee un instante después puede ser
-  // todavía el de la escena anterior, que ya estaba en `"false"`, y la espera del revelado se
-  // saltearía entera. `data-scene` lo escribe `TextColumn` con el id de la escena, así que esperar
-  // por él es esperar por la escena correcta y no por "alguna".
   await page.locator(`[data-scene="${escena}"]`).waitFor({ state: 'attached', timeout: ESPERA_MS });
   const columna = page.locator('[data-testid="columna-texto"]');
   const limite = Date.now() + ESPERA_MS;
-  while ((await columna.getAttribute('aria-busy')) === 'true') {
+  while (!(await escenaListaYQuieta(page, escena))) {
     if (Date.now() > limite) {
       throw new Error(
-        'El revelado del texto nunca terminó: la columna sigue en aria-busy="true". Con la captura a medio tipear no se guarda nada.',
+        `La escena «${escena}» nunca quedó lista: o el revelado no terminó, o las opciones no se dibujaron. ` +
+          'Con la captura a medio tipear no se guarda nada.',
       );
     }
     await columna.click();
   }
-  await page
-    .locator('[data-testid="acciones"] button')
-    .first()
-    .waitFor({ state: 'visible', timeout: ESPERA_MS });
 }
 
 /**
- * De la pantalla de inicio a `p_puente`, la escena que se fotografía.
+ * ¿La escena está lista Y se quedó quieta? Las tres condiciones, comprobadas tres cuadros seguidos.
  *
- * **Por qué esa escena.** Es la primera del prólogo con un PNJ en escena, y la única del arranque
- * que muestra de una sola vez todo lo que el rediseño cambió:
- *  - Orell habla en el último párrafo, así que la **placa del hablante** está puesta y el **recorte**
- *    (el sprite, no el retrato 3:4) está parado en el cuarto, medio metido detrás de la caja.
- *  - Sus siete opciones incluyen **dos tiradas** con sus fichas, su riesgo y su probabilidad, una
- *    abierta por la clase (`[Explorador]`) y una cerrada con su motivo a la vista.
- *  - El fondo es `puente_viejo`, de noche y con lluvia: el arte se ve y el velo hace su trabajo.
+ * Lo de los tres cuadros no es superstición, es por una ventana de UN cuadro que existe de verdad y
+ * que ya mordió a este script: cuando el jugador elige una opción, la entrada nueva del log se
+ * dibuja ANTES de que `useRevelado` la vea. El reinicio del revelado vive en un efecto —que corre
+ * después de pintar—, así que en ese render el hook todavía tiene el progreso de la entrada
+ * ANTERIOR, y si aquella tenía tantos párrafos como esta (o más) `terminado` da verdadero: por un
+ * cuadro la escena nueva aparece con `aria-busy="false"` y con las opciones dibujadas. Mirando una
+ * sola vez, el script se daba por satisfecho ahí, seguía de largo, y para cuando llegaba a sacar la
+ * foto el revelado había arrancado de cero: escena sin placa y sin opciones.
  *
- * `p_camino`, que es la escena de arranque, no sirve: no tiene PNJ, así que no hay ni placa ni
- * recorte, que son las dos cosas que la captura vieja no mostraba.
+ * No hay ninguna marca en el DOM que distinga ese cuadro de uno bueno —se ve idéntico—, y por eso
+ * lo que se mide es que el estado AGUANTE. La ventana dura un cuadro; tres seguidos la descartan.
+ */
+async function escenaListaYQuieta(page: Page, escena: string): Promise<boolean> {
+  return page.evaluate(async (id: string) => {
+    for (let i = 0; i < 3; i += 1) {
+      await new Promise((listo) => requestAnimationFrame(() => listo(undefined)));
+      if (document.querySelector(`[data-scene="${id}"]`) === null) return false;
+      if (document.querySelector('[data-testid="columna-texto"]')?.getAttribute('aria-busy') !== 'false') return false;
+      if (document.querySelectorAll('[data-testid="acciones"] button').length === 0) return false;
+    }
+    return true;
+  }, escena);
+}
+
+/**
+ * De la pantalla de inicio hasta la escena de la foto, siguiendo `RUTA` (ver allá el porqué de cada
+ * escena y de cada opción).
  *
- * El personaje es un Explorador porque es la clase que abre `leer_la_orilla` en `p_puente`: así la
- * foto muestra también una opción con `[Explorador]`, o sea cómo se ven las opciones de clase.
+ * El personaje es un Explorador, pero en esta escena la clase no se ve: `a1_orell_mesa` no tiene
+ * opciones de clase. Se elige una y listo, porque la creación no se puede saltear.
  */
 async function jugarHastaLaEscena(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
@@ -387,12 +477,12 @@ async function jugarHastaLaEscena(page: Page, base: string): Promise<void> {
   // sale ninguna confirmación (igual hay un manejador de diálogos en `sacarLaFoto`, por las dudas).
   await page.locator('[data-testid="jugar-vado"]').click();
 
-  // Escena 1, `p_camino`: se lee y se sigue el camino hasta el puente. Es la opción sin tirada, así
-  // que el paso es determinista: no hay dados de por medio y la captura sale siempre igual.
-  await esperarEscenaLista(page, ESCENA_DE_ARRANQUE);
-  await page.locator('[data-testid="opcion-seguir_hasta_el_puente"]').click();
-
-  // Escena 2, `p_puente`: la de la foto.
+  // Y ahora el camino: en cada escena se espera a que esté lista (revelado terminado y opciones
+  // dibujadas) y se elige la opción que lleva a la siguiente.
+  for (const paso of RUTA) {
+    await esperarEscenaLista(page, paso.escena);
+    await page.locator(`[data-testid="opcion-${paso.opcion}"]`).click();
+  }
   await esperarEscenaLista(page, ESCENA);
 }
 
@@ -403,8 +493,8 @@ interface Estado {
   fondo: boolean;
   sprite: boolean;
   opciones: number;
-  /** La columna de texto, apoyada en su final: la última línea contra el borde de abajo. */
-  alFinal: boolean;
+  /** Cuánto texto queda fuera del recorte de la columna, en píxeles. Tiene que ser 0. */
+  desborde: number;
 }
 
 /**
@@ -429,7 +519,7 @@ async function leerEstado(page: Page, altFondo: string, altSprite: string): Prom
         fondo: dibujadas.some((alt) => alt.startsWith(prefijoFondo)),
         sprite: dibujadas.some((alt) => alt.startsWith(prefijoSprite)),
         opciones: document.querySelectorAll('[data-testid="acciones"] button').length,
-        alFinal: scroll !== null && scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 2,
+        desborde: scroll === null ? -1 : Math.max(0, scroll.scrollHeight - scroll.clientHeight),
       };
     },
     [altFondo, altSprite] as [string, string],
@@ -459,22 +549,7 @@ async function esperarQueEstePintado(page: Page): Promise<void> {
     timeout: ESPERA_MS,
   });
 
-  // Y recién con todo quieto se vuelve a pedir el autoscroll de la columna.
-  //
-  // `TextColumn` clava el final del texto contra el borde de abajo desde un efecto —o sea, después
-  // de pintar— y lo dispara el último carácter revelado. Según dónde caiga ese último tic respecto
-  // del render que dibuja las opciones (que le come a la columna hasta el 60 % de la caja), la
-  // columna puede quedar a mitad de camino: medido acá, dos corridas seguidas del mismo camino
-  // dieron dos scrolls distintos, y una de las dos cortó la última línea al medio. Eso en una foto
-  // del README se lee como un bug de la app, y no lo es.
-  //
-  // Esto no inventa un estado: es EXACTAMENTE la misma línea que corre el componente
-  // (`fin.scrollIntoView({ block: 'end' })`), pedida una vez más cuando ya no se mueve nada. El
-  // punto al que llega es el que ve el jugador cuando aparecen las opciones, y `leerEstado` después
-  // comprueba que la columna quedó efectivamente apoyada en su final.
-  await page.evaluate(() => {
-    document.querySelector('[data-testid="columna-texto"]')?.lastElementChild?.scrollIntoView({ block: 'end' });
-  });
+  // Un cuadro más, para que lo último que se acomodó esté pintado antes de la foto.
   await page.evaluate(() => new Promise((listo) => requestAnimationFrame(() => listo(undefined))));
 }
 
@@ -528,7 +603,15 @@ async function sacarLaFoto(base: string, destino: string, conVentana: boolean): 
     if (!estado.sprite) problemas.push('no está dibujado el recorte del PNJ');
     if (!estado.fondo) problemas.push('no está dibujado el fondo');
     if (estado.opciones === 0) problemas.push('no hay opciones dibujadas');
-    if (!estado.alFinal) problemas.push('la columna de texto no quedó apoyada en su final y la última línea sale cortada');
+    // El texto tiene que entrar ENTERO en la caja. Ver el comentario de `RUTA`: si la columna
+    // scrollea, la foto empieza a mitad de frase y se lee como texto roto.
+    if (estado.desborde !== 0) {
+      problemas.push(
+        `la prosa no entra entera en la caja: se va ${String(estado.desborde)} px por debajo del recorte, ` +
+          `así que la foto arrancaría a mitad de párrafo. Se arregla subiendo ALTO (la caja es el 44 % ` +
+          `de la ventana, así que el ancho no cambia nada) o pasando a la escena que sigue en la lista de RUTA`,
+      );
+    }
     if (errores.length > 0) problemas.push(`la página tiró errores: ${errores.join(' · ')}`);
     if (problemas.length > 0) {
       throw new Error(`La pantalla no es la que hay que fotografiar:\n- ${problemas.join('\n- ')}`);

@@ -12,7 +12,7 @@ Hoy hay una sola campaña, **"El vado de Aldamar"**: 46 escenas, cuatro finales 
 
 Una escena se lee como una novela visual: el arte ocupa la pantalla entera, el personaje con el que estás hablando está parado adentro, y encima van la placa con su nombre, el texto y las opciones. Arriba, el lugar, las heridas, la Fortuna y las condiciones; lo que pasó antes se relee en **Historial**.
 
-![Una escena de "El vado de Aldamar": el puente viejo de noche ocupa toda la pantalla y el Sargento Orell, recortado, está parado en ella; encima del arte van la placa con su nombre, lo que acaba de decir y la lista de opciones, dos de ellas con su tirada, su riesgo y su probabilidad de éxito](docs/captura-escena.png)
+![Una escena de "El vado de Aldamar": la taberna del Ancla Seca ocupa toda la pantalla y el Sargento Orell, recortado, está parado junto a su mesa; encima del arte van la placa con su nombre, la línea que acaba de decir y las cuatro opciones de la escena](docs/captura-escena.png)
 
 La partida se guarda sola en el navegador (no en un servidor): si cambiás de navegador, de máquina, o borrás los datos del sitio, la perdés. Para llevarla con vos, en **Opciones** hay botones para exportar el guardado a un archivo y para importarlo de vuelta.
 
