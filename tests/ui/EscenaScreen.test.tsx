@@ -632,8 +632,12 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     const pantalla = cuerpoDe(css, '.pantalla');
     expect(pantalla, '.pantalla no declara --alto-caja').toMatch(/--alto-caja\s*:\s*44%/);
     expect(cuerpoDe(css, '.caja'), 'la caja no consume el token').toMatch(/height\s*:\s*var\(--alto-caja\)/);
+    // El velo, con el desfase de 6 puntos escrito: la parada densa va 6 puntos POR DEBAJO del
+    // borde de arriba de la caja, para que el degradado ya esté denso cuando llega el filo de
+    // oro. Sin el `+ 6%` el degradado muere justo en el filo y el recorte del sprite se corta
+    // de golpe contra el borde, que es lo que el velo está para evitar.
     expect(cuerpoDe(css, '.velo'), 'la parada densa del velo volvió a ser un número suelto').toMatch(
-      /var\(--alto-caja\)/,
+      /calc\(\s*100%\s*-\s*var\(--alto-caja\)\s*\+\s*6%\s*\)/,
     );
   });
 
@@ -685,7 +689,19 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     // `not.toBeNull()`.
     expect(() => bloqueDeMedia(css, '@media (min-width: 1400px)')).not.toThrow();
     const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
-    expect(cuerpoDe(ancha, '.caja')).toMatch(/flex-direction\s*:\s*row/);
+    // El `;` no es decoración del patrón: sin él, `row-reverse` pasa en verde, y con las
+    // opciones a la izquierda y la prosa a la derecha la pantalla queda dada vuelta sin que
+    // nadie se entere. Es la misma familia que el `\brem\b` que no mordía en la tarea 1.
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto acepta row-reverse: la prosa se iría a la derecha').toMatch(
+      /flex-direction\s*:\s*row\s*;/,
+    );
+    // El aire entre las dos columnas: sin él la prosa y las opciones se tocan.
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto no separa las dos columnas').toMatch(/gap\s*:\s*var\(--esp-6\)/);
+    // Y el pie de la caja, que en el reparto es más corto a propósito: esos 4 px son de las
+    // opciones, y son parte de lo que cierra el §6.1 (ver el comentario de la regla).
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto perdió el pie corto: son 4 px de las opciones').toMatch(
+      /padding-bottom\s*:\s*var\(--esp-3\)/,
+    );
     expect(cuerpoDe(ancha, '.acciones')).toMatch(/max-height\s*:\s*100%/);
 
     // El ancho base lo fija la PROSA y las acciones se quedan con el resto. Al revés —con las
@@ -717,24 +733,39 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
   });
 
   it('la placa viaja con la prosa cuando el contenido se centra', () => {
-    // Si el contenido de la caja se centra y la placa se queda clavada en 48px, la placa nombra
-    // a un texto que arranca 190px más a la derecha. Es peor que el problema que vino a
-    // arreglar. Las dos llevan la MISMA expresión y por eso se mueven juntas.
+    // Si el contenido de la caja se centra y la placa se queda clavada en 48 px, la placa nombra
+    // a un texto que arranca hasta 59,5 px más a la derecha (con el tope de 1184, entre 1280 y
+    // 1400 px de ancho, que es la única banda donde el centrado de la regla base actúa). Es peor
+    // que el problema que vino a arreglar. Las dos llevan la MISMA expresión.
     const caja = cuerpoDe(css, '.caja') ?? '';
     const placa = cuerpoDe(css, '.placa') ?? '';
     const expresion = /max\(\s*var\(--esp-7\)/;
     expect(caja, 'la caja no centra su contenido').toMatch(expresion);
     expect(placa, 'la placa no acompaña al centrado de la caja').toMatch(expresion);
 
-    // Y lo mismo del otro lado del corte: el reparto apaga el centrado —ahí el ancho no sobra,
-    // se lo llevan las dos columnas— y si la placa se quedara con el `max()` de la regla base
-    // arrancaría en 367,5 px mientras la prosa arranca en 48. Medido a 1919x905.
+    // Y "la misma" quiere decir IDÉNTICA, carácter por carácter. Que las dos tengan un `max()`
+    // no alcanza: con 1184 en la caja y 1440 en la placa los dos patrones de arriba pasan en
+    // verde y la placa queda desalineada igual. Esto compara las dos expresiones enteras.
+    const expresionDe = (cuerpo: string, prop: string): string | undefined =>
+      new RegExp(`${prop}\\s*:\\s*(max\\([^;]*)\\s*;`).exec(cuerpo)?.[1]?.replace(/\s+/g, ' ').trim();
+    expect(expresionDe(caja, 'padding-inline'), 'la caja no declara el centrado con max()').toBeDefined();
+    expect(
+      expresionDe(placa, 'left'),
+      'la placa y la caja usan topes distintos: la placa nombra a un texto que arranca en otro lado',
+    ).toBe(expresionDe(caja, 'padding-inline'));
+
+    // Y lo mismo del otro lado del corte: si el reparto cambia el relleno de la caja, la placa
+    // tiene que cambiarlo con ella. Medido a 1919x905: con la placa en el `max()` de la regla
+    // base y la caja en el relleno del reparto, la placa arrancaría en 367,5 y la prosa en 48.
     const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
     const cajaAncha = cuerpoDe(ancha, '.caja') ?? '';
-    if (/padding-inline\s*:/.test(cajaAncha)) {
-      expect(cuerpoDe(ancha, '.placa'), 'la caja cambia su relleno en el reparto y la placa se queda atrás').toMatch(
-        /left\s*:\s*var\(--esp-7\)/,
-      );
+    const placaAncha = cuerpoDe(ancha, '.placa') ?? '';
+    const rellenoAncho = /padding-inline\s*:\s*([^;]+);/.exec(cajaAncha)?.[1]?.trim();
+    if (rellenoAncho !== undefined) {
+      expect(
+        /left\s*:\s*([^;]+);/.exec(placaAncha)?.[1]?.trim(),
+        'la caja cambia su relleno en el reparto y la placa se queda atrás',
+      ).toBe(rellenoAncho);
     }
   });
 
@@ -745,7 +776,10 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     // Alto de verdad, pero con techo: anclado abajo, cada píxel que crecía la ventana se lo
     // comía la caja y la fracción visible quedaba clavada en 47,5 % mientras la cabeza se
     // inflaba (283 px a 1919x905, el 31,3 % del alto de la ventana).
-    expect(sprite).toMatch(/height:\s*min\(80%/);
+    // Con el techo ESCRITO: `min(80%, ...)` a secas deja pasar `min(80%, 99999px)`, que es lo
+    // mismo que no tener techo, y el techo es la mitad del entregable — de él salen el 50,58 %
+    // visible a 1919x905 y el 80,47 % a 2560x1440 que dice el comentario de la regla.
+    expect(sprite).toMatch(/height\s*:\s*min\(\s*80%\s*,\s*680px\s*\)/);
     // Anclado por ARRIBA la fracción visible crece con la ventana en vez de quedarse quieta:
     // 47,5 % a 1280x800 (idéntico a hoy), 50,6 % a 1919x905, 60,4 % a 1080. El 18 % es el
     // mismo que hoy sale implícito de `2% + 80%`.
@@ -802,6 +836,12 @@ describe('EscenaScreen — las proporciones en móvil', () => {
     expect(sprite, '.sprite no tiene una regla propia en el bloque de móvil').not.toBeNull();
     expect(sprite).toMatch(/right\s*:/);
     expect(sprite).toMatch(/left\s*:\s*auto/);
+    // Y el `top: auto`, que no es decorativo: la regla base ancla por ARRIBA, así que sin esto
+    // el caso queda sobre-restringido (`top` + `bottom` + `height`), el navegador descarta el
+    // `bottom` y el recorte del teléfono se va al 18 % — seis puntos más arriba de donde estaba.
+    expect(sprite, 'el sprite de móvil quedó sobre-restringido y se va seis puntos hacia arriba').toMatch(
+      /top\s*:\s*auto/,
+    );
   });
 });
 

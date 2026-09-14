@@ -27,10 +27,19 @@ export function bloqueDeMedia(css: string, media: string): string {
   return css.slice(apertura + 1, fin);
 }
 
-/** Cuerpo de la regla cuyo selector es EXACTAMENTE `selector`, sin comentarios ni espacios. */
+/**
+ * Cuerpo de la regla cuyo selector es EXACTAMENTE `selector`, sin comentarios ni espacios.
+ *
+ * **El cuerpo vuelve sin comentarios**, y eso no es cosmética: en este repo los comentarios citan
+ * el código que reemplazaron ("era `width: 100%`, y con eso…"), así que un `not.toMatch()` contra
+ * el cuerpo crudo falla por el comentario mientras la regla está bien, y —peor— un `toMatch()`
+ * puede pasar en verde contra una declaración que solo existe adentro de un comentario. Las dos
+ * formas de mentir salen de lo mismo, así que se cortan acá y no en cada caso.
+ */
 export function cuerpoDe(css: string, selector: string): string | null {
+  const sinComentarios = (texto: string): string => texto.replace(/\/\*[\s\S]*?\*\//g, '');
   for (const [, sel = '', cuerpo = ''] of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    if (sel.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, '') === selector) return cuerpo;
+    if (sinComentarios(sel).replace(/\s+/g, '') === selector) return sinComentarios(cuerpo);
   }
   return null;
 }

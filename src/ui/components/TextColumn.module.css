@@ -2,7 +2,6 @@
    el body de la tarea 1 está en fuente de UI, por eso se declara acá. */
 .columna {
   display: grid;
-  gap: var(--esp-2);
   /* La medida en `em` y no en px (ver `--ancho-prosa` en tokens.css): con la medida en píxeles
      y la fuente escalando, pedir letra grande ANGOSTABA la columna. Los 720 px eran fijos y los
      glifos crecían 1,5x, así que la línea pasaba de las 81-86 letras medidas a 1280x800 a unas
@@ -15,6 +14,23 @@
   line-height: var(--interlineado-juego);
   /* Un clic acá completa el párrafo en curso del revelado (tarea 9). */
   cursor: pointer;
+}
+
+/* La separación entre entradas va por `margin` y NO por el `gap` de la grilla, y el motivo es el
+   ancla del autoscroll: es un `div` de alto cero, pero la grilla le abre su fila igual y le pone
+   su gutter, así que el `scrollHeight` de la columna sumaba 8 px FANTASMA que no son texto.
+   Medido a 1919x905 con el reparto en dos columnas: la prosa de `a1_taberna` pedía 349,52 px
+   contra los 349,19 que la caja dejaba adentro y desbordaba por 0,33 px — lo justo para que
+   apareciera una barra de scroll de 10 px que además le comía el ancho a la prosa y le partía
+   las 10 líneas en 11. Un lazo entero por un tercio de píxel. Con márgenes, el ancla se exceptúa
+   con una línea y el fantasma desaparece; entre las entradas de verdad la separación es la misma
+   de siempre. */
+.columna > * + * {
+  margin-top: var(--esp-2);
+}
+
+.columna > .ancla {
+  margin-top: 0;
 }
 
 /* El nombre del hablante ya está en la placa, montada sobre el borde de arriba de la caja.

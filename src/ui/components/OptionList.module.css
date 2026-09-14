@@ -4,16 +4,43 @@
    caja es fijo y cada píxel que se llevan las opciones se lo sacan a la lectura. */
 .lista {
   list-style: none;
-  margin: var(--esp-3) 0 0;
+  /* El aire de arriba baja de 12 a 4 px (palanca 3, −8 px): con el reparto en dos columnas la
+     lista ya no arranca debajo de la prosa sino al lado, así que no hay nada de lo que
+     despegarla — lo que hay arriba es el borde de la caja. Y apilada, los 4 px se suman a los
+     que la prosa deja por su cuenta. */
+  margin: var(--esp-1) 0 0;
   padding: 0;
   display: grid;
   gap: var(--esp-1);
 }
 
+/* La fila reparte EN LÍNEA: el rótulo a la izquierda y, al lado, los chips de la tirada con sus
+   probabilidades. Hasta esta oleada el detalle era un bloque que se bajaba a su propio renglón, y
+   eso costaba dos cosas a la vez.
+
+   **El alto, que es el recurso escaso.** Medido a 1919x905 sobre `a1_taberna`: las 7 opciones
+   pedían 475,26 px contra los 353,19 que la caja deja adentro, o sea 122,07 px de déficit — con
+   el reparto en dos columnas y todo, la encrucijada entera NO entraba. Las tres palancas de esta
+   hoja suman 152,9 px y la cierran: los chips en el renglón del rótulo (−58,0), el relleno
+   vertical a la mitad (−56,0) y el interlineado de los tres textos de la fila (−38,9). La
+   alternativa era subir `--alto-caja` al 57,49 %, y eso deshace el otro entregable de la fase:
+   el sprite pasaría de verse el 50,6 % a verse el 31,9 %, peor que antes de empezar.
+
+   **Y el ancho, que sobraba.** A 1919x905 la fila tiene 877 px de texto y la etiqueta más larga
+   de la escena mide 320: bajar los chips a su propio renglón con 550 px libres al lado no es
+   diseño, es desperdicio.
+
+   `flex-wrap: wrap` es lo que los devuelve abajo cuando de verdad no entran —el teléfono, y una
+   columna de acciones angosta—, sin ninguna media query de por medio: el renglón se parte solo. */
 .fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--esp-3);
+  row-gap: var(--esp-1);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  padding: var(--esp-2) var(--esp-3);
+  padding: var(--esp-1) var(--esp-3);
   background: var(--capa-opcion);
 }
 
@@ -51,7 +78,19 @@
   flex-wrap: nowrap;
   align-items: baseline;
   gap: var(--esp-2);
-  width: 100%;
+  /* Era `width: 100%`, y con eso el botón se llevaba el renglón entero y empujaba los chips
+     abajo aunque sobraran 550 px al lado. Ahora pide 18em y crece con lo que quede libre; la
+     base es lo que decide, en cada fila, si los chips entran al lado o se bajan.
+
+     **18em y no menos, y está medido** a 1919x905 sobre `a1_taberna`: con 14em o 16em el botón
+     se queda con 264 px y la etiqueta más larga de la escena —que necesita 320— se parte en dos
+     renglones, y la fila termina midiendo 60,3 px igual que si los chips se hubieran bajado. O
+     sea que apretar la base no compra alto, solo parte rótulos. Con 18em ninguna etiqueta
+     envuelve en ninguna de las cinco medidas, los chips comparten renglón en las filas donde
+     entran y se bajan solos en las que no. Con 22em se bajan de más (la fila 2 pasa de 35,1 a
+     61,2) y la lista entera crece 26 px. */
+  flex: 1 1 18em;
+  min-width: 0;
   font: inherit;
   color: var(--color-texto);
 }
@@ -93,6 +132,10 @@
   min-width: 0;
   font-family: var(--fuente-juego);
   font-size: calc(var(--tam-texto-juego) * 0.9 * var(--escala-fuente));
+  /* El 1,5 del `body` es interlineado de PÁRRAFO y acá no hay párrafos: hay renglones sueltos
+     dentro de una caja de alto fijo. Con 1,3 la etiqueta pasa de 29,0 a 25,1 px de renglón y las
+     siete filas de una encrucijada ahorran 38,9 px entre las tres reglas que lo llevan. */
+  line-height: 1.3;
 }
 
 .badge,
@@ -106,14 +149,15 @@
   color: var(--color-peligroso);
 }
 
+/* Sin `margin-top` y sin la sangría de 2em: las dos existían para alinearlo debajo del rótulo
+   cuando era un renglón aparte, y ahora es un ítem más del renglón del rótulo. */
 .detalle {
   display: flex;
   flex-wrap: wrap;
   gap: var(--esp-1);
-  margin-top: var(--esp-1);
-  padding-left: 2em;
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  line-height: 1.3;
 }
 
 .riesgo,
@@ -135,23 +179,27 @@
   color: var(--color-peligroso);
 }
 
+/* El motivo de una opción bloqueada va en el MISMO renglón que el rótulo que explica, como los
+   chips (palanca 5, −52,1 px sobre `cl_dravos`, la escena de nueve opciones). Es la misma
+   corrección que el §4 del diseño le pide a la creación de personaje: un motivo suelto debajo
+   de lo que bloquea se lee como un error de formulario, y acá además costaba 23 px por fila en
+   la única escena donde el alto no alcanza.
+
+   `flex: 0 1 auto` y no `1 0 100%`: pide lo que mide y se achica si hace falta, así que cuando
+   la columna de acciones es angosta —el teléfono, o el reparto con el contenido centrado— el
+   `wrap` de la fila lo baja solo a su renglón, que es donde tiene que estar ahí. Sin sangría,
+   porque ya no cuelga de nada: está al lado.
+
+   Ojo con `margin` acá: mientras esto pidió el renglón entero (`flex-basis: 100%`), un
+   `margin-left` se sumaba POR FUERA de ese 100 % y la fila desbordaba 32 px a la derecha, lo que
+   disparaba una barra de scroll horizontal en `.acciones` que se comía 10 px de alto — los
+   mismos 10 px que esta oleada está peleando. Medido: `scrollWidth` 948 contra 930. */
 .hint {
-  margin: var(--esp-1) 0 0 2em;
+  flex: 0 1 auto;
+  margin: 0;
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   font-style: italic;
+  line-height: 1.3;
   color: var(--color-texto-suave);
-}
-
-/* Visto a 375×812: la sangría de 2em que alinea el detalle debajo de la etiqueta le saca 26 px
-   de los ~290 que hay, y con eso los chips de una tirada («Presencia +0», «▲ Carta lacrada de
-   Berta», «▲ Situación», el riesgo y las tres probabilidades) pasan de tres renglones a cinco
-   — una sola opción más alta que toda la región de acciones. En un teléfono la alineación
-   vale menos que el renglón. Mismo punto de corte que el resto de la interfaz. */
-@media (max-width: 800px) {
-  .detalle,
-  .hint {
-    padding-left: 0;
-    margin-left: 0;
-  }
 }

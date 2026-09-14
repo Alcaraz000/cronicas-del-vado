@@ -1,6 +1,9 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { cuerpoDe } from '../fixtures/css';
 import type { LogEntry } from '@/engine/types';
 import { TextColumn } from '@/ui/components/TextColumn';
 import type { Revelado } from '@/ui/hooks/useRevelado';
@@ -156,5 +159,35 @@ describe('TextColumn', () => {
     } finally {
       vistos.restaurar();
     }
+  });
+
+  /**
+   * El ancla es un `div` de alto CERO, pero con `display: grid` y `gap` la grilla le abría una
+   * fila igual y le ponía su gutter: el `scrollHeight` de la columna sumaba **8 px fantasma** que
+   * no son texto. Medido a 1919x905 con el reparto en dos columnas: la prosa de `a1_taberna`
+   * pedía 349,52 px contra los 349,19 de interior y desbordaba por **0,33 px** — lo justo para
+   * que el navegador dibujara una barra de scroll de 10 px que además le comía el ancho a la
+   * prosa y le partía las 10 líneas en 11. Un lazo por un tercio de píxel.
+   *
+   * La separación pasa a `margin` justamente para poder exceptuar al ancla. Los dos casos van
+   * juntos: el CSS sin la clase puesta no arregla nada, y la clase puesta sin el CSS tampoco.
+   */
+  it('el ancla del autoscroll no suma un renglón fantasma al alto de la columna', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8');
+    expect(cuerpoDe(css, '.columna'), 'la separación volvió a `gap` y el ancla vuelve a abrir su fila').not.toMatch(
+      /\bgap\s*:/,
+    );
+    expect(cuerpoDe(css, '.columna>*+*'), 'las entradas se quedaron sin separación').toMatch(
+      /margin-top\s*:\s*var\(--esp-2\)/,
+    );
+    expect(cuerpoDe(css, '.columna>.ancla'), 'el ancla no está exceptuada de la separación').toMatch(
+      /margin-top\s*:\s*0/,
+    );
+
+    render(<TextColumn log={log} revelado={revelado({ caracteresVisibles: 1 })} />);
+    expect(
+      screen.getByTestId('columna-texto').lastElementChild?.className,
+      'el ancla no lleva la clase que la exceptúa',
+    ).toBe('ancla');
   });
 });

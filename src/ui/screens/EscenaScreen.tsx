@@ -229,10 +229,11 @@ export function EscenaScreen() {
   // desplazado y lo primero que se pierde es la línea del objetivo, que está arriba de todo y es
   // la que dice contra qué se tiró.
   //
-  // Por qué un `scrollTop = 0` y no confiar en que el panel entre: el tope del 78 % de
-  // `.acciones[data-tirada='true']` se midió a `--escala-fuente` 1, y el panel no escala parejo
-  // —los espaciados son tokens en px fijos (`--esp-*`) y el texto crece con la escala—, así que a
-  // 1,25 y a 1,5 el panel no entra en la región. Poner el scroll en cero no depende de que entre.
+  // Por qué un `scrollTop = 0` y no confiar en que el panel entre: el tope de
+  // `.acciones[data-tirada='true']` —78 % apilado, 100 % arriba de 1400 px— se midió a
+  // `--escala-fuente` 1, y el panel no escala parejo —los espaciados son tokens en px fijos
+  // (`--esp-*`) y el texto crece con la escala—, así que a 1,25 y a 1,5 el panel no entra en la
+  // región en ninguna de las dos formas. Poner el scroll en cero no depende de que entre.
   //
   // (Hasta el escalado de la tarea 1 el que no escalaba eran los DADOS, que medían `3.5rem`. Ya
   // no: siguen a `--tam-ui`. La conclusión no cambió, el motivo sí —medido a 1280x800 sobre
@@ -339,7 +340,9 @@ export function EscenaScreen() {
           <TextColumn log={gs.run.log} revelado={revelado} />
         </div>
         {/* Las acciones son su propia región de la caja, con su propio scroll: ver el comentario
-            largo de `.columna` en el CSS. Mientras el revelado no termina está vacía y mide 0. */}
+            largo de `.columna` en el CSS. Mientras el revelado no termina está vacía y mide 0 de
+            ALTO — pero apilada mide 0 de ancho y repartida (arriba de 1400 px) se lleva su
+            columna igual: el porqué está escrito en la regla `.acciones` del CSS. */}
         <div
           ref={accionesRef}
           className={styles.acciones}
