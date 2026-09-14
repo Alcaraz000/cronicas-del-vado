@@ -62,7 +62,9 @@ Los retratos de hoy son **cuadros 3:4 con fondo pintado**. Pegados sobre la esce
 | `Ficha` | `retrato/` | Lo mismo |
 | `EscenaScreen` | **`sprite/` — nuevo** | Acá el personaje está en la escena |
 
-El tipo `sprite` se deriva de los mismos másteres: BiRefNet produce el PNG con alfa y el post-proceso lo baja a WebP **conservando el canal alfa** (hoy `art/post.mts` solo conserva alfa para `objeto`). Son 20 sprites, unos 1,4 MB, y cargan perezosos como todo lo demás.
+El tipo `sprite` se deriva de los mismos másteres, que **siguen existiendo** en `art/masters/retrato/` (21 carpetas): BiRefNet produce el PNG con alfa y el post-proceso lo baja a WebP **conservando el canal alfa** (hoy `art/post.mts` solo conserva alfa para `objeto`).
+
+**Son ocho sprites, no veinte.** De los 20 retratos, 12 son de jugador y viven solo en la creación de personaje; los que aparecen en una escena son los ocho PNJ: `berta`, `dravos`, `tome`, `mausi`, `pell`, `orell`, `ilse` y `halvar`. Cargan perezosos como todo lo demás.
 
 `validate --assets` tiene que conocer el tipo nuevo y exigir que todo PNJ con retrato tenga su sprite.
 
