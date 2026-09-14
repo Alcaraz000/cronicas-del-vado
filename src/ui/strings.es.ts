@@ -48,7 +48,17 @@ export const S = {
       `${nombre} murió y no vuelve a jugar. Creá otro personaje para seguir.`,
   },
   hub: {
-    titulo: 'Campañas',
+    /**
+     * El encabezado del hub es el NOMBRE DEL JUEGO, no la etiqueta de la sección. Era
+     * 'Campañas' —una etiqueta de panel de configuración— y el nombre del juego no aparecía en
+     * ninguna parte de la pantalla: sólo lo pintaba `InicioScreen`. La etiqueta de sección
+     * sigue existiendo, un nivel más abajo, en `hub.campanas`.
+     *
+     * Sin el " — prototipo" de `S.titulo` a propósito: acá va sobre el arte, como placa de
+     * portada, y el aclarador es cromo de la pantalla de arranque.
+     */
+    titulo: 'Crónicas del Vado',
+    campanas: 'Campañas',
     volver: 'Volver al inicio',
     opciones: 'Opciones',
     personaje: {
@@ -69,6 +79,11 @@ export const S = {
       borrar: (nombre: string): string => `Borrar a ${nombre}`,
       borrarConfirmar: (nombre: string): string =>
         `Borrar a ${nombre} es para siempre: se pierde el personaje y la partida que tenga en curso. ¿Borrarlo?`,
+      /* Título y botón del `Dialogo` que reemplazó al `window.confirm`. El botón se nombra con
+         su verbo y con lo que hace ("para siempre"), no con un "Confirmar" genérico: es la
+         única acción irreversible del hub y no puede leerse igual que aceptar cualquier cosa. */
+      borrarTitulo: 'Borrar el personaje',
+      borrarBoton: 'Borrar para siempre',
     },
     campana: {
       portadaAlt: (titulo: string): string => `Portada de ${titulo}`,
@@ -115,6 +130,11 @@ export const S = {
       exigente:
         'Exigente: estás un nivel por debajo del mínimo. Las tiradas van a salir caras y las heridas se acumulan.',
       seguir: '¿Empezar igual?',
+      /* Título y botón del `Dialogo`. `seguir` sigue siendo la última frase del CUERPO (es la
+         pregunta), y el botón lleva el verbo: un `Dialogo` tiene título, cuerpo y dos botones,
+         mientras que el `window.confirm` que había antes tenía sólo un texto y "Aceptar". */
+      titulo: 'Antes de empezar',
+      empezar: 'Empezar igual',
     },
     confirmarPerderPartida: (titulo: string): string =>
       `Tenés una partida en curso en «${titulo}». Empezar otra campaña la cierra como derrota: conservás la XP de los hitos, pero perdés el final y el canon.`,

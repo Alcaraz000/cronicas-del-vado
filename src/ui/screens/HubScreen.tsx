@@ -13,6 +13,8 @@ import {
 import type { Character } from '@/engine/types';
 import { selectActiveCharacter } from '@/state/selectors';
 import { useStore } from '@/state/store';
+import { existeImagen } from '@/ui/assets';
+import { Dialogo } from '@/ui/components/Dialogo';
 import { Imagen } from '@/ui/components/Imagen';
 import { OpcionesModal } from '@/ui/components/OpcionesModal';
 import { useEnfocarAlEntrar } from '@/ui/hooks/useEnfocarAlEntrar';
@@ -76,6 +78,14 @@ interface TarjetaProps {
   onJugar: (meta: CampaignMeta) => void;
 }
 
+/**
+ * La campaña como tarjeta grande con la imagen dominante, no como fila de catálogo: la
+ * portada ocupa una columna entera a la izquierda y todo lo demás cuelga a su derecha. Es la
+ * forma que tienen los slots de partida del género y la que justifica que el arte exista: el
+ * archivo es de 900×1200 y hasta esta tarea salía a 160×213,33 px, el 17,8 % de su fuente,
+ * por el `max-width: 160px` que `Imagen.module.css` escribió para la creación de personaje.
+ * Quién lo anula, y por qué se puede desde acá, está en `HubScreen.module.css`.
+ */
 function TarjetaCampana({ meta, personaje, totalFinales, enCurso, onJugar }: TarjetaProps) {
   const muerto = personaje !== null && personaje.dead !== undefined;
   const etiqueta: CampaignLabel | null =
@@ -95,60 +105,77 @@ function TarjetaCampana({ meta, personaje, totalFinales, enCurso, onJugar }: Tar
   return (
     <li className={styles.tarjeta}>
       {/* Se busca por el id de la campaña, no por `meta.cover`: ver el comentario de `archivoDe` en `ui/assets`. */}
-      <Imagen tipo="portada" id={meta.id} aspect="3:4" alt={S.hub.campana.portadaAlt(meta.title)} />
-      <h3 className={styles.tituloCampana}>{meta.title}</h3>
+      <div className={styles.portada}>
+        <Imagen tipo="portada" id={meta.id} aspect="3:4" alt={S.hub.campana.portadaAlt(meta.title)} />
+      </div>
 
-      {etiqueta !== null && (
-        <p className={styles.etiqueta} data-etiqueta={etiqueta} data-testid={`etiqueta-${meta.id}`}>
-          <strong className={styles.palabra}>{S.hub.etiqueta[etiqueta]}</strong>{' '}
-          <span className={styles.etiquetaDetalle}>{S.hub.etiquetaDetalle[etiqueta]}</span>
-        </p>
-      )}
-      {veterano !== 0 && (
-        <p className={styles.veterano} data-testid={`veterano-${meta.id}`} title={S.hub.veteranoTitulo}>
-          {S.hub.veterano(veterano)}
-        </p>
-      )}
+      <div className={styles.detalle}>
+        <h3 className={styles.tituloCampana}>{meta.title}</h3>
 
-      <p className={styles.premisa}>{meta.premise}</p>
+        {etiqueta !== null && (
+          <p className={styles.etiqueta} data-etiqueta={etiqueta} data-testid={`etiqueta-${meta.id}`}>
+            <strong className={styles.palabra}>{S.hub.etiqueta[etiqueta]}</strong>{' '}
+            <span className={styles.etiquetaDetalle}>{S.hub.etiquetaDetalle[etiqueta]}</span>
+          </p>
+        )}
+        {veterano !== 0 && (
+          <p className={styles.veterano} data-testid={`veterano-${meta.id}`} title={S.hub.veteranoTitulo}>
+            {S.hub.veterano(veterano)}
+          </p>
+        )}
 
-      <ul className={styles.datos}>
-        <li>{S.hub.campana.nivelSugerido(meta.levelRange)}</li>
-        <li>{S.hub.campana.duracion(meta.durationMin)}</li>
-        <li>{S.hub.campana.tope(tope)}</li>
-        <li>
-          {totalFinales === undefined
-            ? S.hub.campana.finalesSinTotal(vistos)
-            : S.hub.campana.finales(vistos, totalFinales)}
-        </li>
-        <li>{S.hub.campana.partidas(registro?.runs ?? 0)}</li>
-      </ul>
+        <p className={styles.premisa}>{meta.premise}</p>
 
-      {/* La regla de la muerte, alcanzable con el teclado (details) y al pasar el cursor (title). */}
-      <details className={styles.mortales}>
-        <summary title={S.hub.campana.reglaMortal}>
+        <ul className={styles.datos}>
+          <li>{S.hub.campana.nivelSugerido(meta.levelRange)}</li>
+          <li>{S.hub.campana.duracion(meta.durationMin)}</li>
+          <li>{S.hub.campana.tope(tope)}</li>
+          <li>
+            {totalFinales === undefined
+              ? S.hub.campana.finalesSinTotal(vistos)
+              : S.hub.campana.finales(vistos, totalFinales)}
+          </li>
+          <li>{S.hub.campana.partidas(registro?.runs ?? 0)}</li>
+        </ul>
+
+        {/* La regla de la muerte, a la vista. Era un `<details><summary>`: un acordeón nativo es
+            la señal más inequívoca de "panel de configuración", y además escondía justo la
+            regla que decide si el personaje vuelve o no. Con la tarjeta grande hay lugar para
+            decirla entera. Si la campaña no tiene escenas mortales no hay regla que explicar:
+            el chip dice "Sin escenas mortales" y ahí termina. */}
+        <p className={styles.mortales}>
           <span aria-hidden="true">{meta.lethalScenes > 0 ? '☠ ' : ''}</span>
           {S.hub.campana.mortales(meta.lethalScenes)}
-        </summary>
-        <p className={styles.regla}>{S.hub.campana.reglaMortal}</p>
-      </details>
+        </p>
+        {meta.lethalScenes > 0 && <p className={styles.regla}>{S.hub.campana.reglaMortal}</p>}
 
-      {sinJugo && <p className={styles.aviso}>{S.hub.campana.topeAlcanzado}</p>}
-      {enCurso && <p className={styles.aviso}>{S.hub.campana.enCurso}</p>}
+        {sinJugo && <p className={styles.aviso}>{S.hub.campana.topeAlcanzado}</p>}
+        {enCurso && <p className={styles.aviso}>{S.hub.campana.enCurso}</p>}
 
-      <button
-        type="button"
-        className={styles.jugar}
-        data-testid={`jugar-${meta.id}`}
-        disabled={motivo !== null}
-        onClick={() => onJugar(meta)}
-      >
-        {enCurso ? S.hub.campana.continuar : S.hub.campana.comenzar}
-      </button>
-      {motivo !== null && <p className={styles.motivo}>{motivo}</p>}
+        <div className={styles.acciones}>
+          <button
+            type="button"
+            className={styles.jugar}
+            data-testid={`jugar-${meta.id}`}
+            disabled={motivo !== null}
+            onClick={() => onJugar(meta)}
+          >
+            {enCurso ? S.hub.campana.continuar : S.hub.campana.comenzar}
+          </button>
+          {motivo !== null && <p className={styles.motivo}>{motivo}</p>}
+        </div>
+      </div>
     </li>
   );
 }
+
+/**
+ * Lo que está esperando una confirmación. Es una sola variable y no dos banderas porque no
+ * puede haber dos preguntas abiertas a la vez: el `Dialogo` es modal y atrapa el foco.
+ */
+type Pendiente =
+  | { tipo: 'jugar'; campaignId: string; cuerpo: string }
+  | { tipo: 'borrar'; personajeId: string; nombre: string };
 
 export function HubScreen() {
   const characters = useStore((s) => s.characters);
@@ -160,6 +187,7 @@ export function HubScreen() {
   const deleteCharacter = useStore((s) => s.deleteCharacter);
 
   const [opciones, setOpciones] = useState(false);
+  const [pendiente, setPendiente] = useState<Pendiente | null>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
   useEnfocarAlEntrar(titulo);
 
@@ -170,10 +198,26 @@ export function HubScreen() {
   const enCursoEn = (id: string): boolean => activo?.run?.campaignId === id;
 
   /**
+   * Qué portada se pinta a sangre detrás de todo: la de la partida en curso si hay una y, si
+   * no, la de la primera campaña de la lista. La partida en curso primero porque el fondo es
+   * lo que le dice al jugador dónde estaba, sin que ningún texto tenga que decirlo.
+   *
+   * Si esa campaña no tiene arte no se dibuja nada: `Imagen` caería al `Placeholder`, que es
+   * una caja gris con su etiqueta, y a sangre eso no es un fondo sino un error a pantalla
+   * completa. La campaña de humo `prueba` no tiene portada y tiene que seguir jugándose igual.
+   */
+  const destacada = metas.find((m) => enCursoEn(m.id)) ?? metas[0];
+  const fondo = destacada !== undefined && existeImagen('portada', destacada.id) ? destacada : null;
+
+  /**
    * Todo lo que el jugador tiene que saber ANTES de arrancar, en una sola confirmación:
    * el riesgo de la dificultad (Exigente o Mortal) y, si venía jugando otra campaña, que
    * empezar esta la cierra como derrota (es lo que hace `startRun` al llamar a endRun).
    * Nunca bloquea: elegir mal está permitido, elegir a ciegas no.
+   *
+   * Los avisos se unen con un espacio y no con el `\n\n` que llevaban: el `window.confirm` que
+   * había antes respetaba los saltos de línea y el `<p>` del `Dialogo` los colapsa igual. Las
+   * dos frases terminan en punto, así que el cuerpo se lee como un párrafo.
    */
   const jugar = (meta: CampaignMeta): void => {
     if (activo === null || activo.dead !== undefined) return;
@@ -189,7 +233,14 @@ export function HubScreen() {
     if (enCurso !== null) {
       avisos.push(S.hub.confirmarPerderPartida(campaignTitle(enCurso.campaignId)));
     }
-    if (avisos.length > 0 && !window.confirm([...avisos, S.hub.confirmar.seguir].join('\n\n'))) return;
+    if (avisos.length > 0) {
+      setPendiente({
+        tipo: 'jugar',
+        campaignId: meta.id,
+        cuerpo: [...avisos, S.hub.confirmar.seguir].join(' '),
+      });
+      return;
+    }
 
     void startRun(meta.id);
   };
@@ -200,113 +251,172 @@ export function HubScreen() {
    * la ofrece siempre y no solo cuando no queda cupo.
    */
   const borrar = (id: string, nombre: string): void => {
-    if (window.confirm(S.hub.personaje.borrarConfirmar(nombre))) deleteCharacter(id);
+    setPendiente({ tipo: 'borrar', personajeId: id, nombre });
+  };
+
+  const confirmar = (): void => {
+    if (pendiente === null) return;
+    if (pendiente.tipo === 'jugar') void startRun(pendiente.campaignId);
+    else deleteCharacter(pendiente.personajeId);
+    setPendiente(null);
   };
 
   const sinCupo = characters.length >= LIMITS.maxCharacters;
 
   return (
-    <div className={styles.pantalla}>
+    <main className={styles.pantalla}>
+      {/* 1. El arte, a sangre y detrás de TODO. `alt=""` y `aria-hidden` porque es decorativo:
+             la misma portada se dibuja con su nombre dentro de la tarjeta, y anunciarla dos
+             veces sería ruido para un lector de pantalla. */}
+      {fondo !== null && (
+        <div className={styles.fondo} aria-hidden="true">
+          <Imagen tipo="portada" id={fondo.id} aspect="3:4" alt="" />
+        </div>
+      )}
+      <div className={styles.velo} aria-hidden="true" />
+
       <header className={styles.encabezado}>
         <h1 ref={titulo} tabIndex={-1} className={styles.titulo}>
           {S.hub.titulo}
         </h1>
-        <button type="button" className={styles.secundario} onClick={() => setOpciones(true)}>
-          {S.hub.opciones}
-        </button>
-        <button type="button" className={styles.secundario} onClick={() => goTo('inicio')}>
-          {S.hub.volver}
-        </button>
+        <div className={styles.cromo}>
+          <button type="button" className={styles.secundario} onClick={() => setOpciones(true)}>
+            {S.hub.opciones}
+          </button>
+          <button type="button" className={styles.secundario} onClick={() => goTo('inicio')}>
+            {S.hub.volver}
+          </button>
+        </div>
       </header>
 
-      <section className={styles.personaje} aria-labelledby="hub-personaje">
-        <h2 id="hub-personaje" className={styles.subtitulo}>
-          {S.hub.personaje.titulo}
-        </h2>
+      {/* El orden de lectura es el del juego: primero a qué se juega, después con quién. Estaba
+          al revés —el ABM del perfil arriba de las campañas—, que es el orden de un panel de
+          configuración y no el de un menú de juego. */}
+      <div className={styles.contenido}>
+        <section className={styles.seccion} aria-labelledby="hub-campanas">
+          <h2 id="hub-campanas" className={styles.subtitulo}>
+            {S.hub.campanas}
+          </h2>
+          <ul className={styles.grilla} aria-labelledby="hub-campanas">
+            {metas.map((meta) => (
+              <TarjetaCampana
+                key={meta.id}
+                meta={meta}
+                personaje={activo}
+                totalFinales={totales[meta.id]}
+                enCurso={enCursoEn(meta.id)}
+                onJugar={jugar}
+              />
+            ))}
+          </ul>
+        </section>
 
-        {activo === null ? (
-          <p className={styles.suave}>{S.hub.personaje.sinPersonaje}</p>
-        ) : (
-          <>
-            <p className={styles.ficha}>
-              {S.hub.personaje.ficha(activo.name, CLASSES[activo.classId].name, activo.level)}
-            </p>
-            <ul className={styles.atributos}>
-              {ATTRS.map((attr) => (
-                <li key={attr} className={styles.atributo}>
-                  {S.hub.personaje.atributo(ATTR_NAMES[attr], activo.attrs[attr])}
-                </li>
-              ))}
-            </ul>
-            <p className={styles.suave}>
-              {activo.level >= LIMITS.maxLevel
-                ? S.hub.personaje.nivelMaximo(activo.xp)
-                : S.hub.personaje.xp(activo.xp, Math.max(0, xpDelNivel(activo.level + 1) - activo.xp))}
-            </p>
-            {activo.dead !== undefined && <p className={styles.aviso}>{S.hub.personaje.muerto(activo.name)}</p>}
-          </>
-        )}
+        <section className={styles.seccion} aria-labelledby="hub-personaje">
+          <h2 id="hub-personaje" className={styles.subtitulo}>
+            {S.hub.personaje.titulo}
+          </h2>
 
-        {characters.length > 0 && (
-          <>
-            <h3 className={styles.subtitulo}>{S.hub.personaje.todos}</h3>
-            <ul className={styles.otros}>
-              {characters.map((c) => (
-                <li key={c.id} className={styles.fila}>
-                  {c.id === activeCharacterId ? (
-                    <span className={styles.suave}>
-                      {S.hub.personaje.ficha(c.name, CLASSES[c.classId].name, c.level)} · {S.hub.personaje.enJuego}
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className={styles.secundario}
-                      data-testid={`elegir-${c.id}`}
-                      onClick={() => selectCharacter(c.id)}
-                    >
-                      {S.hub.personaje.elegir(c.name, CLASSES[c.classId].name, c.level)}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={styles.secundario}
-                    data-testid={`borrar-${c.id}`}
-                    onClick={() => borrar(c.id, c.name)}
-                  >
-                    {S.hub.personaje.borrar(c.name)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+          <div className={styles.panel}>
+            {activo === null ? (
+              <p className={styles.suave}>{S.hub.personaje.sinPersonaje}</p>
+            ) : (
+              <>
+                <p className={styles.nombre}>
+                  {S.hub.personaje.ficha(activo.name, CLASSES[activo.classId].name, activo.level)}
+                </p>
+                <ul className={styles.atributos}>
+                  {ATTRS.map((attr) => (
+                    <li key={attr} className={styles.atributo}>
+                      {S.hub.personaje.atributo(ATTR_NAMES[attr], activo.attrs[attr])}
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.suave}>
+                  {activo.level >= LIMITS.maxLevel
+                    ? S.hub.personaje.nivelMaximo(activo.xp)
+                    : S.hub.personaje.xp(activo.xp, Math.max(0, xpDelNivel(activo.level + 1) - activo.xp))}
+                </p>
+                {activo.dead !== undefined && <p className={styles.aviso}>{S.hub.personaje.muerto(activo.name)}</p>}
+              </>
+            )}
 
-        <button
-          type="button"
-          className={styles.secundario}
-          data-testid="crear-personaje"
-          disabled={sinCupo}
-          onClick={() => goTo('creacion')}
-        >
-          {characters.length === 0 ? S.hub.personaje.crear : S.hub.personaje.crearOtro}
-        </button>
-        {sinCupo && <p className={styles.suave}>{S.hub.personaje.sinCupo(LIMITS.maxCharacters)}</p>}
-      </section>
+            {characters.length > 0 && (
+              <>
+                <h3 className={styles.subtituloChico}>{S.hub.personaje.todos}</h3>
+                <ul className={styles.otros}>
+                  {characters.map((c) => (
+                    <li key={c.id} className={styles.fila}>
+                      {c.id === activeCharacterId ? (
+                        <span className={styles.enJuego}>
+                          {S.hub.personaje.ficha(c.name, CLASSES[c.classId].name, c.level)} · {S.hub.personaje.enJuego}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.elegir}
+                          data-testid={`elegir-${c.id}`}
+                          onClick={() => selectCharacter(c.id)}
+                        >
+                          {S.hub.personaje.elegir(c.name, CLASSES[c.classId].name, c.level)}
+                        </button>
+                      )}
+                      {/* Borrar es la única acción irreversible de la pantalla y hasta acá era
+                          el MISMO botón que jugar con el personaje, pegado a 8 px. Ahora es
+                          texto al final de la fila, con el rojo de peligro y empujado a la
+                          derecha por `margin-inline-start: auto`: se alcanza igual con el
+                          teclado y ya no se toca con el pulgar por error. */}
+                      <button
+                        type="button"
+                        className={styles.borrar}
+                        data-testid={`borrar-${c.id}`}
+                        onClick={() => borrar(c.id, c.name)}
+                      >
+                        {S.hub.personaje.borrar(c.name)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
 
-      <ul className={styles.grilla}>
-        {metas.map((meta) => (
-          <TarjetaCampana
-            key={meta.id}
-            meta={meta}
-            personaje={activo}
-            totalFinales={totales[meta.id]}
-            enCurso={enCursoEn(meta.id)}
-            onJugar={jugar}
-          />
-        ))}
-      </ul>
+            <button
+              type="button"
+              className={styles.secundario}
+              data-testid="crear-personaje"
+              disabled={sinCupo}
+              onClick={() => goTo('creacion')}
+            >
+              {characters.length === 0 ? S.hub.personaje.crear : S.hub.personaje.crearOtro}
+            </button>
+            {sinCupo && <p className={styles.suave}>{S.hub.personaje.sinCupo(LIMITS.maxCharacters)}</p>}
+          </div>
+        </section>
+      </div>
+
+      {/* Las dos confirmaciones del hub eran los últimos `window.confirm` que quedaban en
+          `src/`: el momento más dramático de la pantalla —arrancar una campaña que te puede
+          matar el personaje— se resolvía con el cuadro gris del sistema operativo mientras el
+          resto del juego usa `Dialogo`. Un solo `Dialogo` para las dos porque son modales y no
+          pueden convivir; el tono es `peligro` en las dos porque las dos pueden costar el
+          personaje. */}
+      <Dialogo
+        titulo={pendiente?.tipo === 'borrar' ? S.hub.personaje.borrarTitulo : S.hub.confirmar.titulo}
+        cuerpo={
+          pendiente === null
+            ? ''
+            : pendiente.tipo === 'borrar'
+              ? S.hub.personaje.borrarConfirmar(pendiente.nombre)
+              : pendiente.cuerpo
+        }
+        confirmar={pendiente?.tipo === 'borrar' ? S.hub.personaje.borrarBoton : S.hub.confirmar.empezar}
+        cancelar={S.comun.cancelar}
+        tono="peligro"
+        abierto={pendiente !== null}
+        onConfirmar={confirmar}
+        onCancelar={() => setPendiente(null)}
+      />
 
       {opciones && <OpcionesModal onCerrar={() => setOpciones(false)} />}
-    </div>
+    </main>
   );
 }

@@ -1,27 +1,188 @@
+/* El hub, rehecho sobre el vocabulario visual de la escena.
+
+   La decisión que lo define es la misma que la de `EscenaScreen.module.css`: **el menú se
+   construye sobre el arte**. La portada va a sangre detrás de todo, oscurecida con las capas que
+   la fase anterior ya había construido (`--capa-arte`, `--capa-caja`, `--capa-densa`), el nombre
+   del juego se apoya encima como placa, y el contenido baja en una columna acotada y CENTRADA
+   sobre la imagen. Es la convención literal del género —el arte es el sujeto y el menú es el
+   subtítulo— y de paso resuelve el problema medido sin inventar relleno: donde había fondo liso
+   hay cuadro.
+
+   Lo que había antes era un formulario, y estaba medido: bajo el encabezado el contenido moría a
+   la izquierda, la portada salía a 160x213,33 px desde un archivo de 900x1200 (el 17,8 % de su
+   fuente), la grilla `auto-fill` ACHICABA la única tarjeta cuanto más grande la pantalla, no se
+   nombraba el juego, y no había en todo el archivo ni un `:hover`, ni una transición, ni una
+   sombra, ni una sola referencia a los tokens de capa.
+
+   Las capas se apilan por `z-index`, igual que en la escena: fondo (0) -> velo (1) -> encabezado
+   y contenido (2). El fondo y el velo son `position: fixed` y no `absolute` porque esta pantalla
+   SÍ scrollea (es una lista, no la escena): con `absolute` el arte se iría con el scroll y
+   dejaría el fondo liso abajo, que es justo lo que se vino a sacar.
+
+   NINGÚN `font-size` de este archivo mide en `rem`. `rem` vale 16 px siempre —el `font-size` del
+   documento vive en `body`, no en `<html>` (ver `tokens.css`)—, así que los `2rem` y `1.3rem` que
+   había acá no seguían ni a la ventana ni a la preferencia de letra grande. Todo se mide ahora
+   contra `--tam-texto-juego` / `--tam-ui`, que son los `clamp()` de la tarea 1. */
+
 .pantalla {
+  /* El ancho de la columna de contenido. En `em` y no en px por lo mismo que `--ancho-prosa`: se
+     resuelve contra el cuerpo de la interfaz —que ya escala con la ventana y con la preferencia
+     del jugador—, así que la cantidad de texto por línea queda constante en cualquier medida.
+     La referencia del género es la columna de diálogo de Ren'Py, 1116 de 1920 px = 58,1 %,
+     centrada; 64em dan 1086,08 px a 1919x905 (56,6 %), que es esa proporción.
+     OJO: el `em` de un custom property se resuelve en el elemento que lo USA, no donde se
+     declara, y por eso `.contenido` lleva `font-size` propio. Es la misma trampa que la tarea 2
+     encontró con `--ancho-prosa`, que se resolvía contra el cuerpo equivocado. */
+  --ancho-hub: 64em;
+  position: relative;
   display: grid;
-  gap: var(--esp-5);
   align-content: start;
+  gap: var(--esp-5);
   min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--esp-5);
+  background: var(--color-fondo);
 }
 
+/* 1. El arte, a sangre: sin margen, sin radio, sin tarjeta. */
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* El marco de `Imagen` trae su `aspect-ratio`, su radio de tarjeta y —esto es lo que importa
+   acá— el `max-width: 160px` que `Imagen.module.css:13-16` le pone a TODO `[data-aspect='3:4']`.
+   Esa regla se escribió para los retratos de la creación de personaje y nadie la pensó para una
+   portada: es la que dejaba el archivo de 900x1200 en 160 px de ancho, igual en un monitor de
+   2560 que en un teléfono.
+
+   Se anula desde afuera, como `EscenaScreen.module.css:80-84` hace con el fondo 16:9 y, sobre
+   todo, como `:173-178` hace con el sprite —que es el MISMO caso, un `[data-aspect='3:4']` al que
+   hay que sacarle este tope—, y por el mismo camino:
+   `data-aspect` es la única marca pública que `Imagen` y `Placeholder` exponen
+   (sus clases van con hash, no hay forma de nombrarlas desde otro módulo). Los TRES selectores
+   encadenados no son adorno: `.marco[data-aspect='3:4']` pesa (0,2,0) y hay que ganarle sin
+   depender del orden de importación, que ningún CSS Module garantiza. (0,3,0) le gana siempre.
+   `background: none` porque el marco pinta el gris del placeholder por debajo mientras la imagen
+   decodifica, y a sangre ese gris es una pantalla entera parpadeando. */
+.pantalla > .fondo > [data-aspect='3:4'] {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: none;
+}
+
+/* 2. El velo. No está para oscurecer la imagen: es lo único que hace legible lo que va encima
+   SIN taparla. Denso arriba (detrás de la placa del título y del cromo), apenas una sombra en la
+   franja donde el arte importa, y denso otra vez abajo para que la página se funda con el fondo
+   al scrollear en vez de cortarse contra el borde. `pointer-events: none` porque cubre la
+   pantalla entera y si no se comería cada clic.
+
+   Todo lo que se LEE va adentro de un panel (`.tarjeta`, `.panel`), que suma su `--capa-caja`
+   encima del velo: contra el peor caso —una portada blanca— eso deja el fondo del panel en
+   rgb(33 31 29), donde `--color-texto` da 12,53:1 y `--color-acento` 6,84:1. Los únicos que
+   quedan afuera son los títulos de sección, y por eso llevan capa propia (ver `.subtitulo`). */
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--capa-cromo) 0%,
+    var(--capa-arte) 30%,
+    var(--capa-arte) 62%,
+    var(--capa-caja) 100%
+  );
+}
+
+/* 3. El encabezado. El título va CENTRADO y como placa, no a la izquierda de una barra con
+   botones a la derecha: esa forma es un encabezado de aplicación, y es exactamente lo que la
+   pantalla dejaba de ser. El cromo (Opciones, Volver) se va a la esquina, que es donde el género
+   lo pone, y por eso el `<header>` es `position: relative` y el cromo `absolute`. */
 .encabezado {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--esp-3);
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  padding-block: var(--esp-6) var(--esp-4);
 }
 
 .titulo {
   margin: 0;
+  padding: var(--esp-2) var(--esp-6);
+  border-block: 1px solid var(--borde-acento);
+  background: var(--capa-densa);
   font-family: var(--fuente-juego);
-  font-size: calc(2rem * var(--escala-fuente));
+  font-size: calc(var(--tam-texto-juego) * 2.4 * var(--escala-fuente));
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-align: center;
   color: var(--color-acento);
 }
 
+.cromo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+/* 4. El contenido: una columna acotada y centrada sobre el arte. El `font-size` propio no es
+   cosmético —es el que hace que `--ancho-hub` y `--ancho-prosa` midan contra el cuerpo correcto
+   (ver la nota de `.pantalla`)— y además ancla el `em` de todos los botones de adentro. */
+.contenido {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--esp-6);
+  width: min(100%, var(--ancho-hub));
+  margin-inline: auto;
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+}
+
+.seccion {
+  display: grid;
+  gap: var(--esp-3);
+}
+
+/* Los títulos de sección medían 15 px: exactamente lo mismo que el cuerpo. Sin jerarquía, todo
+   pesa igual y nada guía la lectura.
+
+   Son el ÚNICO texto de la pantalla que no vive adentro de un panel, así que son los únicos que
+   apoyan contra el arte y nada más. Por eso llevan su propia capa, y no es decoración: es lo que
+   sostiene el contraste contra una portada que no controlamos. La cuenta, hecha contra el peor
+   caso posible —una imagen BLANCA, que es el límite que importa: hoy la única portada que existe
+   es oscura, pero la regla tiene que valer para la que venga—:
+
+     art blanco -> velo (alfa 0,595 a la altura del título) ................ rgb(115 114 112)
+     + esta capa (--capa-cromo, alfa 0,70) ................................. rgb(49 47 44)
+     --color-acento #c9a24a sobre eso ..................................... 5,56:1  ✔ AA
+
+   Sin esta capa, el mismo acento sobre los rgb(115 114 112) del velo solo da **2,00:1**, que no
+   llega ni al 3:1 de texto grande. La `text-shadow` ayuda a despegarlo del detalle de la imagen,
+   pero no es medible y no se le puede confiar el contraste. */
 .subtitulo {
+  justify-self: start;
+  margin: 0;
+  padding: 0.15em 0.7em;
+  border-radius: var(--radio);
+  background: var(--capa-cromo);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * 1.15 * var(--escala-fuente));
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-acento);
+  text-shadow: 0 1px 3px var(--color-fondo);
+}
+
+.subtituloChico {
   margin: 0;
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui) * var(--escala-fuente));
@@ -30,92 +191,79 @@
   color: var(--color-texto-suave);
 }
 
-/* Personaje activo */
+/* Campañas */
 
-.personaje {
-  display: grid;
-  gap: var(--esp-2);
-  justify-items: start;
-  padding: var(--esp-4);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-}
-
-.ficha {
-  font-family: var(--fuente-juego);
-  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
-}
-
-.atributos,
-.otros,
-.datos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.atributos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--esp-2);
-}
-
-.atributo {
-  border-radius: 999px;
-  padding: 0.1em 0.6em;
-  background: var(--color-superficie-alta);
-  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-}
-
-.otros {
-  display: grid;
-  gap: var(--esp-2);
-}
-
-/* Un personaje del perfil: quién es (o el botón para jugar con él) y el de borrarlo. */
-.fila {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--esp-2);
-}
-
-.suave {
-  color: var(--color-texto-suave);
-  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-}
-
-/* Grilla de campañas */
-
+/* `auto-fit` y no `auto-fill`. Los dos se escriben igual y hacen lo contrario cuando sobran
+   columnas: `auto-fill` las deja abiertas y vacías, así que la ÚNICA tarjeta que hay se repartía
+   1/n del ancho y se achicaba cuanto más grande era la pantalla (medido por DOM: 395 px a
+   1280x800, 358,39 a 1919x905, 300 a 2560x1440). `auto-fit` colapsa las columnas vacías y la
+   tarjeta se queda con la columna entera. El tope ya no lo pone la grilla sino `--ancho-hub`,
+   que es donde tiene que estar. */
 .grilla {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--esp-4);
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--esp-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26em), 1fr));
 }
 
+/* La tarjeta con la imagen dominante: la portada ocupa una columna entera y el resto cuelga a su
+   derecha. `minmax(0, ...)` en las dos columnas porque el mínimo de fábrica de una pista de
+   grilla es `auto` (= el contenido) y una premisa larga la desbordaría. */
 .tarjeta {
   display: grid;
-  gap: var(--esp-2);
-  justify-items: start;
-  align-content: start;
-  padding: var(--esp-4);
-  border: 1px solid var(--color-borde);
+  grid-template-columns: minmax(0, 20em) minmax(0, 1fr);
+  gap: var(--esp-5);
+  padding: var(--esp-5);
+  border: 1px solid var(--filo-acento);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--capa-caja);
+  box-shadow: 0 var(--esp-1) var(--esp-4) var(--color-velo);
+  transition:
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out,
+    transform 160ms ease-out;
+}
+
+.tarjeta:hover {
+  border-color: var(--borde-acento);
+  box-shadow: 0 var(--esp-2) var(--esp-6) var(--color-velo);
+  transform: translateY(calc(var(--esp-1) * -1));
+}
+
+.portada {
+  align-self: start;
+}
+
+/* El mismo tope de 160 px de más arriba, anulado acá para la portada de la tarjeta. Tres
+   selectores por lo mismo: hay que ganarle a (0,2,0) sin depender del orden de importación. */
+.tarjeta > .portada > [data-aspect='3:4'] {
+  max-width: none;
+}
+
+.detalle {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-3);
 }
 
 .tituloCampana {
   margin: 0;
   font-family: var(--fuente-juego);
-  font-size: calc(1.3rem * var(--escala-fuente));
+  font-size: calc(var(--tam-texto-juego) * 1.6 * var(--escala-fuente));
+  line-height: 1.2;
+  color: var(--color-acento);
 }
 
+/* La premisa es prosa de la campaña, no una etiqueta de formulario: mide lo mismo que el texto de
+   una escena. Medía `--tam-ui` (15 px de piso), o sea más chica que la prosa que describe.
+   `--ancho-prosa` acota la medida como en `TextColumn`: acá recién muerde arriba de 2560 px de
+   ancho, pero es el tope que evita que en un ultrawide la premisa salga en una sola línea. */
 .premisa {
+  max-width: var(--ancho-prosa);
   font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
   line-height: var(--interlineado-juego);
   color: var(--color-texto);
 }
@@ -124,6 +272,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--esp-1) var(--esp-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
@@ -131,7 +282,31 @@
 .datos li {
   border-radius: 999px;
   padding: 0.1em 0.6em;
-  background: var(--color-superficie-alta);
+  background: var(--capa-opcion);
+}
+
+/* La regla de la muerte, a la vista y no dentro de un `<details>`. Un acordeón nativo es la señal
+   más inequívoca de "panel de configuración", y encima escondía justo la regla que decide si el
+   personaje vuelve o no. */
+.mortales {
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-peligroso);
+}
+
+.regla {
+  max-width: var(--ancho-prosa);
+  border-inline-start: 2px solid var(--filo-acento);
+  padding-inline-start: var(--esp-3);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-texto-suave);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-3);
+  margin-top: var(--esp-2);
 }
 
 /* Dificultad relativa: palabra + explicación + color. La palabra y el texto
@@ -144,6 +319,7 @@
   align-items: baseline;
   border-left: 3px solid currentcolor;
   padding-left: var(--esp-2);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
@@ -176,32 +352,12 @@
 }
 
 .veterano {
+  justify-self: start;
   border-radius: 999px;
   padding: 0.1em 0.6em;
-  background: var(--color-superficie-alta);
+  background: var(--capa-opcion);
   color: var(--color-aviso);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-}
-
-.mortales {
-  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-  color: var(--color-texto-suave);
-}
-
-.mortales summary {
-  cursor: pointer;
-  color: var(--color-peligroso);
-}
-
-.mortales summary:focus-visible {
-  outline: 2px solid var(--color-acento);
-  outline-offset: 2px;
-}
-
-.regla {
-  margin-top: var(--esp-1);
-  max-width: var(--ancho-columna-max);
-  color: var(--color-texto-suave);
 }
 
 .aviso {
@@ -215,30 +371,207 @@
   color: var(--color-texto-suave);
 }
 
-/* Botones */
+/* El personaje, DESPUÉS del juego */
 
-.jugar,
-.secundario {
-  font-family: var(--fuente-ui);
-  padding: 0.6em 1.4em;
+.panel {
+  display: grid;
+  justify-items: start;
+  gap: var(--esp-3);
+  padding: var(--esp-5);
+  border: 1px solid var(--filo-acento);
   border-radius: var(--radio);
-  border: 1px solid var(--color-borde);
-  background: var(--color-superficie-alta);
+  background: var(--capa-caja);
+}
+
+.nombre {
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * 1.2 * var(--escala-fuente));
   color: var(--color-texto);
 }
 
+.atributos,
+.otros {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.atributos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
+}
+
+.atributo {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--capa-opcion);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+}
+
+.otros {
+  display: grid;
+  gap: var(--esp-2);
+  width: 100%;
+}
+
+/* Un personaje del perfil: quién es (o el botón para jugar con él) y, al final de la fila y a la
+   derecha del todo, el de borrarlo. */
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+}
+
+.enJuego {
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  color: var(--color-texto-suave);
+}
+
+.suave {
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-texto-suave);
+}
+
+/* Botones */
+
 .jugar {
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * 1.1 * var(--escala-fuente));
+  letter-spacing: 0.04em;
+  padding: 0.7em 2em;
+  border-radius: var(--radio);
+  border: 1px solid var(--color-acento);
   background: var(--color-acento);
-  border-color: var(--color-acento);
   color: var(--color-fondo);
+  transition:
+    box-shadow 160ms ease-out,
+    background-color 160ms ease-out;
+}
+
+.jugar:hover:not(:disabled) {
+  box-shadow: 0 0 0 var(--esp-1) var(--filo-acento);
 }
 
 .jugar:disabled {
-  background: var(--color-superficie-alta);
+  background: var(--capa-opcion);
   border-color: var(--color-borde);
   color: var(--color-texto-suave);
 }
 
+.secundario,
+.elegir {
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  padding: 0.5em 1.2em;
+  border-radius: var(--radio);
+  border: 1px solid var(--filo-acento);
+  background: var(--capa-cromo);
+  color: var(--color-texto);
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out;
+}
+
+.secundario:hover:not(:disabled),
+.elegir:hover:not(:disabled) {
+  background: var(--capa-opcion);
+  border-color: var(--borde-acento);
+}
+
 .secundario:disabled {
+  border-color: var(--color-borde);
   color: var(--color-texto-suave);
+}
+
+/* Borrar no puede pesar lo mismo que jugar. Eran el MISMO `.secundario`, pegados en un flex con
+   8 px de separación: borrar para siempre se veía idéntico a seleccionar. Ahora es texto —sin
+   relleno de botón primario, sin fondo—, con el rojo de peligro, y `margin-inline-start: auto` lo
+   empuja al otro extremo de la fila. Sigue siendo un `<button>` de verdad, así que el recorrido
+   con teclado no cambia. */
+.borrar {
+  margin-inline-start: auto;
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  padding: 0.35em 0.7em;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  background: none;
+  color: var(--color-peligro-texto);
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out;
+}
+
+.borrar:hover {
+  border-color: var(--color-peligro);
+  background: var(--capa-opcion);
+}
+
+/* El movimiento se apaga si el sistema lo pide, igual que en `Imagen.module.css` y
+   `Dados.module.css`. El cambio de color se queda: no es movimiento, y es lo que contesta que el
+   control está vivo. */
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta,
+  .jugar,
+  .secundario,
+  .elegir,
+  .borrar {
+    transition: none;
+  }
+
+  .tarjeta:hover {
+    transform: none;
+  }
+}
+
+/* Teléfono. La tarjeta apila —con 375 px de ancho no hay dos columnas posibles— y la portada se
+   acota por ALTO, no por ancho: a 375 px una portada 3:4 a todo el ancho mediría 436 px de alto,
+   más de la mitad de la ventana, y empujaría la premisa y el botón fuera de la pantalla. El cromo
+   deja de estar en la esquina porque ahí choca con la placa del título. */
+@media (max-width: 800px) {
+  .pantalla {
+    padding: var(--esp-3);
+  }
+
+  .encabezado {
+    gap: var(--esp-3);
+    padding-block: var(--esp-4) var(--esp-2);
+  }
+
+  .titulo {
+    padding: var(--esp-2) var(--esp-4);
+    font-size: calc(var(--tam-texto-juego) * 1.6 * var(--escala-fuente));
+  }
+
+  .cromo {
+    position: static;
+  }
+
+  .contenido {
+    gap: var(--esp-5);
+  }
+
+  .tarjeta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-4);
+    padding: var(--esp-4);
+  }
+
+  .portada {
+    display: grid;
+    justify-items: center;
+  }
+
+  .tarjeta > .portada > [data-aspect='3:4'] {
+    width: auto;
+    height: 38vh;
+    aspect-ratio: 3 / 4;
+  }
+
+  .panel {
+    padding: var(--esp-4);
+  }
 }
