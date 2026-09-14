@@ -35,6 +35,38 @@ const ID_CUPO = 'creacion-cupo-rasgos';
 /** Lo que falta para poder seguir. Vive en el pie, al lado del botón que bloquea. */
 const ID_PENDIENTE = 'creacion-pendiente';
 
+/**
+ * El arte del fondo de esta pantalla: **la plaza de Aldamar, un 16:9**.
+ *
+ * Es una constante de pantalla y no sale del contenido, porque la creación ocurre ANTES de elegir
+ * campaña: acá no hay `meta.cover` que leer. Se elige por archivo y no se deriva de lo que el
+ * jugador va eligiendo, y eso es un cambio deliberado sobre el primer intento, que ponía el
+ * retrato elegido a sangre detrás de todo. Por qué se tiró:
+ *
+ * - **Repetía el sujeto en vez de acompañarlo.** En los pasos 2, 3 y 4 el retrato ya está adelante
+ *   y grande (242-388 px). El mismo archivo ampliado 2,13x detrás no agrega nada. En el paso 2 era
+ *   peor: la pregunta es "¿cuál de estos tres?" y el fondo ya contestaba uno.
+ * - **Era la cabeza flotante otra vez.** Un 3:4 recortado por el alto es lo que la tarea 2 midió y
+ *   trató como defecto en el sprite de la escena (el commit se llama "el sprite deja de ser una
+ *   cabeza"). A 1919x905 un 3:4 a sangre deja ver el **35,4 %** de arriba del archivo; un 16:9, el
+ *   **83,8 %**.
+ * - **El encuadre cambiaba de carácter con la ventana**: en el teléfono se veía la figura entera y
+ *   en el monitor, media cara.
+ *
+ * Y por qué la plaza y no `puente_viejo.amanecer`, que era el otro candidato:
+ *
+ * 1. **Medido sobre el recorte que se ve a 1919x905**, en la franja donde van los paneles (x 179 a
+ *    1740, y 100 a 800): la plaza da luminancia media **56,5** con desvío 39,5 y p95 138; el puente
+ *    al amanecer, **69,2** con desvío 45,3 y p95 155. El puente concentra su luz —la luna y la
+ *    taberna encendida— justo donde va la columna de contenido; la plaza la tiene en los bordes,
+ *    que es la parte que queda a la vista.
+ * 2. **Es un plano de establecimiento sin sujeto**: no compite con el retrato que está adelante.
+ * 3. `puente_viejo.amanecer` es una **variante** (una re-iluminación, ver `places.ts`) que usa una
+ *    sola escena del prólogo, a la que el jugador llega minutos después de crear el personaje: es
+ *    el mismo "repetir el sujeto", un nivel más arriba.
+ */
+const FONDO = 'aldamar_plaza';
+
 /** Los tres retratos de una clase: `guerrero_01`… `clerigo_03`. */
 function retratosDe(classId: ClassId): string[] {
   return ['01', '02', '03'].map((n) => `${classId}_${n}`);
@@ -63,7 +95,7 @@ function flojoPorDefecto(classId: ClassId): Attr {
  * de las pantallas: el router solo decide cuál se dibuja.
  *
  * **Una pregunta por pantalla, con el arte grande**, sobre el mismo vocabulario visual que el hub
- * y la escena: el retrato a sangre detrás de todo, el velo que lo hace legible sin taparlo, y el
+ * y la escena: el arte a sangre detrás de todo, el velo que lo hace legible sin taparlo, y el
  * contenido en una columna acotada y centrada encima. Antes eran cuatro pasos apretados en una
  * columna de 720 px —la única pantalla del juego con cero reglas `@media`—, que a 1919×905 dejaba
  * 1199 px de margen muerto (62,5 % del ancho) y el 72 % del viewport sin pintar, con los 12
@@ -156,26 +188,16 @@ export function CreacionScreen() {
     }
   }, [classId, flojo, portrait, traits, nombreLimpio, createCharacter, goTo]);
 
-  /**
-   * El arte del fondo es el retrato que el jugador va eligiendo: en el paso 1 todavía no hay
-   * ninguno y la pantalla arranca sobre el fondo liso, y desde que elige clase el retrato de esa
-   * clase (y después el que eligió él) queda a sangre detrás de todo. Es el mismo criterio que el
-   * hub usa con la portada de la campaña, y hace que la pantalla conteste antes de que el jugador
-   * llegue al paso siguiente.
-   *
-   * Si no hay arte para ese id no se dibuja nada: `Imagen` caería al `Placeholder`, que es una
-   * caja gris con su etiqueta, y a sangre eso no es un fondo sino un error a pantalla completa.
-   */
-  const arte = portrait ?? (classId === null ? null : `${classId}_01`);
-  const fondo = arte !== null && existeImagen('retrato', arte) ? arte : null;
-
   const puedeSeguir = motivoBloqueo === null;
 
   return (
     <div className={styles.pantalla}>
-      {fondo !== null && (
+      {/* Si el archivo no estuviera no se dibuja nada: `Imagen` caería al `Placeholder`, que es
+          una caja gris con su etiqueta, y a sangre eso no es un fondo sino un error a pantalla
+          completa. `alt=""` y `aria-hidden` porque es decorativo, igual que en el hub. */}
+      {existeImagen('fondo', FONDO) && (
         <div className={styles.fondo} aria-hidden="true">
-          <Imagen tipo="retrato" id={fondo} aspect="3:4" alt="" />
+          <Imagen tipo="fondo" id={FONDO} aspect="16:9" alt="" />
         </div>
       )}
       <div className={styles.velo} aria-hidden="true" />

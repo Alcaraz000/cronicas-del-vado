@@ -71,14 +71,32 @@ function cuerpoBaseDe(css: string, selector: string): string | null {
   return cuerpoDe(sinBloquesAnidados(css), selector);
 }
 
-/** Las reglas (selector + cuerpo) de una hoja cuyo selector contiene `fragmento`. */
+/**
+ * Las reglas (selector + cuerpo) de una hoja cuyo selector contiene `fragmento`.
+ *
+ * **El cuerpo vuelve sin comentarios**, por lo mismo que `cuerpoDe()` en `tests/fixtures/css.ts`:
+ * en este repo los comentarios citan el código que reemplazaron, así que un `toMatch()` contra el
+ * cuerpo crudo puede pasar en verde contra una declaración que solo existe adentro de un
+ * comentario. Escribí esta función sin ese filtro y el revisor la mutó: comentar la regla que
+ * destopea el retrato —dejando `/* antes: max-width… *\/ opacity: 1;`— dejaba los 25 casos en
+ * verde con el retrato topeado en 160 px otra vez, o sea adentro del caso que escribí justamente
+ * para cerrar ese agujero.
+ */
 function reglasQueTocan(css: string, fragmento: string): { selector: string; cuerpo: string }[] {
+  const sinComentarios = (texto: string): string => texto.replace(/\/\*[\s\S]*?\*\//g, '');
   const reglas: { selector: string; cuerpo: string }[] = [];
   for (const [, sel = '', cuerpo = ''] of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const limpio = sel.replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    if (limpio.includes(fragmento)) reglas.push({ selector: limpio, cuerpo });
+    const limpio = sinComentarios(sel).trim();
+    if (limpio.includes(fragmento)) reglas.push({ selector: limpio, cuerpo: sinComentarios(cuerpo) });
   }
   return reglas;
+}
+
+/** El valor de un `clamp(piso, preferido, techo)` partido en sus tres partes. */
+function partirClamp(valor: string): { piso: string; preferido: string; techo: string } | null {
+  const partes = /clamp\(([^,]+),([^,]+),([^)]+)\)/.exec(valor);
+  if (partes === null) return null;
+  return { piso: partes[1]?.trim() ?? '', preferido: partes[2]?.trim() ?? '', techo: partes[3]?.trim() ?? '' };
 }
 
 /** Llegar al paso 3 (los dos rasgos) con la clase pedida ya elegida. */
@@ -363,12 +381,13 @@ describe('CreacionScreen', () => {
 });
 
 /**
- * Los cuatro bugs medidos en el spec §0.4 y en el diagnóstico de esta fase. No son cosmética: los
- * dos primeros son la causa mecánica de que la pantalla se vea rota (las tarjetas se pisan), el
- * tercero le muestra al jugador el nombre de un archivo, y el cuarto deja a quien juega con teclado
- * sin forma de enterarse de por qué una opción está bloqueada.
+ * Los CINCO bugs medidos —los cuatro del brief más el `all: unset` de `.retrato`, que era el mismo
+ * y estaba latente—. No son cosmética: los dos primeros son la causa mecánica de que la pantalla se
+ * vea rota (las tarjetas se pisan), el siguiente le muestra al jugador el nombre de un archivo, y
+ * el último deja a quien juega con teclado sin forma de enterarse de por qué una opción está
+ * bloqueada.
  */
-describe('CreacionScreen · los cuatro bugs medidos', () => {
+describe('CreacionScreen · los cinco bugs medidos', () => {
   beforeEach(() => {
     localStorage.clear();
     useStore.setState((s) => ({
@@ -383,7 +402,7 @@ describe('CreacionScreen · los cuatro bugs medidos', () => {
   });
 
   it('la tarjeta respeta el box-sizing global y no desborda su celda', () => {
-    // `all: unset` pisa el `*{box-sizing:border-box}` de tokens.css:178-182 y devuelve la tarjeta
+    // `all: unset` pisa el `box-sizing: border-box` global de tokens.css:180-185 y devuelve la tarjeta
     // a content-box. Con `height:100%` + 12px de relleno por lado + 1px de borde, el botón
     // desbordaba su celda 26,0px EXACTOS (12+12+1+1 = 26) y con `gap:12px` se metía 14,0px DENTRO
     // de la tarjeta de la fila siguiente. Medido por DOM en las cuatro medidas de ventana
@@ -539,7 +558,7 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     expect(new Set(colores).size, `dos tipos de mensaje comparten color: ${colores.join(' | ')}`).toBe(tipos.length);
   });
 
-  it('los retratos dejan de estar topeados en los 160 px de Imagen.module.css', () => {
+  it('los retratos dejan de estar topeados en los 160 px de Imagen.module.css', async () => {
     // `Imagen.module.css` le pone `max-width: 160px` a TODO `[data-aspect='3:4']`. Esa regla se
     // escribió acá, para las miniaturas de la creación, y es la que deja los retratos de 900x1200
     // en 160 px en un monitor de 2560. Se anula desde afuera, igual que hace el hub con la
@@ -549,7 +568,9 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     const imagen = readFileSync(resolve(process.cwd(), 'src/ui/components/Imagen.module.css'), 'utf8');
     expect(cuerpoBaseDe(imagen, ".marco[data-aspect='3:4']") ?? '').toMatch(/max-width:\s*160px/);
 
-    const reglas = reglasQueTocan(CSS, "[data-aspect='3:4']");
+    // `[data-aspect` sin cerrar el corchete a propósito: engancha tanto al `[data-aspect='3:4']`
+    // de los cuadros como al `[data-aspect]` pelado del fondo a sangre.
+    const reglas = reglasQueTocan(CSS, '[data-aspect');
     expect(reglas.length, 'la creación no anula el tope de 160 px en ninguna regla').toBeGreaterThan(0);
     for (const { selector, cuerpo } of reglas) {
       const clases = (selector.match(/\.[A-Za-z][\w-]*/g) ?? []).length;
@@ -563,6 +584,75 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     const cap = reglas.find(({ cuerpo }) => cuerpo.includes('--alto-retrato'));
     expect(cap, 'ninguna regla acota el retrato contra --alto-retrato').toBeDefined();
     expect(cap?.cuerpo).toMatch(/max-width:\s*min\(/);
+
+    // Contar clases dice cuánto PESA el selector, no a qué llega. Con `.pantalla .arteQueNoExiste >
+    // [data-aspect='3:4']` este caso quedaba verde igual (mutación del revisor). Se comprueba
+    // contra el DOM de verdad: en el entorno de test los CSS Modules devuelven el nombre pelado de
+    // la clase, así que el selector del archivo se puede correr tal cual sobre lo renderizado.
+    render(<CreacionScreen />);
+    fireEvent.click(screen.getByTestId('clase-clerigo'));
+    avanzar();
+    await screen.findByAltText(S.creacion.retratoEtiqueta('clerigo_01'));
+
+    for (const { selector } of reglas) {
+      expect(
+        document.querySelectorAll(selector).length,
+        `«${selector}» no alcanza a ningún elemento: pesa lo suficiente pero no matchea`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('el arte de fondo es un 16:9 de lugar, no el retrato que se está eligiendo', async () => {
+    // RULING de la revisión. El primer intento ponía a sangre el retrato elegido, y eso: repetía
+    // el sujeto que ya está adelante y grande (en el paso 2 el fondo contestaba la pregunta), y
+    // volvía a ser la cabeza flotante que la tarea 2 midió y trató como defecto en el sprite. A
+    // 1919x905 un 3:4 a sangre deja ver el 35,4 % de arriba del archivo y un 16:9, el 83,8 %.
+    render(<CreacionScreen />);
+    const fondo = document.querySelector('.fondo');
+    expect(fondo, 'la pantalla no dibuja arte de fondo').not.toBeNull();
+    expect(fondo?.firstElementChild?.getAttribute('data-aspect'), 'el fondo a sangre volvió a ser un 3:4').toBe(
+      '16:9',
+    );
+
+    // Y no cambia con lo que el jugador elige: es una constante de pantalla, porque la creación
+    // ocurre antes de elegir campaña y acá no hay `meta.cover` que leer.
+    const antes = (await screen.findByAltText('')).getAttribute('src');
+    fireEvent.click(screen.getByTestId('clase-clerigo'));
+    avanzar();
+    expect((await screen.findByAltText('')).getAttribute('src')).toBe(antes);
+  });
+
+  it('el velo existe y se arma con los tokens de capa', () => {
+    // De él cuelga TODO el contraste de la pantalla: el título del paso, la pregunta y los dos
+    // párrafos del pie se leen contra el arte gracias a él más su capa propia, y la cuenta está
+    // escrita en el archivo. Se podía borrar entero con los 1173 tests en verde.
+    const velo = cuerpoBaseDe(CSS, '.velo') ?? '';
+    expect(velo, '.velo no tiene regla propia').not.toBe('');
+    expect(velo, 'el velo no cubre la pantalla').toMatch(/position:\s*fixed/);
+    expect(velo, 'el velo se comería los clics').toMatch(/pointer-events:\s*none/);
+    expect(velo, 'el velo no es un degradado de las capas de la paleta').toMatch(
+      /linear-gradient\([^)]*var\(--capa-/,
+    );
+
+    // Y se dibuja de verdad, con el arte debajo y el contenido encima.
+    render(<CreacionScreen />);
+    const pantalla = document.querySelector('.pantalla');
+    expect(pantalla?.querySelector('.velo'), 'la pantalla no dibuja el velo').not.toBeNull();
+    expect(pantalla?.querySelector('.fondo'), 'la pantalla no dibuja el arte de fondo').not.toBeNull();
+  });
+
+  it('los dos párrafos del pie llevan capa propia: apoyan contra el arte', () => {
+    // `.pie` no es un panel. Medido sobre el píxel compuesto de una captura a 1919x905 con el arte
+    // reemplazado por blanco puro: con el velo solo, `--color-aviso` daba 3,77:1 y
+    // `--color-peligro-texto` 3,03:1, los dos por debajo de 4,5:1; con `--capa-cromo` encima suben
+    // a 6,36:1 y 5,10:1. La cuenta entera está en el comentario del velo.
+    for (const clase of ['.pendiente', '.error']) {
+      const reglas = reglasQueTocan(CSS, clase).map(({ cuerpo }) => cuerpo);
+      expect(reglas.length, `${clase} no tiene ninguna regla`).toBeGreaterThan(0);
+      expect(reglas.join('\n'), `${clase} apoya contra el arte sin capa propia`).toMatch(
+        /background:\s*var\(--capa-/,
+      );
+    }
   });
 
   it('el tamaño del retrato sigue a la ventana y no son píxeles clavados', () => {
@@ -574,6 +664,23 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     for (const valor of declaraciones) {
       expect(valor, `--alto-retrato: ${valor} no está acotado con clamp()`).toMatch(/clamp\(/);
       expect(valor, `--alto-retrato: ${valor} no sigue a la ventana`).toMatch(/\d(?:\.\d+)?vh\b/);
+
+      // Banda de cordura, como la que la tarea 1 le puso a `--ancho-prosa`: sin ella,
+      // `clamp(1px, 0.1vh, 2px)` pasaba el caso con las tres partes en su lugar y el retrato
+      // reducido a un punto. Los bordes salen de lo que la pantalla puede sostener: por debajo de
+      // 120 px el cuadro es más chico que la miniatura de 160 que esta tarea vino a agrandar, y
+      // por arriba de 900 px no entra en ninguna de las cuatro ventanas que se verifican.
+      const partes = partirClamp(valor);
+      expect(partes, `--alto-retrato: ${valor} no se pudo partir`).not.toBeNull();
+      const piso = Number(/^([\d.]+)px$/.exec(partes?.piso ?? '')?.[1]);
+      const techo = Number(/^([\d.]+)px$/.exec(partes?.techo ?? '')?.[1]);
+      const vh = Number(/^([\d.]+)vh$/.exec(partes?.preferido ?? '')?.[1]);
+      expect(piso, `el piso de ${valor} no es un px pelado`).toBeGreaterThanOrEqual(120);
+      expect(techo, `el techo de ${valor} deja el cuadro fuera de una ventana de 1440`).toBeLessThanOrEqual(900);
+      expect(techo, `el techo de ${valor} está por debajo de su piso`).toBeGreaterThan(piso);
+      // 15vh de 800 son 120 px y 60vh de 905 son 543: fuera de esa banda no hay diseño posible.
+      expect(vh, `${valor} casi no sigue a la ventana`).toBeGreaterThanOrEqual(15);
+      expect(vh, `${valor} se come la ventana entera`).toBeLessThanOrEqual(60);
     }
   });
 
@@ -589,8 +696,15 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     // un bloque sin negar Y que reparta de verdad en dos columnas.
     const anchas = [...CSS.matchAll(/@(media[^{]*min-width[^{]*)\{/g)]
       .map(([, prelusio = '']) => prelusio)
-      .filter((p) => !/\bnot\b/.test(p));
-    expect(anchas.length, 'las reglas de pantalla ancha están negadas o no existen').toBeGreaterThan(0);
+      .filter((p) => !/\bnot\b/.test(p))
+      // Y tampoco vale un umbral que no se alcanza nunca: `@media (min-width: 99999px)` pasaba el
+      // filtro de la negación y no aplica en ninguna pantalla. El techo es 1920, que es el monitor
+      // de Gabriel y la medida con la que se verifica esta fase.
+      .filter((p) => {
+        const px = Number(/min-width:\s*(\d+)px/.exec(p)?.[1]);
+        return Number.isFinite(px) && px >= 600 && px <= 1920;
+      });
+    expect(anchas.length, 'las reglas de pantalla ancha están negadas, no existen o piden un ancho imposible').toBeGreaterThan(0);
 
     // Y lo que tiene que pasar en pantalla ancha es CONCRETO: la identidad (el retrato grande, el
     // nombre, la clase) al lado de la pregunta y no encima. Pedir un `grid-template-columns`
@@ -599,6 +713,15 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     const reparto = anchas.map((p) => bloqueDeMedia(CSS, p)).join('\n');
     expect(reparto, '.conArte no se reparte en dos columnas en ninguna pantalla ancha').toMatch(
       /\.conArte\s*\{[^}]*grid-template-columns/,
+    );
+
+    // El bloque de teléfono tiene que REPETIR el selector con su atributo. Las media queries no
+    // suman especificidad, así que `.tarjetas[data-paso='1']` (0,2,0) le gana a `.tarjetas`
+    // (0,1,0) esté donde esté: sin esa línea, en el teléfono el paso 1 se queda con tarjetas del
+    // ancho del cuadro y el texto en una tira. Es la misma trampa que mordió en la tarea 2 con
+    // `.acciones[data-tirada='true']`, y borrarla dejaba los 1173 tests en verde.
+    expect(telefono, "el bloque de teléfono no repite `.tarjetas[data-paso='1']`, y la regla base no le gana").toMatch(
+      /\.tarjetas\[data-paso='1'\]\s*\{[^}]*grid-template-columns/,
     );
   });
 

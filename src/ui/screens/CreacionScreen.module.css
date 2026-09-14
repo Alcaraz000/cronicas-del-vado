@@ -1,7 +1,7 @@
 /* La creación de personaje, rehecha: una pregunta por pantalla, con el arte grande.
 
    Se construye sobre el mismo vocabulario que `HubScreen.module.css` y `EscenaScreen.module.css`
-   —el retrato a sangre detrás de todo, el velo que lo hace legible sin taparlo, los tokens de capa
+   —el arte a sangre detrás de todo, el velo que lo hace legible sin taparlo, los tokens de capa
    (`--capa-arte`, `--capa-caja`, `--capa-opcion`), el filo de oro— para que las tres pantallas se
    lean como el mismo juego. Las capas se apilan por `z-index`: fondo (0) → velo (1) → cabecera,
    cuerpo y pie (2). Fondo y velo son `position: fixed` y no `absolute` por lo mismo que en el hub:
@@ -11,7 +11,7 @@
    Lo que había antes está medido, y por eso se tiró:
 
    - **Las tarjetas se pisaban entre sí.** El `all: unset` de `.tarjeta` pisa el
-     `box-sizing: border-box` global de `tokens.css:178-182` y devuelve el botón a `content-box`.
+     `box-sizing: border-box` global de `tokens.css:180-185` y devuelve el botón a `content-box`.
      Con `height: 100%`
      más 12 px de relleno por lado y 1 px de borde, el botón medía 26,0 px más que su celda
      (12+12+1+1) y con `gap: 12px` se metía 14,0 px DENTRO de la tarjeta de la fila siguiente.
@@ -38,7 +38,8 @@
      `--ancho-prosa`: se resuelve contra el cuerpo de la interfaz, que ya escala con la ventana y
      con la preferencia del jugador. Es más ancha que la del hub (64em) a propósito: el hub es una
      lista y esta pantalla es una galería de retratos: el paso 1 son cuatro clases una al lado de
-     la otra, y a 64em cada una se quedaría con 258 px. El `font-size` de acá abajo no es
+     la otra, y a 64em cada una se quedaría con 262,5 px a 1919x905 (64em = 1086,0 px con el cuerpo
+     de interfaz en 16,969, menos tres separaciones de 12, dividido cuatro). El `font-size` de acá abajo no es
      cosmético — es el que hace que este `em` mida contra el cuerpo correcto; es la trampa que la
      tarea 2 encontró con `--ancho-prosa`, que se resolvía contra el cuerpo equivocado. */
   --ancho-creacion: 92em;
@@ -61,7 +62,8 @@
   font-size: calc(var(--tam-ui) * var(--escala-fuente));
 }
 
-/* 1. El arte, a sangre: el retrato que el jugador va eligiendo. */
+/* 1. El arte, a sangre: la plaza de Aldamar, un 16:9. Por qué un fondo de lugar y no el retrato
+   que el jugador está eligiendo —que es lo que había acá primero—, en `CreacionScreen.tsx`. */
 .fondo {
   position: fixed;
   inset: 0;
@@ -69,12 +71,18 @@
   overflow: hidden;
 }
 
-/* El tope de 160 px de `Imagen.module.css:13-16`, anulado para la portada a sangre. Los TRES
-   selectores encadenados no son adorno: `.marco[data-aspect='3:4']` pesa (0,2,0) y hay que ganarle
-   sin depender del orden de importación, que ningún CSS Module garantiza. (0,3,0) gana siempre.
+/* Se selecciona `[data-aspect]` sin valor, igual que `HubScreen.module.css:74`: de acá cuelga un
+   16:9, pero el selector no tiene por qué saberlo y así no se rompe en silencio si el archivo
+   cambia de forma.
+
+   Lo que anula es el `max-width: 160px` que `Imagen.module.css:13-16` le pone a todo
+   `[data-aspect='3:4']` —una regla escrita para las miniaturas de esta misma pantalla— más el
+   `aspect-ratio` y el radio de tarjeta que el marco trae. Los TRES selectores encadenados no son
+   adorno: `.marco[data-aspect='3:4']` pesa (0,2,0) y hay que ganarle sin depender del orden de
+   importación, que ningún CSS Module garantiza. (0,3,0) gana siempre.
    `background: none` porque el marco pinta el gris del placeholder mientras la imagen decodifica,
    y a sangre ese gris es una pantalla entera parpadeando. */
-.pantalla > .fondo > [data-aspect='3:4'] {
+.pantalla > .fondo > [data-aspect] {
   width: 100%;
   height: 100%;
   max-width: none;
@@ -86,9 +94,26 @@
 /* 2. El velo. Mismo degradado que el del hub, y por el mismo motivo: no está para oscurecer la
    imagen sino para que lo de encima se lea SIN taparla. Todo lo que se LEE en esta pantalla vive
    adentro de un panel (`.tarjeta`, `.retrato`, `.escenario`, `.respuesta`, `.columna`, `.campo`),
-   que suma su `--capa-caja` encima del velo; los dos únicos textos que apoyan contra el arte
-   —el título del paso y la pregunta— llevan capa propia, igual que `HubScreen.module.css:158-170`,
-   donde está hecha la cuenta de contraste contra el peor caso (una imagen blanca). */
+   que suma su `--capa-caja` encima del velo. Los que NO van adentro de un panel son CUATRO y no
+   dos —el título del paso, la pregunta, lo que falta para seguir y el error de creación; los dos
+   últimos viven en el pie, que no tiene fondo— y los cuatro llevan capa propia, igual que
+   `HubScreen.module.css:172-187`, donde está hecha la cuenta de contraste contra el peor caso.
+
+   La cuenta acá, con el mismo peor caso que el hub (arte **blanco**, porque la regla tiene que
+   valer para el archivo que venga) pero NO calculada: medida sobre el píxel ya compuesto de una
+   captura a 1919x905, con el arte del fondo reemplazado por blanco puro. El punto es el medio de
+   `.pendiente`, que cae en el 90,4 % del alto de la ventana (el párrafo va de 802,7 a 833,2):
+
+     arte blanco -> solo el velo ......................................... rgb(71 70 67)
+       --color-aviso #d19a3a sobre eso ................................... 3,77:1  ✘
+       --color-peligro-texto #e96b60 sobre eso ........................... 3,03:1  ✘
+     + capa propia (--capa-cromo) ........................................ rgb(35 34 31)
+       --color-aviso ..................................................... 6,36:1  ✔ AA
+       --color-peligro-texto ............................................. 5,10:1  ✔ AA
+
+   Sin esa capa los dos párrafos del pie quedaban por debajo de 4,5:1 contra una imagen clara, y
+   son justo los que dicen por qué no se puede seguir. Se ven en los pasos 2 y 3, que ya tienen
+   arte detrás. */
 .velo {
   position: fixed;
   inset: 0;
@@ -444,15 +469,25 @@
   color: var(--color-peligro-texto);
 }
 
-.pendiente {
+/* Los dos viven en el pie, que no es un panel: apoyan directo contra el arte. La capa propia es lo
+   que los sostiene arriba de 4,5:1 contra una imagen clara — la cuenta está en el comentario del
+   velo, más arriba. Es la misma solución que `HubScreen.module.css` le da a sus títulos de sección
+   por el mismo motivo. */
+.pendiente,
+.error {
+  justify-self: start;
+  border-radius: var(--radio);
+  padding: 0.15em 0.7em;
+  background: var(--capa-cromo);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui) * var(--escala-fuente));
+}
+
+.pendiente {
   color: var(--color-aviso);
 }
 
 .error {
-  font-family: var(--fuente-ui);
-  font-size: calc(var(--tam-ui) * var(--escala-fuente));
   color: var(--color-peligro-texto);
 }
 
@@ -647,7 +682,9 @@
 
 /* 10. Pantalla ancha: la identidad al lado de la pregunta, no encima.
    Desde 1000 px hay lugar para las dos columnas sin que ninguna quede angosta: con la columna de
-   identidad en 22em, a 1280 le quedan ~870 px a las tarjetas de rasgo, o sea tres por fila. */
+   identidad en 260 px —el ancho del cuadro más su relleno, ver más abajo—, a 1280x800 le quedan
+   948 px a la columna de la pregunta (916 de contenido, descontando el relleno del panel), o sea
+   cuatro tarjetas de rasgo por fila, que es lo mismo que dice el comentario de `.tarjetas`. */
 @media (min-width: 1000px) {
   /* La columna de identidad mide lo que mide el cuadro más su relleno, por lo mismo que las
      tarjetas de clase: si la pista es más ancha, el retrato queda flotando en el medio del panel
@@ -665,8 +702,11 @@
 
 /* El campo del nombre va al lado de la galería en vez de abajo. No es cosmético: apilado, el paso
    2 scrolleaba 128 px a 1280×800 (medido), porque los tres retratos a 42vh más el campo no entran
-   uno debajo del otro. Desde 1100 px la galería se queda con ~848 px —tres retratos de 252 px y
-   sus separaciones— y el campo con los 24em de la derecha. */
+   uno debajo del otro. Repartido, a 1280x800 la galería se queda con 848 px —tres retratos de
+   252 px y sus separaciones— y el campo con los 24em (360 px) de la derecha. En el borde mismo del
+   salto, a 1100x800, a la galería le quedan 668: los tres retratos NO se van a otra fila, se
+   achican solos a 188 px de cuadro, que es para lo que las pistas son `1fr` y el tope vive en la
+   tarjeta. */
 @media (min-width: 1100px) {
   .galeriaYNombre {
     grid-template-columns: minmax(0, 1fr) minmax(0, 24em);
