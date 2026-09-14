@@ -73,9 +73,26 @@
   --fuente-juego: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
   --fuente-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --fuente-mono: ui-monospace, Consolas, 'Courier New', monospace;
-  --tam-texto-juego: 19px;
-  --tam-ui: 15px;
-  --tam-ui-chico: 13px;
+  /* El piso es el valor de hoy a 800 px de alto (19/800 = 2,375vh), así que a 1280x800 los tres
+     cuerpos de texto no se mueven ni un píxel y las mediciones asentadas en comentarios siguen
+     siendo ciertas donde se tomaron. Verificado por DOM sobre `a1_taberna`: diálogo 19 px,
+     placa 24,7 px (el 1,3x de EscenaScreen), cromo 13 px — los mismos de antes. A 1919x905 dan
+     21,49 / 27,94 / 14,71. OJO: por abajo de 800 px de alto el piso manda y el texto NO se
+     achica; el que sí crece es cualquier ventana más alta, teléfono incluido (a 375x812 el
+     diálogo da 19,29 px, así que las medidas del bloque de teléfono de EscenaScreen quedaron
+     corridas un 1,5 %).
+     `vh` y no `vw` porque toda la geometría de la escena sale del ALTO (caja 44 %, sprite 80 %,
+     acciones 60 %): con `vw`, un ultrawide 2560x1080 inflaría la letra sin dar una línea más de
+     caja. Los techos están en 1,32x / 1,27x / 1,23x el piso, bien abajo del 2,5x a partir del
+     cual el texto pega un tirón en el medio del rango; se tocan a 1053 / 1013 / 985 px de alto
+     de ventana, o sea recién arriba de un 1080p a pantalla completa.
+     La preferencia del jugador multiplica POR FUERA del clamp (los módulos hacen
+     `calc(var(--tam-...) * var(--escala-fuente))`), así que pedir 150 % siempre agranda de
+     verdad: meter la escala adentro del clamp la anularía arriba del techo, que es fallo de
+     accesibilidad. */
+  --tam-texto-juego: clamp(19px, 2.375vh, 25px);
+  --tam-ui: clamp(15px, 1.875vh, 19px);
+  --tam-ui-chico: clamp(13px, 1.625vh, 16px);
   --interlineado-juego: 1.6;
   --escala-fuente: 1; /* prefs.fontScale: 1, 1.25 o 1.5 (la UI lo escribe en <html>) */
 
@@ -89,6 +106,24 @@
   --esp-7: 48px;
   --radio: 6px;
   --ancho-columna-max: 720px;
+
+  /* La medida de la prosa de la escena, en `em` y no en px. `em` se resuelve contra el
+     `font-size` del propio elemento, que ya es `calc(--tam-texto-juego * --escala-fuente)`, así
+     que los caracteres por línea quedan constantes a cualquier escala. 38em es la traducción a
+     `em` de los 720 px de hoy (720/19 = 37,9em), redondeada: a escala 1 mide 722 px, 2 px más
+     que antes.
+     OJO con la medida en caracteres, que estaba mal contada en el spec. Medido en el navegador
+     sobre `a1_taberna` a 1280x800 (Range.getClientRects sobre el texto real, no una estimación):
+     una línea llena lleva 82-85 caracteres, no 76 — la prosa de la campaña en Georgia 19px sale
+     a 8,25-8,36 px por carácter. O sea que esta medida ya estaba arriba del <= 80 de WCAG 1.4.8
+     desde los 720 px, y sigue estándolo: para bajar a 80 habría que ir a 34,7em, y a los ~67 de
+     la caja ADV de Ren'Py, a 29em. Se deja en 38em porque es la medida de hoy pasada a `em` —el
+     objetivo de esta tarea es que NO se mueva a 1280x800—; angostarla es una decisión de diseño
+     aparte, con su medición y su ojo.
+     Es un token APARTE de `--ancho-columna-max`, que es px y lo consumen `Cajon`, `Dialogo`,
+     `OpcionesModal`, `CreacionScreen`, `FinScreen` (dos reglas) y `HubScreen`: tocar aquel
+     mueve seis pantallas que no tienen nada que ver con la prosa de la escena. */
+  --ancho-prosa: 38em;
 }
 
 /* Respaldo de las capas para un navegador sin `color-mix()` (pide Chrome 111 / Safari 16.2 /

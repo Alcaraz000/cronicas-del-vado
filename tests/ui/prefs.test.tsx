@@ -104,4 +104,19 @@ describe('usePrefsCss', () => {
 
     expect(sinEscala).toEqual([]);
   });
+
+  it('el dado sigue la escala de fuente como todo lo demás', () => {
+    // `usePrefsCss` escribe --escala-fuente en <html> pero `tokens.css` pone el font-size en
+    // `body`, así que `rem` vale 16px SIEMPRE: el dado medía 56px con escala 1, con 1,25 y con
+    // 1,5. El barrido de font-size no lo agarra porque son `width`/`height`.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/Dados.module.css'), 'utf8');
+    const dado = /\.dado\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(dado, '.dado no tiene regla propia').not.toBe('');
+    // El patrón pide el dígito pegado a `rem` a propósito: `\brem\b` NO muerde contra `3.5rem`
+    // (entre el `5` y la `r` no hay frontera de palabra, las dos son letra-o-dígito), y sin el
+    // dígito la regla a medio arreglar —`calc(3.5rem * var(--escala-fuente))`, que sigue sin
+    // escalar con la ventana— pasaba las tres aserciones de este caso. Probado rompiéndolo.
+    expect(dado, 'el dado sigue midiendo en rem, que no escala').not.toMatch(/\d(?:\.\d+)?rem\b/);
+    expect(dado).toContain('--escala-fuente');
+  });
 });
