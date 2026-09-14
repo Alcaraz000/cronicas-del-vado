@@ -9,47 +9,26 @@ import type { Character } from '@/engine/types';
 import { useStore, type Store } from '@/state/store';
 import { HubScreen } from '@/ui/screens/HubScreen';
 import { S } from '@/ui/strings.es';
-import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
+import { bloqueDeMedia, cuerpoBaseDe, cuerpoDe, reglasPara } from '../fixtures/css';
 import { makeCharacter, makeRun } from '../fixtures/state';
 
 const css = (): string => readFileSync(resolve(process.cwd(), 'src/ui/screens/HubScreen.module.css'), 'utf8');
 
 /**
- * La hoja HASTA el primer `@media`, que es donde viven las reglas de base.
+ * El cuerpo de la regla BASE de un selector, que es donde vive lo que estos casos fijan.
  *
- * `cuerpoDe` devuelve el cuerpo de la PRIMERA regla cuyo selector coincide, y varios selectores
- * de este archivo aparecen dos veces: una en la base y otra adentro de un `@media` que la
- * redefine (`.tarjeta`, `.panel`, `.tarjeta>.portada>[data-aspect='3:4']`, `.tarjeta:hover`).
- * Buscar sobre el archivo entero hace que un caso pueda pasar en verde contra la regla del
- * teléfono o contra la de `prefers-reduced-motion`: probado, borrar `.tarjeta:hover` de la base
- * dejaba los 24 casos en verde porque `cuerpoDe` encontraba el `.tarjeta:hover` del bloque de
- * movimiento reducido. Cortar acá es lo que hace que estas aserciones muerdan.
+ * Va por `cuerpoBaseDe` (del fixture) y no por `cuerpoDe` a secas porque varios selectores de
+ * este archivo aparecen dos veces: una en la base y otra adentro de un `@media` que la redefine
+ * (`.tarjeta`, `.panel`, `.tarjeta>.portada>[data-aspect='3:4']`, `.tarjeta:hover`). Con la
+ * búsqueda plana, borrar `.tarjeta:hover` de la base dejaba los 24 casos en verde porque
+ * `cuerpoDe` encontraba el `.tarjeta:hover` del bloque de movimiento reducido.
  *
- * Corta por el texto `@media` **en cualquier parte**, comentarios incluidos: si algún día un
- * comentario de la cabecera lo nombra, esto se queda corto. No es silencioso —se lleva reglas
- * puestas y los casos caen en rojo, no en verde—, así que alcanza con saberlo.
+ * Hasta el cierre de la fase esto era un `css().split('@media')[0]` local, y tenía tres agujeros
+ * que el fixture ya no tiene: cortaba por el texto `@media` en cualquier parte (comentarios
+ * incluidos), tiraba todo lo que viniera después del primer `@media` —así que una regla base al
+ * final del archivo quedaba invisible— y no veía ni `@supports` ni `@layer`.
  */
-const cssBase = (): string => css().split('@media')[0] ?? '';
-
-/**
- * Los cuerpos de TODAS las reglas de `bloque` cuyo selector incluye a `selector` como una de sus
- * partes separadas por coma.
- *
- * `cuerpoDe` pide el selector entero y acá hace falta lo contrario: adentro del bloque de
- * movimiento reducido las cinco clases comparten una sola regla (`.tarjeta, .jugar, …`), así que
- * preguntar por `.tarjeta` sola con `cuerpoDe` devuelve `null` y preguntar por el bloque entero
- * con un `toMatch` es ciego a qué selector recibe la declaración — que es justo el agujero que
- * este helper cierra.
- */
-function reglasPara(bloque: string, selector: string): string[] {
-  const sinComentariosCss = (texto: string): string => texto.replace(/\/\*[\s\S]*?\*\//g, '');
-  const cuerpos: string[] = [];
-  for (const [, sel = '', cuerpo = ''] of bloque.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const partes = sinComentariosCss(sel).replace(/\s+/g, '').split(',');
-    if (partes.includes(selector)) cuerpos.push(sinComentariosCss(cuerpo));
-  }
-  return cuerpos;
-}
+const reglaBase = (selector: string): string | null => cuerpoBaseDe(css(), selector);
 const fuente = (): string => readFileSync(resolve(process.cwd(), 'src/ui/screens/HubScreen.tsx'), 'utf8');
 
 /** El fuente sin comentarios: `window.confirm` se sigue NOMBRANDO en los comentarios del repo. */
@@ -473,7 +452,7 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // pesa (0,2,0), así que con dos no alcanza y el resultado dependería del orden de
     // importación, que ningún CSS Module garantiza.
     for (const selector of ['.pantalla>.fondo>[data-aspect]', ".tarjeta>.portada>[data-aspect='3:4']"]) {
-      const regla = cuerpoDe(cssBase(), selector);
+      const regla = reglaBase(selector);
       expect(regla, `no hay regla ${selector}`).not.toBeNull();
       expect(regla ?? '', `${selector} no anula el tope de 160px de Imagen.module.css`).toMatch(
         /max-width\s*:\s*none/,
@@ -490,7 +469,7 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // `minmax(300px, 1fr)`, pasaba en verde. Se pide la forma completa. El `min(100%, …)` es la
     // parte que evita que en un teléfono la pista pedida (26em) sea más ancha que la pantalla y
     // la tarjeta se desborde.
-    const grilla = cuerpoDe(cssBase(), '.grilla');
+    const grilla = reglaBase('.grilla');
     expect(grilla, 'no hay regla .grilla').not.toBeNull();
     expect(grilla ?? '', 'la grilla sigue en auto-fill').not.toMatch(/auto-fill/);
     expect(grilla ?? '', 'la grilla no reparte con auto-fit').toMatch(
@@ -514,11 +493,11 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     //     seguiría ni a la ventana ni a la preferencia de letra grande: es el mismo bug que la
     //     tarea 1 arregló en el dado.
     for (const selector of ['.fondo', '.velo']) {
-      expect(cuerpoDe(cssBase(), selector) ?? '', `${selector} se iría con el scroll`).toMatch(
+      expect(reglaBase(selector) ?? '', `${selector} se iría con el scroll`).toMatch(
         /position\s*:\s*fixed/,
       );
     }
-    const titulo = cuerpoDe(cssBase(), '.titulo') ?? '';
+    const titulo = reglaBase('.titulo') ?? '';
     expect(titulo, 'no hay regla .titulo').not.toBe('');
     expect(titulo, 'el nombre del juego no escala con la ventana').toMatch(
       /font-size:[^;]*var\(--tam-texto-juego\)/,
@@ -532,7 +511,7 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // 121,5 a 960x905 (media pantalla en el monitor de Gabriel), 51,5 a 1100x905 y 36,1 a
     // 1280x1200. Una media query de ancho NO lo arregla —a 1280 de ancho solapa o no según el
     // alto—, así que lo que se fija es que el cromo esté en el flujo.
-    const cromo = cuerpoDe(cssBase(), '.cromo') ?? '';
+    const cromo = reglaBase('.cromo') ?? '';
     expect(cromo, 'no hay regla .cromo').not.toBe('');
     expect(cromo, 'el cromo volvió a salirse del flujo').not.toMatch(
       /position\s*:\s*(absolute|fixed)/,
@@ -563,20 +542,20 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // capa a la tarjeta dejaba los casos en verde porque el panel de personajes todavía la
     // tenía. Probado mutándolo.
     for (const selector of ['.tarjeta', '.panel']) {
-      const regla = cuerpoDe(cssBase(), selector) ?? '';
+      const regla = reglaBase(selector) ?? '';
       expect(regla, `no hay regla ${selector}`).not.toBe('');
       expect(regla, `${selector} no se apoya en el arte`).toContain('var(--capa-caja)');
       expect(regla, `${selector} no lleva el filo de oro`).toContain('var(--filo-acento)');
     }
     // Y el velo, que es lo que hace legible el texto sobre una imagen que no controlamos.
-    const velo = cuerpoDe(cssBase(), '.velo') ?? '';
+    const velo = reglaBase('.velo') ?? '';
     expect(velo, 'el velo no usa las capas del vocabulario').toMatch(/var\(--capa-(arte|caja|cromo)\)/);
     // El título de sección es el ÚNICO texto que no vive adentro de un panel, así que apoya
     // contra el arte y nada más, y su capa propia es lo que sostiene el contraste: calculado
     // contra el peor caso (una portada BLANCA), `--color-acento` sobre el velo da 2,00:1 —no
     // llega ni al 3:1 de texto grande— y con esta capa encima, 5,56:1. Sin este caso, borrar la
     // línea no rompía nada y el §4 del informe quedaba sin nada que lo sostenga.
-    const subtitulo = cuerpoDe(cssBase(), '.subtitulo') ?? '';
+    const subtitulo = reglaBase('.subtitulo') ?? '';
     expect(subtitulo, 'el título de sección se quedó apoyado contra el arte pelado').toContain(
       'var(--capa-cromo)',
     );
@@ -589,9 +568,9 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // De nuevo regla por regla: `toMatch(/:hover/)` contra el archivo entero no muerde, porque
     // con sacarle el `:hover` a la tarjeta quedaban los de los botones y pasaba igual.
     for (const selector of ['.tarjeta:hover', '.borrar:hover']) {
-      expect(cuerpoDe(cssBase(), selector), `${selector} no existe`).not.toBeNull();
+      expect(reglaBase(selector), `${selector} no existe`).not.toBeNull();
     }
-    expect(cuerpoDe(cssBase(), '.tarjeta') ?? '', 'la tarjeta cambia de golpe').toMatch(/transition\s*:/);
+    expect(reglaBase('.tarjeta') ?? '', 'la tarjeta cambia de golpe').toMatch(/transition\s*:/);
     // La transición respeta la preferencia del sistema, como `Imagen.module.css` y
     // `Dados.module.css`. Se lee el bloque `@media` contando llaves (`bloqueDeMedia`) y no
     // cortando en la primera `}`: adentro hay más de una regla.
@@ -683,14 +662,14 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // Los títulos de sección medían 15 px, lo mismo que el cuerpo, y la premisa (91 palabras)
     // salía a 15 px: más chica que la prosa de una escena, que mide --tam-texto-juego (19 px
     // de piso). Sin jerarquía, todo pesa igual y nada guía la lectura.
-    const premisa = cuerpoDe(cssBase(), '.premisa') ?? '';
+    const premisa = reglaBase('.premisa') ?? '';
     expect(premisa, 'no hay regla .premisa').not.toBe('');
     expect(premisa, 'la premisa no se mide contra el cuerpo de la prosa').toMatch(
       /font-size:[^;]*var\(--tam-texto-juego\)/,
     );
     // Y el título de la campaña, por encima de la premisa. `\(` a propósito: `--tam-ui-chico`
     // contiene a `--tam-ui` como prefijo y sin el paréntesis la aserción no distingue.
-    const titulo = cuerpoDe(cssBase(), '.tituloCampana') ?? '';
+    const titulo = reglaBase('.tituloCampana') ?? '';
     expect(titulo, 'el título de la campaña no escala con la ventana').toMatch(
       /font-size:[^;]*var\(--tam-texto-juego\)/,
     );

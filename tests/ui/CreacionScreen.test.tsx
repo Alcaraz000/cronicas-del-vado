@@ -7,7 +7,7 @@ import { CreacionScreen } from '@/ui/screens/CreacionScreen';
 import { useStore } from '@/state/store';
 import { CLASSES, TRAITS } from '@/content/catalog';
 import { S } from '@/ui/strings.es';
-import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
+import { bloqueDeMedia, cuerpoBaseDe, reglasQueTocan } from '../fixtures/css';
 import type { CreateCharacterInput } from '@/state/store';
 
 /**
@@ -32,65 +32,12 @@ function avanzar(): void {
 const CSS = readFileSync(resolve(process.cwd(), 'src/ui/screens/CreacionScreen.module.css'), 'utf8');
 
 /**
- * Cuerpo de la regla BASE de un selector: la que está en el nivel de arriba del archivo, fuera de
- * todo `@media`.
- *
- * `cuerpoDe()` devuelve la PRIMERA regla cuyo selector coincide, y su regex no distingue niveles:
- * una regla escrita adentro de un `@media` coincide igual. Con eso, un `toMatch()` sobre `.tarjeta`
- * puede pasar en verde contra la versión de teléfono mientras la base dice otra cosa —y al revés—.
- * Es la cuarta forma de test que no muerde que aparece en esta fase (las otras tres: `/\brem\b/`
- * contra `3.5rem`, `/flex-direction:\s*row/` contra `row-reverse`, y el cuerpo con comentarios
- * adentro). Se corta acá borrando los bloques anidados antes de buscar.
+ * `cuerpoBaseDe` y `reglasQueTocan` vivían acá y **se subieron a `tests/fixtures/css.ts`** en el
+ * cierre de la fase del escalado: eran dos de los cinco helpers de CSS que tres tareas habían
+ * escrito por separado porque no podían tocar el fixture compartido con otro agente en el árbol.
+ * El porqué de cada uno quedó en el docblock del fixture, junto con el endurecimiento del escaneo
+ * de reglas-`@` que allá se les agregó.
  */
-function sinBloquesAnidados(css: string): string {
-  let salida = '';
-  let i = 0;
-  while (i < css.length) {
-    if (css[i] !== '@') {
-      salida += css[i];
-      i += 1;
-      continue;
-    }
-    const apertura = css.indexOf('{', i);
-    if (apertura === -1) break;
-    let profundidad = 0;
-    let fin = apertura;
-    for (; fin < css.length; fin++) {
-      if (css[fin] === '{') profundidad += 1;
-      else if (css[fin] === '}') {
-        profundidad -= 1;
-        if (profundidad === 0) break;
-      }
-    }
-    i = fin + 1;
-  }
-  return salida;
-}
-
-function cuerpoBaseDe(css: string, selector: string): string | null {
-  return cuerpoDe(sinBloquesAnidados(css), selector);
-}
-
-/**
- * Las reglas (selector + cuerpo) de una hoja cuyo selector contiene `fragmento`.
- *
- * **El cuerpo vuelve sin comentarios**, por lo mismo que `cuerpoDe()` en `tests/fixtures/css.ts`:
- * en este repo los comentarios citan el código que reemplazaron, así que un `toMatch()` contra el
- * cuerpo crudo puede pasar en verde contra una declaración que solo existe adentro de un
- * comentario. Escribí esta función sin ese filtro y el revisor la mutó: comentar la regla que
- * destopea el retrato —dejando `/* antes: max-width… *\/ opacity: 1;`— dejaba los 25 casos en
- * verde con el retrato topeado en 160 px otra vez, o sea adentro del caso que escribí justamente
- * para cerrar ese agujero.
- */
-function reglasQueTocan(css: string, fragmento: string): { selector: string; cuerpo: string }[] {
-  const sinComentarios = (texto: string): string => texto.replace(/\/\*[\s\S]*?\*\//g, '');
-  const reglas: { selector: string; cuerpo: string }[] = [];
-  for (const [, sel = '', cuerpo = ''] of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    const limpio = sinComentarios(sel).trim();
-    if (limpio.includes(fragmento)) reglas.push({ selector: limpio, cuerpo: sinComentarios(cuerpo) });
-  }
-  return reglas;
-}
 
 /** El valor de un `clamp(piso, preferido, techo)` partido en sus tres partes. */
 function partirClamp(valor: string): { piso: string; preferido: string; techo: string } | null {
