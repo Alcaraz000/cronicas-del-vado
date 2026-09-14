@@ -46,7 +46,7 @@ con la caja: la compara con el monitor que tiene enfrente.
 
 Y el mismo error se repite en el eje horizontal y contra la preferencia de accesibilidad:
 `--ancho-columna-max` está en píxeles mientras la fuente escala, así que pedir letra grande
-(`--escala-fuente: 1,5`) **angosta la medida de 76 a 50 caracteres**. Es el mismo bug dos veces.
+(`--escala-fuente: 1,5`) **angosta la medida de 82-85 a ~55 caracteres**. Es el mismo bug dos veces.
 
 ### 0.3 Lo que hace el género, investigado
 
@@ -57,18 +57,28 @@ el artista compone una sola vez.
 | Ren'Py, sobre 1920×1080 | valor | nuestro valor |
 |---|---|---|
 | Alto de la caja | 278 px = **25,7 %** (constante en toda resolución) | 44 % |
-| Medida de la línea de diálogo | **~67 caracteres** | 76 (y 50 a escala 1,5) |
+| Medida de la línea de diálogo | **~67 caracteres** | 82-85 (y ~55 a escala 1,5) — ver la nota |
 | Ancho de la columna de diálogo | 1116 px = **58,1 %**, centrada, márgenes de 20,9 % por lado | 720 px **pegados a la izquierda** |
 | Diálogo | 33 px = 3,06 % del alto | 19 px = 2,10 % |
 | Nombre del hablante | 45 px = 1,36× el diálogo | 1,3× ✓ |
 | Escala de texto del jugador | slider 0,5× a 1,5× con Reset | presets 1 / 1,25 / 1,5 |
 
+> **Corrección del 14 de septiembre, hecha al implementar la tarea 1.** Esta tabla decía que
+> nuestra medida era de 76 caracteres y que ese era "el techo cómodo". Es falso: medido con
+> `Range.getClientRects()` sobre el texto real, son **82-85 caracteres** por línea llena (8,25-8,36
+> px por carácter en Georgia a 19 px). O sea que la línea **ya estaba por encima del ≤80 de WCAG
+> 1.4.8 desde los 720 px de hoy**, no en su borde. El 76 salía de la regla de dedo de "medio em por
+> carácter", que no vale para Georgia. Para 80 caracteres harían falta 34,7em; para los ~67 de
+> Ren'Py, 29em. Se deja en 38em —la medida de hoy pasada a `em`— y la decisión de bajarla se toma
+> en la tarea 2, **después** de medir cuántos caracteres quedan con el reparto en dos columnas.
+
 Nuestro 44 % es **1,7× la norma de escritorio** y más alto que el modo teléfono del propio motor
 (33,3 %). No se eligió mal por gusto: se eligió para que entraran las líneas a 1280×800. **La
 respuesta correcta no era agrandar la caja, era que el texto escalara.**
 
-Y la medida de 720 px tiene el número de caracteres correcto. Lo que está mal es que **está pegada a
-la izquierda** en una caja de 1919. De ahí el "está a un costado".
+Y la medida de 720 px tiene **dos** cosas mal, no una: es un poco larga (82-85 caracteres contra los
+~67 del género) y, sobre todo, **está pegada a la izquierda** en una caja de 1919. De ahí el "está a
+un costado". La segunda es la que el jugador siente; la primera es la que conviene no empeorar.
 
 ### 0.4 Los cuatro bugs que aparecieron midiendo
 

@@ -285,9 +285,28 @@ sale implícito de `2% + 80%`). Con eso la fracción visible **crece** con la ve
    320, y las opciones con chips y probabilidades envuelven. Abajo del corte no cambia nada. */
 @media (min-width: 1400px) {
   .caja { flex-direction: row; gap: var(--esp-6); }
-  .acciones { flex: 0 0 clamp(320px, 32%, 460px); max-height: 100%; }
+  .columna { flex: 0 0 min(var(--ancho-prosa), 60%); }
+  .acciones { flex: 1 1 0; max-height: 100%; }
 }
 ```
+
+**Por qué el ancho lo fija la PROSA y las acciones se quedan con el resto, y no al revés.** Esto se
+corrigió después de escribir el plan, al medir en la tarea 1, y es importante: si las acciones se
+llevaran un ancho fijo (`flex: 0 0 clamp(320px, 32%, 460px)`), a 1919×905 la columna de texto
+mediría 1331 px mientras la prosa corta en `--ancho-prosa` ≈ 817 px, y **quedarían 514 px muertos
+adentro de la columna de texto**: el mismo problema que esta tarea vino a arreglar, más chico y
+escondido un nivel más adentro. Poniendo el ancho de la prosa como base y `flex: 1 1 0` en las
+acciones, el sobrante se lo llevan las opciones —que lo usan, porque los chips y las probabilidades
+son anchos— y no queda hueco. Medilo: a 1919×905 tendrían que dar ~817 px de prosa y ~974 px de
+acciones, y **cero px muertos** entre la prosa y el borde de su columna.
+
+**Y volvé a contar los caracteres por línea después del reparto.** El dato que el plan traía era
+falso: `--ancho-prosa: 38em` **no son 76 caracteres sino 82-85**, medidos con `Range.getClientRects()`
+sobre el texto real (8,25-8,36 px por carácter en Georgia). O sea que la línea ya está arriba del
+≤80 de WCAG 1.4.8, y el género usa ~67. Para 80 harían falta 34,7em; para 67, 29em. **No lo cambies
+a ciegas**: bajar la medida hace que el mismo bloque necesite más líneas, que es justo el recurso
+que esta tarea pelea. Medí cuántas líneas entran con 38em y con 34,7em a 1919×905 y **decidí con los
+dos números en la mano**, dejando escrito por qué.
 
 **La regla base no se toca**: `.acciones` conserva `max-height: 60%` y `.columna` conserva
 `flex: 1 1 0`. Eso es lo que hace que los tests de la regla base sigan siendo ciertos.
