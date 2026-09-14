@@ -40,12 +40,19 @@ describe('referencias', () => {
       'portada/portada_assets.webp',
       'retrato/centinela.webp',
       'retrato/orell.webp',
+      'sprite/centinela.webp',
+      'sprite/orell.webp',
     ]);
   });
 
   it('dice de dónde sale cada referencia', () => {
     const variante = refs.find((r) => r.name === 'torre.noche');
     expect(variante).toMatchObject({ kind: 'fondo', origen: 'places.torre.variants.noche' });
+  });
+
+  it('exige un sprite por cada PNJ con retrato, de la campaña y del mundo', () => {
+    const sprites = refs.filter((r) => r.kind === 'sprite').map((r) => r.name).sort();
+    expect(sprites).toEqual(['centinela', 'orell']);
   });
 });
 
@@ -57,6 +64,7 @@ describe('comparar', () => {
     expect(informe.faltantes.map(rutaDe)).toHaveLength(refs.length);
     expect(informe.huerfanos).toEqual([]);
     expect(informe.porTipo.retrato).toEqual({ total: 2, faltan: 2 });
+    expect(informe.porTipo.sprite).toEqual({ total: 2, faltan: 2 });
   });
 
   it('acepta el archivo con o sin la carpeta de campaña adelante', () => {
@@ -69,6 +77,11 @@ describe('comparar', () => {
   it('lista los archivos que nadie referencia', () => {
     const informe = comparar(refs, ['retrato/centinela.webp', 'retrato/fantasma.webp', 'fondo/otra/torre.webp']);
     expect(informe.huerfanos).toEqual(['retrato/fantasma.webp', 'fondo/otra/torre.webp']);
+  });
+
+  it('un sprite sin PNJ que lo pida es huérfano, igual que cualquier otro tipo', () => {
+    const informe = comparar(refs, ['sprite/centinela.webp', 'sprite/fantasma.webp']);
+    expect(informe.huerfanos).toEqual(['sprite/fantasma.webp']);
   });
 });
 

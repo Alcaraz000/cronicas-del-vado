@@ -15,7 +15,7 @@ const modulos = import.meta.glob<string>('/src/assets/*/*.webp', {
   import: 'default',
 });
 
-export type TipoImagen = 'retrato' | 'fondo' | 'objeto' | 'portada';
+export type TipoImagen = 'retrato' | 'fondo' | 'objeto' | 'portada' | 'sprite';
 
 /**
  * Nombre de archivo (sin extensión) para un tipo e id.

@@ -25,7 +25,7 @@ import { conMundo } from '../mundo';
  * Todo lo de acá es puro menos `archivosDeArte`, que es el único que toca el disco.
  */
 
-export type AssetKind = 'retrato' | 'fondo' | 'objeto' | 'portada' | 'cg';
+export type AssetKind = 'retrato' | 'fondo' | 'objeto' | 'portada' | 'cg' | 'sprite';
 
 export interface AssetRef {
   kind: AssetKind;
@@ -69,6 +69,10 @@ export function referencias(campaign: Campaign, world: WorldContent): AssetRef[]
   const refs: AssetRef[] = [{ kind: 'portada', name: `portada_${completa.id}`, origen: 'meta.cover' }];
   for (const [id, npc] of Object.entries(completa.npcs)) {
     refs.push({ kind: 'retrato', name: npc.portrait, origen: `npcs.${id}.portrait` });
+    // Todo PNJ que aparece en una escena necesita su silueta recortada además del cuadro:
+    // el sprite se deriva del mismo retrato (mismo id, ver `art/manifest.mts`), así que la
+    // referencia sale del mismo campo.
+    refs.push({ kind: 'sprite', name: npc.portrait, origen: `npcs.${id}.portrait` });
   }
   for (const [id, place] of Object.entries(completa.places)) {
     refs.push({ kind: 'fondo', name: place.background, origen: `places.${id}.background` });
@@ -87,7 +91,7 @@ export function referencias(campaign: Campaign, world: WorldContent): AssetRef[]
   return refs;
 }
 
-const TIPOS: readonly AssetKind[] = ['retrato', 'fondo', 'objeto', 'portada', 'cg'];
+const TIPOS: readonly AssetKind[] = ['retrato', 'fondo', 'objeto', 'portada', 'cg', 'sprite'];
 
 /**
  * Los 12 retratos de jugador (`guerrero_01`…`clerigo_03`) no los referencia ninguna campaña: los
