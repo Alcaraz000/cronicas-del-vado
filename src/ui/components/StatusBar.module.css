@@ -1,22 +1,49 @@
+/* El cromo de la escena: flota SOBRE el arte, que ahora va a sangre detrás de todo.
+   Deliberadamente no es una barra de herramientas — un fondo sólido y un borde de 1 px
+   cruzándole la cabeza a la imagen es justo lo que hace que la pantalla se lea como una
+   aplicación web. Se apoya con un degradado que se desvanece: oscurece lo justo para sostener
+   el contraste del texto de arriba y suelta la imagen enseguida.
+
+   `EscenaScreen.module.css` decide DÓNDE se apoya (`.cromo`); acá va solo cómo se pinta, para
+   que el componente siga sin saber dónde lo cuelgan. */
 .barra {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--esp-4);
-  padding: var(--esp-2) var(--esp-4);
-  border-bottom: 1px solid var(--color-borde);
-  background: var(--color-superficie);
+  padding: var(--esp-3) var(--esp-5) var(--esp-5);
+  background: linear-gradient(to bottom, var(--capa-caja), var(--capa-cromo) 45%, transparent);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  /* El degradado ya no es un fondo sólido, así que debajo de cada letra hay pintura, no un
+     color conocido. Medida la franja de arriba de los doce fondos de la campaña con sharp, la
+     más clara (`aldamar_plaza.tormenta`) tiene una luminancia media de 0,121; con lo que el
+     velo y este degradado dejan pasar ahí, `--color-texto-suave` da 5:1, por encima del 4,5:1
+     que la fase pide. Lo que la media no cubre son los brillos sueltos —el relámpago llega a
+     0,9— y para eso está esta sombra: le pone a cada glifo su propio halo, que es lo que
+     usa el género para escribir sobre arte y no depender del cuadro que toque. */
+  text-shadow: 0 1px 3px var(--color-fondo);
 }
 
+/* El lugar es el título de la escena, no un dato más de la barra: serif del juego, en el
+   acento y con aire. `margin-right: auto` es lo que manda todo lo demás —marcas, condiciones y
+   botones— contra el borde derecho, sin envolver nada en un contenedor extra. */
 .lugar {
-  font-weight: 700;
+  margin-right: auto;
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-ui) * 1.15 * var(--escala-fuente));
   color: var(--color-acento);
+  letter-spacing: 0.02em;
 }
 
 .dato {
   color: var(--color-texto-suave);
+}
+
+/* La palabra de cada marca ("Heridas: ", "Fortuna: "). Existe suelta para poder achicarla en
+   el teléfono; ver el bloque de móvil al final. */
+.etiqueta {
+  letter-spacing: 0.02em;
 }
 
 .acciones {
@@ -26,13 +53,22 @@
   margin-left: auto;
 }
 
+/* Botones fantasma: sobre el arte, un botón con relleno es una pieza de interfaz pegada encima
+   de un cuadro. El borde y el texto alcanzan, y el degradado de `.barra` les sostiene el
+   contraste. */
 .ficha,
 .abandonar {
-  padding: 0.3em 0.8em;
+  padding: 0.3em 0.9em;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
   background: transparent;
   color: var(--color-texto);
+}
+
+/* Solo "Ficha": el borde rojo de "Abandonar" es una advertencia y no se cambia ni al pasar por
+   encima — es justo el momento en que tiene que seguir avisando. */
+.ficha:hover {
+  border-color: var(--borde-acento);
 }
 
 /* "Ficha" solo mira; "Abandonar" cierra la partida y no se deshace. Con el mismo aspecto en
@@ -65,6 +101,19 @@
    corte que `EscenaScreen.module.css` (800px), para que los dos cambien de layout juntos. */
 @media (max-width: 800px) {
   .condicionesVacias {
+    display: none;
+  }
+
+  /* Con el arte a sangre, el cromo ya no tiene una barra propia donde derramarse: cada
+     renglón que suma se come una franja del fondo. Se aprieta el aire y se sacan las dos
+     palabras ("Heridas: ", "Fortuna: "), que son lo único redundante que hay acá — las marcas
+     y el valor se quedan, y el `title` del `span` de afuera conserva la palabra entera. */
+  .barra {
+    gap: var(--esp-3);
+    padding: var(--esp-2) var(--esp-3) var(--esp-4);
+  }
+
+  .etiqueta {
     display: none;
   }
 }

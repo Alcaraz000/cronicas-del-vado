@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
@@ -38,9 +38,44 @@ function fondoIdDe(campaign: Campaign, rendered: RenderedScene): string {
   return place?.variants?.[rendered.variant] ?? `${base}.${rendered.variant}`;
 }
 
-/** Id de archivo del retrato de un PNJ, resuelto vía `Npc.portrait` (no siempre es el id del PNJ). */
-function retratoIdDe(campaign: Campaign, npcId: string): string {
+/**
+ * Id de archivo del sprite de un PNJ, resuelto vía `Npc.portrait` (no siempre es el id del
+ * PNJ). El recorte comparte el id con el retrato a propósito: sale del mismo máster, y lo que
+ * los separa es el tipo, que va en la ruta (`src/assets/<tipo>/<id>.webp`).
+ */
+function spriteIdDe(campaign: Campaign, npcId: string): string {
   return campaign.npcs[npcId]?.portrait ?? npcId;
+}
+
+/**
+ * Nombre para la placa: el hablante del último párrafo YA VISIBLE de la última entrada del log.
+ *
+ * Es la misma cuenta que hace el motor para elegir el sprite (`ultimoHablante` en
+ * `engine/resolve.ts`), pero contada sobre lo que el revelado mostró hasta ahora y no sobre la
+ * entrada entera: mientras se tipea, la placa tiene que decir quién habla AHORA, no quién va a
+ * hablar al final del párrafo que todavía no empezó.
+ *
+ * Sin ningún párrafo con hablante a la vista devuelve `null` y no hay placa: la narración en
+ * tercera persona no la lleva, igual que en cualquier novela visual. Ojo con el caso de
+ * `rendered.portraitNpc`, que NO sirve para esto: cuando ningún párrafo tiene `speaker` cae al
+ * primer PNJ de la escena, y ese está presente pero no está hablando.
+ */
+function hablanteVisible(
+  log: LogEntry[],
+  parrafosVisibles: number,
+  caracteresVisibles: number,
+): string | null {
+  const ultima = log[log.length - 1];
+  if (ultima === undefined || (ultima.kind !== 'scene' && ultima.kind !== 'outcome')) return null;
+  // El párrafo en curso cuenta recién cuando tiene al menos un carácter revelado: es el mismo
+  // corte que usa `Parrafos` para decidir si lo dibuja, así que la placa y el texto aparecen
+  // juntos y no la placa un tic antes.
+  const hasta = parrafosVisibles + (caracteresVisibles > 0 ? 1 : 0);
+  for (let i = Math.min(hasta, ultima.paragraphs.length) - 1; i >= 0; i--) {
+    const speaker = ultima.paragraphs[i]?.speaker;
+    if (speaker !== undefined) return speaker;
+  }
+  return null;
 }
 
 /**
@@ -85,8 +120,6 @@ export function EscenaScreen() {
   const abandonRun = useStore((s) => s.abandonRun);
 
   const [fichaAbierta, setFichaAbierta] = useState(false);
-  /** Envuelve las opciones y el panel de tirada, para poder traerlos a la vista al terminar. */
-  const acciones = useRef<HTMLDivElement>(null);
 
   const rendered = useMemo(
     () => (campaign !== null && gs !== null ? renderScene(campaign, gs) : null),
@@ -103,7 +136,6 @@ export function EscenaScreen() {
     instantaneo: cps === 0 || reducida,
   });
   const { avanzar, terminado } = revelado;
-  const hayTirada = pending !== null;
 
   // Al entrar a la escena, se piden de antemano los fondos de las escenas a las que puede
   // llevar: simple caché del navegador, sin bloquear el render ni evaluar reglas.
@@ -158,23 +190,16 @@ export function EscenaScreen() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [avanzar]);
 
-  // Cuando el revelado termina, las opciones (o el panel de tirada) se dibujan DEBAJO de la
-  // columna de texto, y el autoscroll de `TextColumn` acaba de clavar la última línea contra el
-  // borde de abajo: lo que nace después queda justo fuera de vista, y en cuanto la escena es más
-  // larga que la pantalla hay que scrollear a mano en cada escena para ver qué se puede hacer.
+  // Acá vivía un efecto que, al terminar el revelado, traía las opciones a la vista con
+  // `scrollIntoView`: hasta el rediseño el texto y las acciones scrolleaban JUNTOS, y como el
+  // autoscroll de `TextColumn` clava la última línea contra el borde de abajo, lo que nacía
+  // después quedaba justo fuera del recorte.
   //
-  // Este efecto corre DESPUÉS del de `TextColumn` (React ejecuta los efectos de los hijos antes
-  // que los del padre), así que es el que manda al final. También se dispara cuando la lista de
-  // opciones deja lugar al panel de tirada, que es el otro momento en que abajo nace algo que
-  // el jugador tiene que ver.
-  useEffect(() => {
-    if (!terminado) return;
-    const el = acciones.current;
-    // `block: 'nearest'` scrollea lo mínimo necesario: si las acciones entran, las trae
-    // enteras; si son más altas que la columna, las alinea por arriba, que es por donde se
-    // empiezan a leer. Y si ya estaban a la vista, no mueve nada.
-    if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' });
-  }, [terminado, hayTirada]);
+  // Ahora las acciones son su propia región de la caja, con su propio alto y su propio scroll
+  // (ver el comentario largo de `.columna` en `EscenaScreen.module.css`), así que no pueden
+  // nacer fuera de vista: la garantía pasó de un efecto a la estructura, que es más fuerte. Lo
+  // que sigue moviendo el scroll dentro de esa región es el foco, que `OptionList` manda a la
+  // primera opción y `RollPanel` a "Continuar".
 
   const onPick = useCallback(
     (choiceId: string): void => {
@@ -191,34 +216,57 @@ export function EscenaScreen() {
 
   const placeName = campaign.places[rendered.place]?.name ?? rendered.place;
   const fondoId = fondoIdDe(campaign, rendered);
-  const retrato = rendered.portraitNpc !== undefined ? (nombres[rendered.portraitNpc] ?? rendered.portraitNpc) : null;
+  const enEscena = rendered.portraitNpc !== undefined ? (nombres[rendered.portraitNpc] ?? rendered.portraitNpc) : null;
+  const hablante = hablanteVisible(gs.run.log, revelado.parrafosVisibles, revelado.caracteresVisibles);
 
   return (
     <div className={styles.pantalla}>
-      <StatusBar
-        placeName={placeName}
-        wounds={gs.run.wounds}
-        fortune={gs.run.fortune}
-        fortuneMax={fortuneMax(gs.character.level)}
-        conditions={gs.run.conditions}
-        onAbandon={abandonRun}
-        onOpenFicha={() => setFichaAbierta(true)}
-        abandonDisabled={pending !== null}
-      />
+      {/* El arte llena el marco y todo lo demás se apoya encima. El velo no está para oscurecer
+          la imagen: es lo único que hace legible el texto sin taparla. */}
+      <div className={styles.fondo}>
+        <Imagen tipo="fondo" id={fondoId} aspect="16:9" alt={`${S.placeholder.fondo}: ${placeName}`} />
+      </div>
+      <div className={styles.velo} aria-hidden="true" />
+
+      <div className={styles.cromo}>
+        <StatusBar
+          placeName={placeName}
+          wounds={gs.run.wounds}
+          fortune={gs.run.fortune}
+          fortuneMax={fortuneMax(gs.character.level)}
+          conditions={gs.run.conditions}
+          onAbandon={abandonRun}
+          onOpenFicha={() => setFichaAbierta(true)}
+          abandonDisabled={pending !== null}
+        />
+      </div>
       <Ficha abierto={fichaAbierta} onCerrar={() => setFichaAbierta(false)} />
-      <div className={styles.grid}>
-        <aside className={styles.visual}>
-          <Imagen tipo="fondo" id={fondoId} aspect="16:9" alt={`${S.placeholder.fondo}: ${placeName}`} />
-          {rendered.portraitNpc !== undefined && retrato !== null && (
-            <Imagen
-              tipo="retrato"
-              id={retratoIdDe(campaign, rendered.portraitNpc)}
-              aspect="3:4"
-              alt={`${S.placeholder.retrato}: ${retrato}`}
-            />
-          )}
-        </aside>
-        <main className={styles.columna}>
+
+      {/* El sprite recortado (tarea 1), no el retrato: un cuadro 3:4 CON fondo pegado sobre el
+          arte se lee como una foto pegada encima. `retrato` sigue siendo lo correcto en la
+          creación de personaje y en la Ficha. Se apoya en el suelo de la escena y la caja le
+          tapa de la mitad para abajo — eso es lo que lo pone DENTRO del cuarto. */}
+      {rendered.portraitNpc !== undefined && enEscena !== null && (
+        <div className={styles.sprite} data-reducida={reducida ? 'true' : 'false'}>
+          <Imagen
+            tipo="sprite"
+            id={spriteIdDe(campaign, rendered.portraitNpc)}
+            aspect="3:4"
+            alt={`${S.placeholder.retrato}: ${enEscena}`}
+          />
+        </div>
+      )}
+
+      <main className={styles.caja}>
+        {/* `aria-hidden` a propósito: el nombre ya viaja en la prosa (`Parrafos` lo dibuja como
+            prefijo del párrafo) y esa es la copia que anuncia la región viva de `TextColumn`.
+            Sin esto, cada línea de diálogo se leería con el nombre dos veces. */}
+        {hablante !== null && (
+          <span className={styles.placa} data-testid="placa-hablante" aria-hidden="true">
+            {nombres[hablante] ?? hablante}
+          </span>
+        )}
+        <div className={styles.columna}>
           {revelado.puedeSaltarLeido && (
             <button
               type="button"
@@ -230,22 +278,24 @@ export function EscenaScreen() {
             </button>
           )}
           <TextColumn log={gs.run.log} revelado={revelado} />
-          <div ref={acciones}>
-            {terminado &&
-              (pending !== null ? (
-                <RollPanel
-                  pending={pending}
-                  powerName={CLASSES[gs.character.classId].power.name}
-                  onReroll={rerollDie}
-                  onPower={usePower}
-                  onContinue={commitRoll}
-                />
-              ) : (
-                <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
-              ))}
-          </div>
-        </main>
-      </div>
+        </div>
+        {/* Las acciones son su propia región de la caja, con su propio scroll: ver el comentario
+            largo de `.columna` en el CSS. Mientras el revelado no termina está vacía y mide 0. */}
+        <div className={styles.acciones} data-tirada={pending !== null ? 'true' : 'false'}>
+          {terminado &&
+            (pending !== null ? (
+              <RollPanel
+                pending={pending}
+                powerName={CLASSES[gs.character.classId].power.name}
+                onReroll={rerollDie}
+                onPower={usePower}
+                onContinue={commitRoll}
+              />
+            ) : (
+              <OptionList choices={rendered.choices} showOdds={showOdds} wounds={gs.run.wounds} onPick={onPick} />
+            ))}
+        </div>
+      </main>
     </div>
   );
 }

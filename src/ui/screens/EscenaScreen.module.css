@@ -1,45 +1,266 @@
+/* El layout de novela visual. La decisión que lo define, y de la que cuelga todo lo demás:
+   **el texto va ENCIMA del arte, no al lado**. Una imagen metida en una tarjeta al costado de
+   una columna de texto se lee como una aplicación web, sea cual sea la imagen.
+
+   El formato canónico del género se llama ADV: el arte ocupa la pantalla entera y una caja de
+   texto se apoya abajo, a todo el ancho, con una placa que nombra a quien habla. Las
+   proporciones de Ren'Py (el motor estándar del género) sobre 1920×1080 son caja de 278 px
+   —el 26 % del alto—, diálogo de 33 px y nombre de 45 px, o sea 1,36× el diálogo. Acá la caja
+   va bastante más alta (44 %) porque esta campaña tiene párrafos de hasta 160 palabras y con
+   el 26 % habría que scrollear en todas las escenas para llegar a las opciones.
+
+   Todo hijo de `.pantalla` es absoluto y se apila por `z-index`: fondo y sprite (0) → velo (1)
+   → caja (2) → cromo (3). El sprite comparte capa con el fondo, DEBAJO del velo, y eso es a
+   propósito: el velo se vuelve denso justo donde el sprite se mete detrás de la caja, así que
+   el recorte se apaga solo al acercarse al borde en vez de cortarse de golpe. Visto a 375×812
+   con Mausi: con el sprite por ENCIMA del velo, el hombro se transparentaba a través de la caja
+   (que no es opaca del todo) y quedaba un fantasma flotando sobre el texto. */
+
+/* El marco de la escena. `height` y no `min-height`: la pantalla no crece NUNCA. Lo que no
+   entra scrollea dentro de la caja (`.columna`) — si la pantalla creciera, scrollearía la
+   página entera y el fondo se iría con ella, que es el bug que la Fase H ya había peleado en
+   móvil y que acá aplica a las dos medidas.
+
+   `100dvh` con `100vh` de respaldo: en un teléfono la barra del navegador se come el pie de la
+   caja con `vh`, y lo que queda debajo del borde son justo las opciones.
+
+   Sin `transform` ni `filter` en esta regla: `Cajon` (la Ficha) es `position: fixed`, y
+   cualquiera de los dos convertiría a `.pantalla` en su contenedor y el `overflow: hidden` de
+   acá lo recortaría. */
 .pantalla {
-  min-height: 100vh;
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-fondo);
+}
+
+/* 1. El arte, a sangre: sin margen, sin radio, sin tarjeta. Es el suelo de la pantalla. */
+.fondo {
+  position: absolute;
+  inset: 0;
+}
+
+/* El marco de `Imagen` (y el de `Placeholder` cuando no hay arte) trae su `aspect-ratio` y su
+   radio de tarjeta, que es lo correcto cuando vive dentro de una columna; acá tiene que llenar
+   el hueco y recortarse contra él. `object-fit: cover`, ya puesto en `Imagen.module.css`, hace
+   el recorte una vez que el marco mide lo que tiene que medir.
+
+   Se selecciona por `data-aspect` y no por su clase: `Imagen.module.css` y
+   `Placeholder.module.css` son otros CSS Modules, con clases con hash, así que no hay forma de
+   nombrarlas desde acá. `data-aspect` es la marca pública que las dos exponen, puesta ahí para
+   exactamente este tipo de selector externo. Se encadena `.pantalla > .fondo >` (y no solo
+   `.fondo >`) para ganarle en especificidad a `.marco[data-aspect='16:9']` sin depender del
+   orden de importación, que ningún CSS Module garantiza. */
+.pantalla > .fondo > [data-aspect='16:9'] {
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+/* 2. El velo. No está para oscurecer la imagen: es lo único que hace legible el texto SIN
+   taparla. Queda limpio en la franja donde el arte importa (22 %–38 %), pone una sombra arriba
+   para despegar el cromo, y se vuelve denso desde el 62 %, que es donde se apoya la caja.
+   `pointer-events: none` porque cubre la pantalla entera y si no se comería cada clic. */
+.velo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--capa-arte) 0%,
+    transparent 22%,
+    transparent 38%,
+    var(--capa-caja) 62%,
+    var(--capa-densa) 100%
+  );
+}
+
+/* 3. El cromo flota sobre el arte. Acá va solo DÓNDE se apoya: cómo se pinta lo decide
+   `StatusBar.module.css`, que sigue siendo un componente que no sabe dónde lo cuelgan. */
+.cromo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+
+/* 4. El sprite está EN la escena, apoyado en el suelo: alto, anclado abajo, con la cara por
+   encima del borde de la caja y el resto perdiéndose detrás. Eso último es lo que lo hace
+   parecer un personaje parado en el cuarto y no una figura pegada encima del fondo.
+
+   Con `height: 80%` y `bottom: 2%` el recorte ocupa del 18 % al 98 % de la pantalla: la caja
+   tapa del 56 % para abajo, así que se ve el 47 % de arriba de la imagen —cabeza y hombros— y
+   el resto se hunde. De paso, eso deja el fragmento de silla del sprite de `halvar` (filas
+   919-1004 de 1024, o sea el 90 %–98 % de su propia imagen) muy por debajo del borde.
+
+   `aspect-ratio: 3 / 4` en el contenedor y no en el marco de adentro: los ocho recortes son
+   768×1024 exactos, y así el hueco mide lo mismo haya arte o no —`Placeholder` también es 3:4—
+   sin que el marco tenga que pelear su propia relación de aspecto. */
+.sprite {
+  position: absolute;
+  bottom: 2%;
+  left: var(--esp-6);
+  height: 80%;
+  aspect-ratio: 3 / 4;
+  pointer-events: none;
+  animation: entra-sprite 320ms ease-out;
+}
+
+/* Geometría del marco de adentro, para el recorte real y para la caja gris de `Placeholder`:
+   los dos marcan `data-aspect='3:4'` y los dos tienen que llenar el hueco. */
+.pantalla > .sprite > [data-aspect='3:4'] {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+}
+
+/* El recorte real, en cambio, no lleva marco ninguno: tiene canal alfa, y el gris de fondo y
+   el radio de `Imagen.module.css` le dibujarían justo el rectángulo que la tarea 1 vino a
+   sacar. El `:not([role='img'])` deja afuera a `Placeholder`, que SÍ tiene que seguir siendo
+   una caja gris visible cuando una campaña no tiene arte (la de humo). */
+.pantalla > .sprite > [data-aspect='3:4']:not([role='img']) {
+  background: none;
+  border-radius: 0;
+}
+
+/* Entra desde abajo, corto: es la diferencia entre que el personaje "aparezca" y que se plante.
+   `Imagen` ya funde su propia imagen, así que esto solo agrega el desplazamiento. */
+@keyframes entra-sprite {
+  from {
+    opacity: 0;
+    transform: translateY(var(--esp-5));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Mismo cinturón y tirantes que `Imagen.module.css` y `Dados.module.css`: el atributo lo
+   escribe `useReducedMotion()` (que combina la preferencia de la app con la del sistema) y la
+   media query de más abajo cubre que el sistema cambie con el componente ya montado. */
+.sprite[data-reducida='true'] {
+  animation: none;
+}
+
+/* 5. La caja de texto: apoyada abajo, a todo el ancho, casi opaca, con un filo de oro tenue
+   arriba. Altura FIJA — si creciera con el texto se comería el arte y la pantalla dejaría de
+   tener una forma estable entre escenas. Lo que no entra scrollea en `.columna`. */
+.caja {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
+  height: 44%;
+  padding: var(--esp-6) var(--esp-7) var(--esp-4);
+  border-top: 1px solid var(--filo-acento);
+  background: linear-gradient(to bottom, var(--capa-caja), var(--capa-densa));
 }
 
-.grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 60fr 40fr;
-  gap: var(--esp-4);
-  padding: var(--esp-4);
+/* La placa del hablante, montada a caballo sobre el borde de arriba de la caja. Es el elemento
+   chico más fuerte de la pantalla y la señal que más rápido dice "novela visual": el género la
+   pone claramente por encima del diálogo (Ren'Py: 45 contra 33, un 1,36×).
+
+   `top: 0` + `translateY(-58%)` en vez de un `top` negativo en píxeles: así el porcentaje se
+   mide sobre la propia placa y el reparto entre "afuera" y "adentro" de la caja se mantiene
+   igual con `--escala-fuente` en 1, en 1,25 o en 1,5, donde un offset fijo la descuadraría. */
+.placa {
+  position: absolute;
+  top: 0;
+  left: var(--esp-7);
+  transform: translateY(-58%);
+  padding: 0.12em 0.7em;
+  border: 1px solid var(--borde-acento);
+  border-radius: var(--radio);
+  background: var(--color-superficie-alta);
+  color: var(--color-acento);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * 1.3 * var(--escala-fuente));
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
-.visual {
-  display: grid;
-  align-content: start;
-  gap: var(--esp-4);
-}
+/* La caja se reparte en DOS regiones con scroll propio: arriba lo que se lee, abajo lo que se
+   hace. No es un adorno, es lo que vi jugando y tuve que arreglar.
 
+   Con una sola región (el texto y las opciones scrolleando juntos, que es como venía) pasa
+   esto: la caja tiene un alto fijo de 352 px en 1280×800, y una encrucijada del Vado —medida
+   en el navegador, `a1_puente` con el sargento— llega a SIETE opciones con sus chips y sus
+   probabilidades, 429 px, más que la caja entera. Apenas el revelado termina, el autoscroll
+   trae las opciones y empuja toda la prosa fuera del recorte: el jugador elige mirando una
+   lista y ni una línea de lo que acaba de leer. Es justo lo contrario de una novela visual,
+   donde la línea sigue en pantalla mientras elegís.
+
+   Repartidas, el texto conserva siempre lo que la lista no se lleva y las opciones scrollean
+   dentro de su tope. `flex: 1 1 0` en el texto (base cero: se queda con lo que sobra, no con
+   lo que su contenido pide) y `flex: 0 0 auto` + `max-height` en las acciones (piden su alto
+   real hasta el tope y no se achican). `min-height: 0` en las dos por el `min-height: auto`
+   implícito de todo ítem flex, que si no las infla con su contenido y el `overflow-y` nunca
+   llega a activarse. */
 .columna {
+  flex: 1 1 0;
   min-width: 0;
-  max-height: calc(100vh - 4rem);
+  min-height: 0;
   overflow-y: auto;
-  padding-right: var(--esp-2);
+  padding-right: var(--esp-4);
+}
+
+/* Las dos regiones pueden scrollear a la vez, y con la barra ancha de siempre la caja termina
+   con dos tiras claras apiladas contra el borde derecho: se ven más que el texto. Finas y en
+   el color del borde son una marca de que hay más, que es todo lo que tienen que ser. */
+.columna,
+.acciones {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-borde) transparent;
+}
+
+/* El tope: 60 % de lo que la caja deja adentro de su relleno. Por debajo de eso una escena de
+   cuatro opciones entra entera y no scrollea nada; por encima, la lista scrollea sola y el
+   texto no se entera. Mientras el revelado no termina esta región está vacía y mide 0: el
+   texto se queda con la caja completa, que es lo que corresponde mientras lo único que hay
+   para hacer es leer. */
+.acciones {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: 60%;
+  overflow-y: auto;
+  padding-right: var(--esp-4);
+}
+
+/* Con una tirada en curso el tope sube. Es el único momento en que el reparto puede inclinarse
+   sin costo: el texto de arriba es el mismo que el jugador acaba de leer (ya eligió), y el
+   panel en cambio es todo información nueva y de una sola pasada —contra qué se tiró, qué
+   salió, qué modificó qué—. Con el tope de las opciones el panel no entraba, y como `RollPanel`
+   manda el foco a "Continuar" apenas los dados se asientan, el scroll se llevaba puesta la
+   línea del objetivo justo cuando hacía falta leerla. */
+.acciones[data-tirada='true'] {
+  max-height: 78%;
 }
 
 /* `position: sticky` y no un botón al pie de la columna.
 
-   `.columna` es el contenedor que scrollea (overflow-y: auto + max-height) y el autoscroll
-   de `TextColumn` clava el final del log contra el borde de abajo en cada carácter que se
-   revela — o sea, todo el tiempo que este botón existe. Como primer hijo estático, el botón
-   queda arriba del scroll y fuera de vista apenas el log no entra en pantalla: en el prólogo
-   se ve, de la segunda escena en adelante no.
+   `.columna` es el contenedor que scrollea (overflow-y: auto) y el autoscroll de `TextColumn`
+   clava el final del log contra el borde de abajo en cada carácter que se revela — o sea, todo
+   el tiempo que este botón existe. Como primer hijo estático, el botón queda arriba del scroll
+   y fuera de vista apenas el log no entra: en el prólogo se ve, de la segunda escena en
+   adelante no.
 
-   Moverlo al pie de `main` no lo arregla: el ancla del autoscroll vive DENTRO de `TextColumn`
+   Moverlo al pie de la caja no lo arregla: el ancla del autoscroll vive DENTRO de `TextColumn`
    y se alinea con el borde inferior del scrollport, así que cualquier cosa dibujada después
    cae justo abajo del corte. Pegado con sticky, en cambio, el botón se queda contra el borde
-   superior de la columna esté donde esté el scroll, que es lo único que garantiza que se
-   pueda apretar. Por eso también deja de ser transparente: el texto pasa por debajo.
+   superior de la columna esté donde esté el scroll, que es lo único que garantiza que se pueda
+   apretar. Por eso también deja de ser transparente: el texto pasa por debajo.
 
-   `z-index` sobre el texto que scrollea, y `--color-superficie` de fondo para taparlo. */
+   `z-index` sobre el texto que scrollea, y `--color-superficie-alta` de fondo para taparlo (la
+   caja ya no es `--color-superficie`: sobre ella un botón de ese color desaparecería). */
 .saltarLeido {
   position: sticky;
   top: 0;
@@ -50,110 +271,53 @@
   padding: 0.3em 0.8em;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--color-superficie-alta);
   color: var(--color-texto);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   cursor: pointer;
 }
 
-/* Por debajo de 800px la grilla de dos columnas pasa a una sola columna de dos FILAS: el
-   visual arriba con una altura fija en proporción de la pantalla, y la hoja (`.columna`)
-   abajo con el resto. `38vh` es lo que deja lugar a un párrafo y a las opciones sin scrollear
-   el visual: más alto y la hoja queda demasiado chica para leer; más bajo y el fondo se ve
-   apenas una tira.
+@media (prefers-reduced-motion: reduce) {
+  .sprite {
+    animation: none;
+  }
+}
 
-   `.visual` deja de ser una grilla propia (fondo arriba, retrato abajo, apiladas) porque acá
-   el fondo tiene que OCUPAR toda la fila y el retrato pasa a superponerse (ver más abajo): un
-   `display: block` con el fondo estirado a la altura de la fila alcanza, y saca de encima
-   cualquier reparto de alto que la grilla interna quisiera hacer con dos hijos.
+/* En móvil la estructura es la MISMA —esa es la gracia de este layout— y lo único que cambia
+   son las proporciones: en una pantalla de 375×812 el texto es casi todo, así que la caja se
+   lleva el 58 % y el arte queda con la mitad de arriba a sangre, que es bastante más imagen de
+   la que dejaba ver la banda contenida de la Fase H.
 
-   El fondo (y su placeholder sin arte, misma marca `[data-aspect='16:9']` en los dos) se
-   selecciona por atributo y no por su propia clase de módulo: `Imagen.module.css` y
-   `Placeholder.module.css` son otro CSS Module, con sus propias clases con hash, así que no
-   hay forma de nombrarlas desde acá. El atributo `data-aspect` es la marca pública que ya
-   usan las dos, puesta ahí para exactamente este tipo de selector externo. Se antepone
-   `.grid > .visual` (no solo `.visual`) para ganarle en especificidad a la regla
-   `[data-aspect='16:9']` de esos módulos sin pelear con el orden de importación, que ningún
-   CSS Module garantiza. */
+   Mismo punto de corte que `StatusBar.module.css` (800px), para que los dos cambien juntos. */
 @media (max-width: 800px) {
-  /* `.pantalla` pasa de `min-height: 100vh` (arriba de todo) a una altura FIJA acá: sin esto,
-     la fila `1fr` de `.grid` no tiene ninguna altura de verdad contra la cual repartirse.
-     Jugado en un teléfono real (375×812) y no solo leído: con `min-height` nomás, el
-     `height: auto` de `.pantalla` se calcula ANTES de saber cuánto mide `.grid`, y para esa
-     cuenta un `fr` sin contenedor de altura definida se comporta como `auto` (mide por
-     contenido) — así que `.grid` termina midiendo lo que el texto de la escena necesita
-     (fácil el doble de la pantalla), `.pantalla` crece para no cortarlo, y es la PÁGINA la
-     que scrollea —fondo incluido— en vez de la hoja. `min-height: 0` en `.grid` y en
-     `.columna` (ver más abajo) no alcanza para arreglar ESTO: evitan que cada uno se infle
-     por SU contenido, pero ninguno de los dos resuelve que el contenedor de arriba no tenía
-     una altura real de la cual partir. El test de `EscenaScreen.test.tsx` no lo detecta:
-     jsdom no calcula ninguna de estas alturas. */
-  .pantalla {
-    height: 100vh;
+  .caja {
+    height: 58%;
+    padding: var(--esp-5) var(--esp-4) var(--esp-3);
   }
 
-  .grid {
-    /* Mismo motivo que `.columna` más abajo, un nivel arriba: `.grid` es a la vez
-       contenedor de grilla (sus dos filas) Y ítem flex de `.pantalla`, así que también
-       tiene su propio `min-height: auto` implícito de ítem flex — sin pisarlo, intentaría
-       creer con el contenido igual que si `.pantalla` siguiera sin altura fija. */
-    min-height: 0;
-    grid-template-columns: 1fr;
-    grid-template-rows: 38vh 1fr;
-    gap: 0;
-    padding: 0;
+  .placa {
+    left: var(--esp-4);
+    font-size: calc(var(--tam-texto-juego) * 1.15 * var(--escala-fuente));
   }
 
-  .visual {
-    display: block;
-    position: relative;
+  /* El sprite pasa a la derecha y se achica. No es capricho: "Saltar lo leído" es `sticky` y
+     vive pegado arriba a la IZQUIERDA de la caja, y la placa monta sobre ese mismo borde
+     izquierdo; con 375 px de ancho, un recorte a la izquierda les cae encima a los dos. Es el
+     mismo motivo por el que el retrato de la Fase H ya se iba a la derecha en este corte.
+
+     `bottom: 46%` contra una caja que empieza al 58 %: el recorte se mete 12 puntos detrás del
+     borde de la hoja —que es el "anclado al borde de la hoja" del diseño— y deja la cara en la
+     franja de arte. Se queda en poco más de la mitad del ancho de la pantalla; más alto y el
+     fondo desaparece detrás del personaje. */
+  .sprite {
+    left: auto;
+    right: var(--esp-2);
+    bottom: 46%;
+    height: 30%;
   }
 
-  /* El fondo (o su placeholder) se recorta a la altura de la fila en vez de escalarse: sin
-     `aspect-ratio: auto` el elemento seguiría calculando su alto a partir del ancho (16/9) y
-     dejaría un hueco vacío debajo, porque en un teléfono angosto esa altura es bastante menos
-     que 38vh. `object-fit: cover`, ya puesto en `Imagen.module.css`, hace el recorte una vez
-     que el marco mide lo que tiene que medir. */
-  .grid > .visual > [data-aspect='16:9'] {
-    height: 100%;
-    aspect-ratio: auto;
-  }
-
-  /* El retrato del hablante: se achica bastante (no tiene que competir con la hoja por
-     espacio) y se superpone sobre el borde de arriba de la hoja, a la derecha para no tapar
-     nunca "Saltar lo leído" (sticky, alineado a la izquierda, arriba de `.columna`). No se
-     saca del todo: es la única pista de quién habla, y en las escenas con PNJ desaparecería
-     justo cuando más se necesita, con el visual reducido a una tira de fondo.
-     `position: absolute` (contenido por `.visual`, que ahora es `position: relative`) más un
-     corrimiento negativo lo clava a caballo entre el fondo y la hoja; al no ser `.columna`
-     quien lo dibuja, no se pierde bajo su `overflow-y`. */
-  .grid > .visual > [data-aspect='3:4'] {
-    position: absolute;
-    right: var(--esp-4);
-    bottom: calc(var(--esp-4) * -1);
-    width: 22vw;
-    max-width: 84px;
-  }
-
-  /* `.columna` es la hoja: fila de abajo, scroll propio, y visualmente despegada del fondo. */
   .columna {
-    /* Sin esto el ítem de grid pide su alto por contenido (el `min-height: auto` implícito de
-       todo ítem de grid/flex) y CRECE hasta mostrarlo entero en vez de respetar el `1fr` que
-       le tocó, así que la fila se estira, la página entera termina scrolleando y el
-       `overflow-y` de acá abajo nunca llega a activarse. Es la misma trampa de siempre con
-       flex/grid y contenido largo. */
-    min-height: 0;
-    max-height: none;
-    overflow-y: auto;
-    padding: var(--esp-4);
-    border-radius: var(--radio) var(--radio) 0 0;
-    background: var(--color-superficie);
-    /* Sombra hacia ARRIBA (desplazamiento en Y negativo) para despegarla del fondo, no un
-       borde: un borde de 1px no se nota contra un fondo con fotografía debajo. `--color-velo`
-       es el mismo negro semitransparente que ya usan `Dialogo`/`Cajon`/`OpcionesModal` para
-       oscurecer detrás de un panel; acá cumple el mismo rol de "sombra", no haría falta un
-       token nuevo solo para esto. */
-    box-shadow: 0 calc(var(--esp-2) * -1) var(--esp-3) var(--color-velo);
+    padding-right: var(--esp-2);
   }
 }

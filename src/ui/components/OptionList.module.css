@@ -1,27 +1,54 @@
+/* Las opciones viven DENTRO de la caja de texto, debajo de la prosa. Eso cambia lo que tienen
+   que parecer: con el fondo sólido de antes se leían como tarjetas apiladas sobre una página.
+   Translúcidas sobre la caja, son parte de ella — y el aire se aprieta, porque el alto de la
+   caja es fijo y cada píxel que se llevan las opciones se lo sacan a la lectura. */
 .lista {
   list-style: none;
-  margin: var(--esp-4) 0 0;
+  margin: var(--esp-3) 0 0;
   padding: 0;
   display: grid;
-  gap: var(--esp-2);
+  gap: var(--esp-1);
 }
 
 .fila {
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  padding: var(--esp-2);
-  background: var(--color-superficie);
+  padding: var(--esp-2) var(--esp-3);
+  background: var(--capa-opcion);
+}
+
+/* El oro es el acento del juego y acá marca "esta es la que estás por elegir", con el mouse o
+   con el teclado (`:focus-within`, porque quien enfoca es el `<button>` de adentro y la fila es
+   la que se pinta). El `outline` del botón sigue siendo la marca de foco accesible.
+
+   Solo el borde, no el fondo: los chips de la tirada y las etiquetas de riesgo se pintan sobre
+   `--color-superficie-alta`, así que aclarar la fila hasta ahí los hace desaparecer dentro de
+   ella justo en la opción que se está mirando. */
+.fila:hover,
+.fila:focus-within {
+  border-color: var(--borde-acento);
 }
 
 .fila[data-enabled='false'] {
   opacity: 0.55;
 }
 
+/* Una opción bloqueada no se "arma" al pasarle por encima: no hay nada que elegir ahí. */
+.fila[data-enabled='false']:hover {
+  border-color: var(--color-borde);
+}
+
+/* `nowrap` y no `wrap`, visto a 375×812: con `wrap`, el reparto en líneas se hace con el ancho
+   NATURAL de cada parte, y "Buscar cama para lo que queda de noche" mide 301 px contra los 301
+   que tiene el botón — así que el número se queda solo en un renglón y la etiqueta baja entera
+   al siguiente. Sin envolver, la etiqueta se achica (`min-width: 0` en `.label`, para que pueda
+   bajar de su ancho mínimo automático) y parte el texto ADENTRO, al lado del número, que es lo
+   que uno espera de una lista numerada. */
 .boton {
   all: unset;
   cursor: pointer;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   gap: var(--esp-2);
   width: 100%;
@@ -39,15 +66,19 @@
 }
 
 .numero {
-  min-width: 1.5em;
+  min-width: 1.4em;
   font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   font-weight: 700;
   color: var(--color-acento);
 }
 
+/* Un punto por debajo de la prosa: la voz del narrador manda en la caja y las opciones son lo
+   que el jugador hace, no lo que lee. (En la maqueta aprobada, 17 contra 20.) */
 .label {
+  min-width: 0;
   font-family: var(--fuente-juego);
-  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+  font-size: calc(var(--tam-texto-juego) * 0.9 * var(--escala-fuente));
 }
 
 .badge,
@@ -96,4 +127,17 @@
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   font-style: italic;
   color: var(--color-texto-suave);
+}
+
+/* Visto a 375×812: la sangría de 2em que alinea el detalle debajo de la etiqueta le saca 26 px
+   de los ~290 que hay, y con eso los chips de una tirada («Presencia +0», «▲ Carta lacrada de
+   Berta», «▲ Situación», el riesgo y las tres probabilidades) pasan de tres renglones a cinco
+   — una sola opción más alta que toda la región de acciones. En un teléfono la alineación
+   vale menos que el renglón. Mismo punto de corte que el resto de la interfaz. */
+@media (max-width: 800px) {
+  .detalle,
+  .hint {
+    padding-left: 0;
+    margin-left: 0;
+  }
 }

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
 import type { Campaign } from '@/content/schema';
-import type { LogEntry, Run } from '@/engine/types';
+import type { LogEntry, ResolvedParagraph, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
 import { EscenaScreen } from '@/ui/screens/EscenaScreen';
 import { S } from '@/ui/strings.es';
@@ -104,13 +104,18 @@ function espiarScrollIntoView(): ScrollEspiado {
   return vistos;
 }
 
-/** Una entrada 'scene' de log con la prosa que se quiera probar revelando. */
-function escenaLog(paragraphs: string[]): LogEntry {
+/**
+ * Una entrada 'scene' de log con la prosa que se quiera probar revelando. Una cadena suelta es
+ * un párrafo de narrador; para probar la placa del hablante se pasa el párrafo entero, con su
+ * `speaker`.
+ */
+function escenaLog(paragraphs: (string | ResolvedParagraph)[]): LogEntry {
+  const parrafos: ResolvedParagraph[] = paragraphs.map((p) => (typeof p === 'string' ? { text: p } : p));
   return {
     kind: 'scene',
     sceneId: minimal.start,
-    paragraphs: paragraphs.map((text) => ({ text })),
-    hashes: paragraphs.map((_, i) => `h${i}`),
+    paragraphs: parrafos,
+    hashes: parrafos.map((_, i) => `h${i}`),
   };
 }
 
@@ -123,7 +128,7 @@ describe('EscenaScreen — arte', () => {
     cleanup();
   });
 
-  it('muestra la imagen real del fondo (con variante) y del retrato del PNJ que habla', async () => {
+  it('muestra la imagen real del fondo (con variante) y el SPRITE del PNJ que habla, no su retrato', async () => {
     montarEscena(conArte);
     render(<EscenaScreen />);
 
@@ -131,11 +136,16 @@ describe('EscenaScreen — arte', () => {
     expect(fondo.tagName).toBe('IMG');
     expect(fondo.getAttribute('src')).toMatch(/puente_viejo/);
 
-    const retrato = await screen.findByAltText(`${S.placeholder.retrato}: El mensajero`);
-    expect(retrato.tagName).toBe('IMG');
-    expect(retrato.getAttribute('src')).toMatch(/orell/);
+    // El recorte con alfa de la tarea 1, no el cuadro 3:4 CON fondo: pegado sobre el arte, un
+    // retrato se lee como una foto pegada encima. `retrato` sigue existiendo y sigue siendo lo
+    // correcto en la creación de personaje y en la Ficha; acá, no.
+    const sprite = await screen.findByAltText(`${S.placeholder.retrato}: El mensajero`);
+    expect(sprite.tagName).toBe('IMG');
+    expect(sprite.getAttribute('src')).toMatch(/sprite/);
+    expect(sprite.getAttribute('src')).toMatch(/orell/);
+    expect(sprite.getAttribute('src')).not.toMatch(/\/retrato\//);
 
-    // El nombre del lugar sigue en la barra superior: la imagen no es la única pista.
+    // El nombre del lugar sigue en el cromo: la imagen no es la única pista.
     expect(screen.getByText('La plaza vieja')).toBeInTheDocument();
   });
 
@@ -286,11 +296,18 @@ describe('EscenaScreen — el revelado', () => {
     expect(useStore.getState().characters[0]?.run?.sceneId).toBe(minimal.start);
   });
 
-  it('al terminar de revelarse, el scroll va a donde nacen las opciones, no a la última línea', () => {
-    // `OptionList` y `RollPanel` se dibujan DEBAJO de `TextColumn`, y el autoscroll de la
-    // columna acaba de clavar la última línea de texto contra el borde de abajo: sin esto, en
-    // cuanto la escena es más larga que la pantalla las opciones nacen fuera de vista y hay que
-    // scrollear en cada escena para ver qué se puede hacer.
+  /**
+   * Las opciones no pueden nacer fuera de vista. Hasta el rediseño eso lo garantizaba un efecto
+   * de `EscenaScreen` que, al terminar el revelado, las traía con `scrollIntoView`: el texto y
+   * las acciones scrolleaban JUNTOS y el autoscroll de `TextColumn` clava la última línea contra
+   * el borde de abajo, así que lo que nacía después caía justo fuera del recorte.
+   *
+   * Ahora la garantía es estructural, que es más fuerte: las acciones son su propia región de la
+   * caja, con su propio alto y su propio scroll, y el texto se queda con lo que ellas no usan.
+   * Se fija acá lo que un test puede fijar —el reparto declarado— más el efecto de verdad: que
+   * la lista aparezca y que el autoscroll del texto no la arrastre, porque ya no la contiene.
+   */
+  it('las opciones nacen en su propia región de la caja: el autoscroll del texto no las toca', () => {
     const vistos = espiarScrollIntoView();
     try {
       montarEscena(minimal, { log: [escenaLog(['Un texto largo que tarda un rato en revelarse del todo.'])] });
@@ -299,9 +316,11 @@ describe('EscenaScreen — el revelado', () => {
       act(() => { vi.advanceTimersByTime(10_000); });
 
       const opcion = screen.getByTestId('opcion-descansar');
-      const ultimo = vistos[vistos.length - 1];
-      expect(ultimo).toBeDefined();
-      expect(ultimo?.contains(opcion)).toBe(true);
+      expect(opcion).toBeInTheDocument();
+      // Lo que `TextColumn` scrollea es el ancla del final del texto, y ese nodo no contiene a
+      // las opciones: están en otra región. Si alguien volviera a meterlas en el mismo scroll,
+      // esto seguiría pasando — por eso el reparto se fija además en el CSS, más abajo.
+      expect(vistos.some((el) => el.contains(opcion))).toBe(false);
     } finally {
       vistos.restaurar();
     }
@@ -492,58 +511,213 @@ describe('EscenaScreen — un modal abierto tapa el teclado de abajo', () => {
 });
 
 /**
- * jsdom no calcula layout ni evalúa `@media`, así que esto no puede probar que la hoja se vea
- * bien en un teléfono — eso se juega a mano, emulando 375×812 (ver el informe de la tarea).
- * Lo único que un test puede fijar acá es la DECLARACIÓN: que el bloque de móvil de verdad
- * apile una fila de altura fija para el visual y convierta `.columna` en su propio scroll, en
- * vez de quedar, como antes, con `max-height: none` y sin tope real. Mismo método que ya usa
- * `StatusBar.test.tsx` para su regla `.abandonar`: leer el archivo y buscar la regla exacta.
+ * El corazón del rediseño: **el texto vive ENCIMA del arte, no al lado**. Una imagen metida en
+ * una tarjeta al costado de una columna de texto es una aplicación web, sea cual sea la imagen.
+ *
+ * jsdom no calcula layout ni evalúa `@media`, así que esto no puede probar que se VEA como una
+ * novela visual — eso se juega a mano a 1280×800 y a 375×812 (ver el informe de la tarea), y es
+ * ahí donde este trabajo se gana. Lo único que un test puede fijar acá es la DECLARACIÓN, con el
+ * mismo método y la misma advertencia de `tests/fixtures/css.ts`: que las líneas que sostienen
+ * la estructura no se borren en silencio, y sobre todo que la grilla de dos columnas no vuelva.
  */
-describe('EscenaScreen — hoja inferior en móvil', () => {
+describe('EscenaScreen — el arte a sangre y el texto encima', () => {
   const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
-  const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
 
-  it('en móvil la columna es una hoja con su propio scroll', () => {
-    const columna = cuerpoDe(movil, '.columna');
-    expect(columna, '.columna no tiene una regla propia en el bloque de móvil').not.toBeNull();
+  it('la pantalla es un marco de alto fijo: lo que scrollea es la caja, nunca la página', () => {
+    const pantalla = cuerpoDe(css, '.pantalla');
+    expect(pantalla, '.pantalla no tiene regla propia').not.toBeNull();
+    expect(pantalla).toMatch(/position\s*:\s*relative/);
+    expect(pantalla).toMatch(/overflow\s*:\s*hidden/);
+    // `dvh` y no `vh` a secas: en el teléfono la barra del navegador se come el pie de la caja
+    // y las opciones quedan justo debajo del borde. El `100vh` de al lado es el respaldo.
+    expect(pantalla).toMatch(/height\s*:\s*100dvh/);
+  });
+
+  it('el fondo llena el marco, sin tarjeta ni grilla de dos columnas', () => {
+    const fondo = cuerpoDe(css, '.fondo');
+    expect(fondo, '.fondo no tiene regla propia').not.toBeNull();
+    expect(fondo).toMatch(/position\s*:\s*absolute/);
+    expect(fondo).toMatch(/inset\s*:\s*0/);
+
+    // El marco de `Imagen` (y el de `Placeholder`, misma marca `data-aspect`) deja de imponer
+    // su 16:9 y su radio de tarjeta: acá el fondo se recorta a la pantalla.
+    const marco = cuerpoDe(css, ".pantalla>.fondo>[data-aspect='16:9']");
+    expect(marco, 'falta el ajuste del marco del fondo').not.toBeNull();
+    expect(marco).toMatch(/aspect-ratio\s*:\s*auto/);
+    expect(marco).toMatch(/border-radius\s*:\s*0/);
+
+    // La grilla 60/40 que ponía el texto AL LADO del arte es exactamente lo que se fue.
+    expect(cuerpoDe(css, '.grid'), '.grid de dos columnas volvió').toBeNull();
+    expect(cuerpoDe(css, '.visual'), '.visual (la tarjeta de arte) volvió').toBeNull();
+  });
+
+  it('el velo oscurece hacia abajo: es lo que deja leer sin tapar el arte', () => {
+    const velo = cuerpoDe(css, '.velo');
+    expect(velo, '.velo no tiene regla propia').not.toBeNull();
+    expect(velo).toMatch(/linear-gradient\(\s*to bottom/);
+  });
+
+  it('la caja se apoya abajo, a todo el ancho, y scrollea por dentro en vez de crecer', () => {
+    const caja = cuerpoDe(css, '.caja');
+    expect(caja, '.caja no tiene regla propia').not.toBeNull();
+    expect(caja).toMatch(/position\s*:\s*absolute/);
+    expect(caja).toMatch(/bottom\s*:\s*0/);
+    expect(caja).toMatch(/left\s*:\s*0/);
+    expect(caja).toMatch(/right\s*:\s*0/);
+    expect(caja).toMatch(/height\s*:\s*44%/);
+
+    // Lo que no entra scrollea DENTRO. Sin `min-height: 0` el ítem flex pide su alto por
+    // contenido y estira la caja: la trampa de siempre con flex y texto largo.
+    const columna = cuerpoDe(css, '.columna');
+    expect(columna, '.columna no tiene regla propia').not.toBeNull();
     expect(columna).toMatch(/overflow-y\s*:\s*auto/);
-    // Sin esto el ítem de grid crece con el contenido en vez de respetar la fila que le toca,
-    // y el scroll de arriba nunca llega a hacer falta (la página entera scrollea).
     expect(columna).toMatch(/min-height\s*:\s*0/);
-
-    // La fila de arriba (el visual) necesita una altura fija en proporción de la pantalla:
-    // es lo que declara cuánto mide el fondo antes de que la hoja empiece.
-    const grid = cuerpoDe(movil, '.grid');
-    expect(grid, '.grid no tiene una regla propia en el bloque de móvil').not.toBeNull();
-    expect(grid).toMatch(/grid-template-rows\s*:\s*[\d.]+vh/);
   });
 
   /**
-   * `.grid` mide `1fr` de la fila de abajo — pero un `fr` solo reparte espacio de verdad
-   * cuando su CONTENEDOR tiene una altura definida. `.pantalla` (arriba del todo) solo
-   * declaraba `min-height: 100vh`, nunca `height`, así que ante contenido largo el navegador
-   * calcula la altura automática de `.pantalla` ANTES de saber cuánto mide `.grid` — y para
-   * esa cuenta, un `fr` sin un contenedor de altura definida se comporta como `auto` (mide por
-   * contenido). Resultado, jugado en un teléfono real (375×812) y no visible en jsdom: `.grid`
-   * termina midiendo lo que el texto de la escena necesita, `.pantalla` crece para no
-   * cortarlo, y es la PÁGINA la que scrollea —fondo incluido— en vez de la hoja. `min-height: 0`
-   * en `.grid` y en `.columna` no alcanza para arreglar esto por sí solo: sin este
-   * `height: 100vh`, sigue sin haber ninguna altura real de la cual partir. Este test existe
-   * porque el anterior (`.columna`/`.grid`) pasaría igual si alguien borrara esta línea por
-   * parecer redundante con esos `min-height: 0` — y el bug volvería en silencio. */
-  it('en móvil `.pantalla` tiene una altura fija, no solo un mínimo: la fila `1fr` de `.grid` no tiene de qué repartirse sin esto', () => {
-    const pantalla = cuerpoDe(movil, '.pantalla');
-    expect(pantalla, '.pantalla no tiene una regla propia en el bloque de móvil').not.toBeNull();
-    expect(pantalla).toMatch(/height\s*:\s*100vh/);
+   * Medido jugando a 1280×800: la caja son 352 px y una encrucijada del Vado llega a siete
+   * opciones con sus chips y sus probabilidades, 429 px — más que la caja entera. Con el texto
+   * y las acciones en un solo scroll, apenas el revelado termina la lista empuja TODA la prosa
+   * fuera del recorte y el jugador elige sin una sola línea de lo que acaba de leer, que es lo
+   * contrario de lo que hace una novela visual. El reparto en dos regiones es lo que garantiza
+   * que la línea siga en pantalla mientras se elige, y es lo que este test no deja borrar.
+   */
+  it('el texto y las acciones se reparten la caja: una lista larga no se lleva la prosa puesta', () => {
+    const acciones = cuerpoDe(css, '.acciones');
+    expect(acciones, '.acciones no tiene regla propia: volvieron a un solo scroll').not.toBeNull();
+    expect(acciones).toMatch(/overflow-y\s*:\s*auto/);
+    // El tope es lo que le reserva el resto de la caja al texto, pase lo que pase con la lista.
+    const tope = /max-height\s*:\s*(\d+)%/.exec(acciones ?? '')?.[1];
+    expect(tope, '.acciones no declara un tope en % de la caja').toBeDefined();
+    expect(Number(tope)).toBeLessThan(100);
+
+    // Y el texto pide su alto del espacio que sobra (`flex-basis: 0`), no de su contenido: con
+    // base `auto` una escena larga se comería el reparto antes de que nadie lo reparta.
+    expect(cuerpoDe(css, '.columna')).toMatch(/flex\s*:\s*1\s+1\s+0/);
   });
 
-  it('la hoja se despega del fondo: esquinas de arriba redondeadas y sombra hacia arriba', () => {
-    const columna = cuerpoDe(movil, '.columna');
-    expect(columna).toMatch(/border-radius\s*:\s*var\(--radio\)/);
-    expect(columna).toMatch(/background\s*:\s*var\(--color-superficie\)/);
-    // El desplazamiento en Y es negativo (sombra hacia ARRIBA, no un borde parejo): puede
-    // escribirse como `-Npx` o como `calc(... * -1)`, así que el negativo se busca suelto en
-    // el valor entero y no pegado al `0` del desplazamiento en X.
-    expect(columna).toMatch(/box-shadow\s*:[^;]*-/);
+  it('el sprite se ancla abajo y alto, y no lleva el marco gris del retrato', () => {
+    const sprite = cuerpoDe(css, '.sprite');
+    expect(sprite, '.sprite no tiene regla propia').not.toBeNull();
+    expect(sprite).toMatch(/position\s*:\s*absolute/);
+    // Alto de verdad: con la caja empezando al 56 %, es lo que deja la cara por encima del
+    // borde y hunde el resto detrás, como un sprite apoyado en el suelo de la escena.
+    expect(sprite).toMatch(/height\s*:\s*80%/);
+
+    // El recorte tiene canal alfa: el gris de fondo y el radio de `Imagen.module.css` le
+    // dibujarían justo el rectángulo que la tarea 1 vino a sacar.
+    const marco = cuerpoDe(css, ".pantalla>.sprite>[data-aspect='3:4']:not([role='img'])");
+    expect(marco, 'falta el ajuste del marco del sprite').not.toBeNull();
+    expect(marco).toMatch(/background\s*:\s*none/);
+    expect(marco).toMatch(/border-radius\s*:\s*0/);
+  });
+
+  it('con movimiento reducido el sprite no entra animado', () => {
+    // Dos caminos, igual que `Imagen.module.css`: el atributo que escribe `useReducedMotion()`
+    // (combina la preferencia de la app con la del sistema) y la media query, que cubre que el
+    // sistema cambie de preferencia con el componente ya montado.
+    expect(cuerpoDe(css, ".sprite[data-reducida='true']")).toMatch(/animation\s*:\s*none/);
+    const reducido = bloqueDeMedia(css, '@media (prefers-reduced-motion: reduce)');
+    expect(cuerpoDe(reducido, '.sprite')).toMatch(/animation\s*:\s*none/);
+  });
+});
+
+/**
+ * En móvil la estructura es la MISMA: la hoja inferior de la Fase H es la caja. Lo que cambia
+ * son las proporciones (el fondo llena la mitad de arriba a sangre, la caja es más alta) y que
+ * el sprite se ancla del lado contrario a "Saltar lo leído".
+ */
+describe('EscenaScreen — las proporciones en móvil', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/EscenaScreen.module.css'), 'utf8');
+  const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
+
+  it('la caja se lleva más pantalla que en escritorio: en un teléfono el texto es casi todo', () => {
+    const caja = cuerpoDe(movil, '.caja');
+    expect(caja, '.caja no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    const alto = /height\s*:\s*(\d+)%/.exec(caja ?? '')?.[1];
+    expect(alto, '.caja de móvil no declara una altura en %').toBeDefined();
+    expect(Number(alto)).toBeGreaterThan(44);
+  });
+
+  /**
+   * El sprite pasa a la derecha. No es capricho: "Saltar lo leído" es `sticky` y vive pegado
+   * arriba a la IZQUIERDA de la caja, y la placa del hablante monta sobre ese mismo borde
+   * izquierdo. Con el sprite a la izquierda y una pantalla de 375 px, el recorte les cae
+   * encima a los dos. Es el mismo motivo por el que el retrato de la Fase H ya se iba a la
+   * derecha en este punto de corte.
+   */
+  it('el sprite se ancla a la derecha, para no taparle nada a "Saltar lo leído" ni a la placa', () => {
+    const sprite = cuerpoDe(movil, '.sprite');
+    expect(sprite, '.sprite no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(sprite).toMatch(/right\s*:/);
+    expect(sprite).toMatch(/left\s*:\s*auto/);
+  });
+});
+
+/**
+ * La placa del hablante: el elemento chico más fuerte de la pantalla, y la señal que más
+ * rápido dice "novela visual". El género la pone claramente por encima del diálogo (Ren'Py
+ * usa 45 contra 33, un 1,36×) y la monta sobre el borde de arriba de la caja.
+ */
+describe('EscenaScreen — la placa del hablante', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0 });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('un párrafo con hablante monta su placa, con el nombre visible del PNJ', () => {
+    montarEscena(conArte, { log: [escenaLog([{ speaker: 'mensajero', text: '—Vengo de lejos y con prisa.' }])] });
+    render(<EscenaScreen />);
+
+    const placa = screen.getByTestId('placa-hablante');
+    // El nombre, no el id: `mensajero` nunca se muestra crudo.
+    expect(placa).toHaveTextContent('El mensajero');
+  });
+
+  it('la narración en tercera persona no lleva placa', () => {
+    montarEscena(conArte, { log: [escenaLog(['Estás en la plaza al amanecer y no hay nadie.'])] });
+    render(<EscenaScreen />);
+
+    expect(screen.queryByTestId('placa-hablante')).not.toBeInTheDocument();
+  });
+
+  /**
+   * El nombre ya está en la prosa (`Parrafos` lo dibuja como prefijo del párrafo, y ese
+   * prefijo es lo único que un lector de pantalla escucha dentro de la región viva de
+   * `TextColumn`). La placa es la MISMA información en forma visual: anunciarla otra vez
+   * haría que cada línea de diálogo se leyera con el nombre dos veces.
+   */
+  it('la placa es decorativa para un lector de pantalla: el nombre ya está en el texto', () => {
+    montarEscena(conArte, { log: [escenaLog([{ speaker: 'mensajero', text: '—Vengo de lejos.' }])] });
+    render(<EscenaScreen />);
+
+    expect(screen.getByTestId('placa-hablante')).toHaveAttribute('aria-hidden', 'true');
+    // Y el nombre sigue estando en el texto, que es de donde lo toma la región viva.
+    expect(screen.getByTestId('columna-texto')).toHaveTextContent('El mensajero');
+  });
+
+  it('la placa dice quién habla AHORA: no se adelanta al párrafo que todavía no se reveló', () => {
+    useStore.getState().setPrefs({ cps: 40 });
+    vi.useFakeTimers();
+    try {
+      montarEscena(conArte, {
+        log: [escenaLog(['Alguien cruza la plaza sin mirarte.', { speaker: 'mensajero', text: '—Después hablo yo.' }])],
+      });
+      render(<EscenaScreen />);
+
+      // Con los temporizadores sin avanzar, el párrafo del mensajero ni empezó: no hay placa.
+      expect(screen.queryByTestId('placa-hablante')).not.toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(10_000); });
+
+      expect(screen.getByTestId('placa-hablante')).toHaveTextContent('El mensajero');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

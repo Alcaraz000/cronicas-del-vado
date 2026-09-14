@@ -50,7 +50,16 @@ export function Parrafos({ parrafos, visibles, caracteres }: ParrafosProps) {
     <>
       {mostrar.map((p, i) => (
         <p key={i} className={styles.parrafo}>
-          {p.speaker !== undefined && <strong className={styles.hablante}>{nombres[p.speaker] ?? p.speaker}: </strong>}
+          {/* `data-hablante` es la marca pública para que otro módulo pueda seleccionar este
+              nodo (las clases de un CSS Module tienen hash): la caja de la escena esconde el
+              prefijo a la vista porque ahí el nombre ya vive en la placa del hablante, y lo
+              deja en el árbol de accesibilidad, que es de donde lo toma su región viva.
+              `FinScreen` no lo toca: sin placa, el prefijo es la única pista de quién habla. */}
+          {p.speaker !== undefined && (
+            <strong className={styles.hablante} data-hablante="true">
+              {nombres[p.speaker] ?? p.speaker}:{' '}
+            </strong>
+          )}
           <span>{p.text}</span>
         </p>
       ))}

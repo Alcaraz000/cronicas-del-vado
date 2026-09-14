@@ -1,32 +1,47 @@
+/* El panel de tirada vive DENTRO de la caja de texto, en el lugar de las opciones. Mismo
+   criterio que ellas: translúcido, para que se lea como parte de la caja y no como una tarjeta
+   apilada encima, y apretado, porque el alto de la caja es fijo y todo lo que se lleva el panel
+   se lo saca a la prosa que el jugador está leyendo. */
+/* El panel de tirada vive DENTRO de la caja de texto, en el lugar de las opciones. Mismo
+   criterio que ellas: translúcido, para que se lea como parte de la caja y no como una tarjeta
+   apilada encima, y apretado, porque el alto de la caja es fijo.
+
+   Lo apretado no es estética: medido jugando la tirada de `a1_puente`, el panel suelto medía
+   277 px contra los 182 que la región de acciones le daba, así que al asentarse los dados el
+   foco saltaba a "Continuar" y el scroll se llevaba puesta la línea del objetivo —justo la que
+   dice contra qué se tiró— y la mitad de los dados. */
 .panel {
-  margin-top: var(--esp-4);
-  padding: var(--esp-4);
+  margin-top: var(--esp-3);
+  padding: var(--esp-2) var(--esp-3) var(--esp-3);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--capa-opcion);
   font-family: var(--fuente-ui);
 }
 
 .objetivo {
-  margin: 0 0 var(--esp-1);
+  margin: 0;
   font-weight: 600;
 }
 
 .modo {
-  margin: 0 0 var(--esp-2);
+  margin: 0 0 var(--esp-1);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
+/* El total y el sello en el mismo renglón ("Total: 9  ± Con costo"): son la misma frase leída
+   de dos formas, y apilados gastaban dos líneas de un panel que no las tiene. */
 .total {
-  margin: var(--esp-2) 0 var(--esp-1);
+  display: inline-block;
+  margin: var(--esp-1) var(--esp-3) var(--esp-2) 0;
   font-size: calc(var(--tam-ui) * var(--escala-fuente));
   font-weight: 600;
 }
 
 .sello {
   display: inline-block;
-  margin: 0 0 var(--esp-2);
+  margin: var(--esp-1) 0 var(--esp-2);
   padding: 0.2em 0.8em;
   border-radius: 999px;
   font-weight: 700;

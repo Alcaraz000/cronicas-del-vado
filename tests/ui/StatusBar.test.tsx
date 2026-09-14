@@ -150,6 +150,26 @@ describe('StatusBar', () => {
     expect(cuerpoDe('.ficha,.abandonar')).not.toMatch(/var\(--color-peligro/);
   });
 
+  it('el cromo FLOTA sobre el arte: un degradado que se desvanece, no una barra sólida con borde', () => {
+    // El rediseño pone el arte a sangre debajo de todo. Una barra de herramientas con fondo
+    // sólido y un borde de 1 px cruzándole la cabeza a la imagen es justo lo que hace que la
+    // pantalla se lea como una aplicación web: el cromo tiene que apoyarse sobre el arte y
+    // desvanecerse. jsdom no aplica módulos CSS, así que la regla se lee del archivo.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const barra = cuerpoDeBloque(css, '.barra');
+    expect(barra, '.barra no tiene regla propia').not.toBeNull();
+    expect(barra).toMatch(/linear-gradient\(\s*to bottom/);
+    expect(barra, 'el borde inferior le cruza una línea al arte').not.toMatch(/border-bottom/);
+  });
+
+  it('el lugar se lee como el título de la escena: la serif del juego, en el acento', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const lugar = cuerpoDeBloque(css, '.lugar');
+    expect(lugar, '.lugar no tiene regla propia').not.toBeNull();
+    expect(lugar).toMatch(/var\(--fuente-juego\)/);
+    expect(lugar).toMatch(/var\(--color-acento\)/);
+  });
+
   it('en móvil solo se oculta "sin condiciones": la regla vieja que tapaba toda la línea no debe quedar', () => {
     // Mismo motivo que arriba (jsdom no evalúa `@media`) y mismo método: leer el archivo.
     // Oleada final de la Fase H, hallazgo B3: los costos que esta fase agregó son en su mayoría

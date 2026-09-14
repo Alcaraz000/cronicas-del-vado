@@ -43,11 +43,18 @@ export function StatusBar({
   return (
     <header className={styles.barra}>
       <span className={styles.lugar}>{placeName}</span>
+      {/* La palabra ("Heridas", "Fortuna") va en su propio `span` para poder achicarla en el
+          teléfono: ahí el cromo flota sobre el arte, y con las dos etiquetas enteras se va a
+          tres renglones que se comen la mitad del fondo. Lo que NO se toca es el valor —las
+          marcas, "Herido", "2/3"—, que es lo que el jugador necesita leer; y el `title` de acá
+          arriba conserva la palabra completa. */}
       <span className={styles.dato} title={S.barra.heridas}>
-        {S.barra.heridas}: <span aria-hidden="true">{marcas(wounds, 3, '●', '○')}</span> {WOUND_LABELS[wounds]}
+        <span className={styles.etiqueta}>{S.barra.heridas}: </span>
+        <span aria-hidden="true">{marcas(wounds, 3, '●', '○')}</span> {WOUND_LABELS[wounds]}
       </span>
       <span className={styles.dato} title={S.barra.fortuna}>
-        {S.barra.fortuna}: <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
+        <span className={styles.etiqueta}>{S.barra.fortuna}: </span>
+        <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
       </span>
       {/* En la hoja móvil (Fase H, tarea 5; revisado en la oleada final) el lugar y las marcas
           de heridas/Fortuna se quedan siempre. "Condiciones: ..." se oculta con
