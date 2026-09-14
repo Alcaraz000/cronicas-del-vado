@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { App } from '@/app/App';
 import { useStore } from '@/state/store';
 import { selectGameState } from '@/state/selectors';
@@ -72,10 +72,17 @@ describe('recorrido con teclado: inicio → creación → hub → escena', () =>
 
     // 5. La elección quedó en el log, que desde la tarea 3 se lee en el cajón del historial y no
     // apilado en la caja. Se abre con la tecla H, que es el otro atajo propio de esta pantalla:
-    // el recorrido de teclado lo cubre igual que cubría el 1-9.
+    // el recorrido de teclado lo cubre igual que cubría el 1-9. Acotado al cajón con `within`:
+    // afuera, el mismo texto podría estar en cualquier lado y el test no probaría nada.
     fireEvent.keyDown(window, { key: 'h' });
-    await screen.findByText('› Rodear por el patio');
+    const cajon = await screen.findByTestId('historial');
+    await within(cajon).findByText('› Rodear por el patio');
     expect(selectGameState(useStore.getState())?.run.sceneId).toBe('p_patio');
     expect(useStore.getState().ui.screen).toBe('escena');
+
+    // 6. Y Esc lo cierra, que es como este recorrido tiene que terminar: con el teclado y sin
+    // dejar un modal abierto tapando la pantalla de juego.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

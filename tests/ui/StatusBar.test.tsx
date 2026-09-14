@@ -69,10 +69,10 @@ describe('StatusBar', () => {
   });
 
   /**
-   * El historial es el otro cajón de la pantalla (tarea 3) y vive al lado de la Ficha, no
-   * montado sobre el filo de la caja: medido a 375×812, el tercer botón entra en el mismo
-   * renglón del cromo (91 px de alto con dos botones y con tres; el grupo pasa de 152 a 233 px)
-   * mientras que sobre el filo chocaba con la placa del hablante a 125 % y a 150 %.
+   * El historial es el otro cajón de la pantalla (tarea 3) y vive al lado de la Ficha, no montado
+   * sobre el filo de la caja ni al lado de "Saltar lo leído". La medición de navegador que lo
+   * decidió está en el comentario de `src/ui/components/StatusBar.tsx`, arriba de `.acciones`, y
+   * vive ahí sola: copiarla acá ya la hizo divergir una vez.
    */
   it('el botón Historial menciona la tecla H y llama a onOpenHistorial', () => {
     const onOpenHistorial = vi.fn();
@@ -129,9 +129,10 @@ describe('StatusBar', () => {
     expect(onAbandon).toHaveBeenCalledOnce();
   });
 
-  it('con abandonDisabled, Abandonar está deshabilitado y no ofrece la confirmación; Ficha sigue habilitado', () => {
+  it('con abandonDisabled, Abandonar está deshabilitado y no ofrece la confirmación; Ficha e Historial siguen habilitados', () => {
     const onAbandon = vi.fn();
     const onOpenFicha = vi.fn();
+    const onOpenHistorial = vi.fn();
     render(
       <StatusBar
         placeName="Torre abandonada"
@@ -141,7 +142,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={onAbandon}
         onOpenFicha={onOpenFicha}
-        onOpenHistorial={vi.fn()}
+        onOpenHistorial={onOpenHistorial}
         abandonDisabled={true}
       />,
     );
@@ -156,6 +157,13 @@ describe('StatusBar', () => {
     expect(botonFicha).not.toBeDisabled();
     fireEvent.click(botonFicha);
     expect(onOpenFicha).toHaveBeenCalledOnce();
+
+    // Y el historial igual: es la otra cosa que solo mira, y su JSDoc promete lo mismo. Releer lo
+    // que pasó con una tirada en curso es justo cuando hace falta.
+    const botonHistorial = screen.getByRole('button', { name: S.barra.historial });
+    expect(botonHistorial).not.toBeDisabled();
+    fireEvent.click(botonHistorial);
+    expect(onOpenHistorial).toHaveBeenCalledOnce();
   });
 
   it('Abandonar no se ve igual que Ficha: la acción destructiva tiene jerarquía propia', () => {

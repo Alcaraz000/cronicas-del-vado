@@ -5,6 +5,7 @@ import type { LogEntry } from '@/engine/types';
 import { TextColumn } from '@/ui/components/TextColumn';
 import type { Revelado } from '@/ui/hooks/useRevelado';
 import { S } from '@/ui/strings.es';
+import { espiarScrollIntoView } from '../fixtures/scroll';
 
 const log: LogEntry[] = [{ kind: 'scene', sceneId: 'p_umbral', paragraphs: [{ text: 'Cruzás el vado.' }], hashes: [] }];
 
@@ -109,5 +110,49 @@ describe('TextColumn', () => {
   it('con el log vacío no rompe ni dibuja una entrada fantasma', () => {
     render(<TextColumn log={[]} />);
     expect(screen.getByTestId('columna-texto')).toHaveTextContent('');
+  });
+
+  /**
+   * El caso que hoy no pasa y que nada impide: un log que termina en 'choice' (o en 'roll'). El
+   * corte del tramo cae en la primera vuelta y sin respaldo el `slice` devuelve vacío — o sea,
+   * una caja de texto EN BLANCO, sin error, en el único lugar de la pantalla donde el jugador
+   * está leyendo. El motor no lo produce (apila la marca y el desenlace en la misma acción, y si
+   * la partida termina ahí el store rutea a la pantalla de fin), pero el tipo `LogEntry[]` no
+   * fija esa invariante y este test es lo que documenta qué se espera si algún día cambia.
+   */
+  it('si el log termina en una marca y no en prosa, la caja no queda en blanco', () => {
+    const hastaLaMarca: LogEntry[] = [
+      { kind: 'scene', sceneId: 'p_umbral', paragraphs: [{ text: 'Cruzás el vado.' }], hashes: [] },
+      { kind: 'choice', sceneId: 'p_umbral', choiceId: 'seguir', label: 'Seguir hasta el molino' },
+    ];
+    render(<TextColumn log={hastaLaMarca} />);
+
+    expect(screen.getByTestId('columna-texto')).toHaveTextContent('Seguir hasta el molino');
+  });
+
+  /**
+   * El autoscroll: el ancla del final se trae a la vista en CADA carácter revelado.
+   *
+   * Sin este test, borrar el efecto entero deja la suite verde — y es justo la línea que el plan
+   * y el spec §3 dan por innecesaria ("el autoscroll de la columna deja de hacer falta"), así que
+   * es la combinación exacta para que alguien la borre de buena fe. Sigue haciendo falta: el
+   * bloque más largo de la campaña son 183 palabras y la columna mide 174 px de alto a 375×812
+   * con las opciones dibujadas, así que sin seguir al texto el carácter que se está tipeando cae
+   * abajo del borde. De paso, `.saltarLeido` es `position: sticky` PORQUE esta columna scrollea.
+   */
+  it('sigue al texto que se revela: trae el ancla del final en cada carácter', () => {
+    const vistos = espiarScrollIntoView();
+    try {
+      const { rerender } = render(<TextColumn log={log} revelado={revelado({ caracteresVisibles: 1 })} />);
+      const ancla = screen.getByTestId('columna-texto').lastElementChild;
+      expect(ancla, 'no hay ancla al final de la columna').not.toBeNull();
+
+      vistos.length = 0;
+      rerender(<TextColumn log={log} revelado={revelado({ caracteresVisibles: 2 })} />);
+
+      expect(vistos, 'un carácter nuevo no trajo el final a la vista').toContain(ancla);
+    } finally {
+      vistos.restaurar();
+    }
   });
 });

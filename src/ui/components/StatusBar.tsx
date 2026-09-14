@@ -77,17 +77,30 @@ export function StatusBar({
           los dos con una letra (C y H), los dos solo miran y los dos se montan sobre el mismo
           `Cajon`: son la misma clase de cosa y se leen mejor como un par.
 
-          Por qué el historial va ACÁ y no montado sobre el filo de la caja, que era la otra
-          candidata. Medido en el navegador a 375×812: el cromo mide 91 px de alto con dos
-          botones y 91 px con tres —el grupo pasa de 152 a 233 px y entra en el mismo renglón—,
-          y 104 px en los dos casos a 125 % de letra. O sea, a la medida en la que se juega no
-          le come ni un píxel más de arte; recién a 150 % suma un renglón (118 → 159 px, un 5 %
-          de la pantalla), y ahí el cromo ya venía envuelto igual. Sobre el filo de la caja, en
-          cambio, choca con la placa del hablante: con el nombre más ancho del reparto ("Capitán
-          Dravos", borde derecho en 221 / 272 / 323 px según la escala) y el botón midiendo
-          73 / 90 / 108 px pegado al borde derecho, se pisan 3 px a 125 % y 72 px a 150 %. Y al
-          lado de "Saltar lo leído" costaba un renglón fijo de los 298 px de alto que tiene la
-          columna de texto en esa pantalla, que es el espacio que menos sobra. */}
+          ── LA MEDICIÓN QUE DECIDIÓ DÓNDE VA EL BOTÓN DEL HISTORIAL ──
+          Vive acá y en ningún otro lado. Los tests que la invocan referencian este comentario en
+          vez de copiar los números: ya divergieron una vez.
+
+          Tomada en el navegador jugando el prólogo a 375×812, clonando el botón dentro del grupo
+          y leyendo el alto del `<header>` con y sin él, en las tres escalas de letra:
+
+            escala 1     cromo 91 px con dos botones · 91 px con tres · grupo 152 → 233 px
+            escala 1,25  cromo 104 px · 104 px · grupo 187 → 285 px
+            escala 1,5   cromo 118 px · 159 px · grupo 222 → 338 px
+
+          O sea: a la medida en la que se juega el tercer botón no le come ni un píxel de arte
+          —el grupo entra en el renglón que ya ocupaba—; recién a 150 % se lleva un renglón
+          propio (+41 px, un 5 % de la pantalla), y ahí el cromo ya venía envuelto igual. A
+          1280×800 el cromo es un solo renglón de 65 px y los tres botones terminan en x=1256 de
+          1280: costo cero.
+
+          Las dos alternativas midieron peor. Montado sobre el filo de la caja choca con la placa
+          del hablante: con el nombre más ancho del reparto ("Capitán Dravos", borde derecho en
+          221 / 272 / 323 px según la escala) y el botón midiendo 73 / 90 / 108 px pegado al borde
+          derecho, se pisan 3 px a 125 % y 72 px a 150 %. Y al lado de "Saltar lo leído" costaba
+          un renglón fijo (29 px a escala 1, 43 a 150 %) de la columna de texto, que a 375×812
+          mide 174 px de alto con las opciones dibujadas —el espacio que menos sobra de la
+          pantalla— y encima habría tapado texto, porque sería `sticky` como su vecino. */}
       <div className={styles.acciones}>
         <button type="button" className={styles.ficha} onClick={onOpenFicha} title={S.barra.fichaTitulo}>
           {S.barra.ficha}

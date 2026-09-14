@@ -255,9 +255,10 @@ export const S = {
     finalOcultoEtiqueta: 'Un final que todavía no descubriste',
   },
   /**
-   * El cajón del historial (tarea 3): la caja de la escena muestra la última entrada del log y
-   * todo lo anterior vive acá. El botón dice "Historial" a secas —es lo que entra en el cromo—
-   * y el cajón se titula entero, que es donde hay lugar para decirlo.
+   * El cajón del historial (tarea 3): la caja de la escena muestra lo que escribió el último paso
+   * del jugador —el desenlace de la opción y la escena que abrió, ver `entradasDelUltimoPaso` en
+   * `TextColumn.tsx`— y toda la partida anterior vive acá. El botón dice "Historial" a secas
+   * —es lo que entra en el cromo— y el cajón se titula entero, que es donde hay lugar para decirlo.
    */
   historial: {
     titulo: 'Historial de la partida',

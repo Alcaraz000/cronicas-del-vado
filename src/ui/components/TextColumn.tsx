@@ -86,29 +86,46 @@ export function Entrada({ entry, revelado, conPlaca = false }: EntradaProps) {
  *
  * El tramo no puede crecer sin control: el motor escribe una 'choice' (o un 'roll') antes de cada
  * desenlace, así que entre dos marcas nunca hay más que un desenlace y una escena.
+ *
+ * **Y corta en la marca a propósito: la línea de la opción elegida ("› Rodear por el patio") y la
+ * de los dados ("Dados: 4 · 5 → Total 9") NO entran en la caja.** Es decisión, no descuido. El
+ * desenlace en prosa ya cuenta lo que pasó, el registro de dados se lee en el historial y la
+ * Fortuna gastada se ve en el cromo, que muestra el valor nuevo. Apilar esas dos líneas arriba
+ * del desenlace es volver a la estética de log de aplicación que todo este rediseño vino a sacar.
+ *
+ * El respaldo del final es para un caso que hoy no pasa: si el log terminara en 'choice' o en
+ * 'roll', el tramo saldría VACÍO y la caja quedaría en blanco, sin error, en el único lugar de la
+ * pantalla donde el jugador está leyendo. Hoy es inalcanzable —el motor apila la marca y el
+ * desenlace en la misma acción, y si la partida termina ahí el store rutea a la pantalla de fin—
+ * pero nada en el tipo `LogEntry[]` fija esa invariante, así que el respaldo muestra la última
+ * entrada y al menos se ve algo.
  */
-function entradasDelUltimoPaso(log: LogEntry[]): LogEntry[] {
+function entradasDelUltimoPaso(log: LogEntry[]): { desde: number; entradas: LogEntry[] } {
   let desde = log.length;
   while (desde > 0) {
     const kind = log[desde - 1]?.kind;
     if (kind !== 'scene' && kind !== 'outcome') break;
     desde -= 1;
   }
-  return log.slice(desde);
+  if (desde === log.length && log.length > 0) desde = log.length - 1;
+  return { desde, entradas: log.slice(desde) };
 }
 
 export function TextColumn({ log, revelado }: TextColumnProps) {
   const fin = useRef<HTMLDivElement>(null);
   const ultima = log[log.length - 1];
-  const visibles = entradasDelUltimoPaso(log);
+  const { desde, entradas: visibles } = entradasDelUltimoPaso(log);
 
   useEffect(() => {
     const el = fin.current;
     if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'end' });
     // El párrafo en curso crece con `caracteresVisibles`: sin seguirlo, el texto que se está
-    // revelando queda por debajo del borde apenas supera el alto visible. Con una sola entrada
-    // en la caja eso pasa menos seguido que antes, pero sigue pasando: los párrafos de esta
-    // campaña llegan a 160 palabras y una entrada así no entra en la caja ni a escala 1.
+    // revelando queda por debajo del borde apenas supera el alto visible. Con el scrollback
+    // afuera de la caja eso pasa menos seguido que antes, pero sigue pasando y por lejos: el
+    // BLOQUE más largo de la campaña son 183 palabras (`c1_acusacion`, contadas sobre
+    // `campaign.scenes`; el párrafo suelto más largo son 64) y eso no entra en la caja ni a
+    // escala 1 — medido jugando a 375×812, la columna mide 174 px de alto con las opciones
+    // dibujadas y el contenido de una escena así pasa los 700.
     //
     // La dependencia es la IDENTIDAD de `ultima` y no `log.length` (que era lo que había): el
     // motor recorta el log a `LIMITS.maxLog`, así que pasado ese tope cada entrada nueva empuja
@@ -151,9 +168,14 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
           conserva sus prefijos de hablante a la vista, que es lo correcto: la placa no lo está
           nombrando a él. `conPlaca` cuelga de que haya `revelado` porque es la misma condición:
           el revelado solo existe en la caja de la escena, la única superficie con placa. */}
+      {/* La key es el índice en el LOG, no en el tramo: el tramo es una ventana deslizante y
+          cuando pasa de `[escena]` a `[desenlace, escena]` la key 0 cambiaría de significado, con
+          React reusando el mismo `<section>` y cambiándole la clase por debajo. Hoy sería inocuo,
+          pero esto vive adentro de una región `aria-live` y ahí un nodo reciclado es un anuncio
+          raro. `desde + i` cuesta lo mismo y no puede confundirse. */}
       {visibles.map((entry, i) => (
         <Entrada
-          key={i}
+          key={desde + i}
           entry={entry}
           revelado={i === visibles.length - 1 ? revelado : undefined}
           conPlaca={revelado !== undefined && i === visibles.length - 1}

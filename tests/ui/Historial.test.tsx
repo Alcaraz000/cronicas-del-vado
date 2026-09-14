@@ -6,6 +6,7 @@ import { useStore } from '@/state/store';
 import { Historial } from '@/ui/components/Historial';
 import { S } from '@/ui/strings.es';
 import { minimal } from '../fixtures/campaigns/minimal';
+import { espiarScrollIntoView } from '../fixtures/scroll';
 
 /**
  * Una partida de tres escenas con todo lo que el log puede traer: prosa de escena, una elección,
@@ -115,5 +116,44 @@ describe('Historial', () => {
     render(<Historial log={[]} abierto onCerrar={vi.fn()} />);
 
     expect(screen.getByText(S.historial.vacio)).toBeInTheDocument();
+  });
+
+  /**
+   * Abre en el FINAL, no arriba de todo. Un historial se abre para ver lo que te perdiste, y lo
+   * que te perdiste está al final: con abrir arriba, en una partida larga el jugador scrollea un
+   * rato para llegar a lo que acaba de pasar. Ren'Py hace lo mismo. Medido jugando, con solo dos
+   * escenas el cajón ya scrollea (978 px de contenido contra 800 de ventana).
+   *
+   * El "Cerrar" no se va con el scroll porque `Cajon` scrollea el cuerpo y deja el encabezado
+   * fijo (su propio test fija esa regla).
+   */
+  it('abre en el final, que es lo que el jugador viene a ver', () => {
+    const vistos = espiarScrollIntoView();
+    try {
+      const { rerender } = render(<Historial log={log} abierto={false} onCerrar={vi.fn()} />);
+      expect(vistos, 'cerrado no tiene nada que scrollear').toHaveLength(0);
+
+      rerender(<Historial log={log} abierto onCerrar={vi.fn()} />);
+
+      expect(vistos, 'el cajón no se llevó al final al abrirse').toContain(screen.getByTestId('historial'));
+    } finally {
+      vistos.restaurar();
+    }
+  });
+
+  it('aguanta el log de una partida entera sin perder ninguna entrada', () => {
+    // `LIMITS.maxLog` recorta el log del motor, pero una partida completa del Vado llega igual a
+    // más de cien entradas: el cajón las dibuja todas y sigue abriendo en la última.
+    const largo: LogEntry[] = Array.from({ length: 120 }, (_, i) =>
+      i % 2 === 0
+        ? { kind: 'scene', sceneId: `m_${i}`, paragraphs: [{ text: `Párrafo de la escena ${i}.` }], hashes: [`h${i}`] }
+        : { kind: 'choice', sceneId: `m_${i - 1}`, choiceId: `c${i}`, label: `Opción ${i}` },
+    );
+    render(<Historial log={largo} abierto onCerrar={vi.fn()} />);
+
+    const cajon = screen.getByTestId('historial');
+    expect(cajon.children).toHaveLength(120);
+    expect(cajon).toHaveTextContent('Párrafo de la escena 0.');
+    expect(cajon).toHaveTextContent('› Opción 119');
   });
 });

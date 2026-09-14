@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { LogEntry } from '@/engine/types';
 import { Cajon } from '@/ui/components/Cajon';
 import { Entrada } from '@/ui/components/TextColumn';
@@ -22,18 +23,34 @@ export interface HistorialProps {
  * es lo único que dice quién habló y se queda entero. `Parrafos` sin esa prop ya hace eso; no
  * hay ninguna regla que copiar.
  *
- * De la más vieja a la más nueva, y sin autoscroll al final. El contenedor que scrollea es el
- * panel de `Cajon`, que lleva el título y "Cerrar" arriba de todo: llevarlo al fondo al abrirse
- * escondería la única forma visible de cerrar el cajón. Lo más nuevo, además, es justo lo que el
- * jugador tiene en la caja detrás de este panel.
+ * De la más vieja a la más nueva —el orden en que se leyó— y **abierto en el final**, que es lo
+ * que hace Ren'Py y lo único que tiene sentido para algo que se abre a ver lo que te perdiste:
+ * con abrir arriba de todo, en una partida larga el jugador scrollea un rato para llegar a lo que
+ * acaba de pasar. Medido jugando, con solo DOS escenas el cajón ya scrollea (978 px de contenido
+ * contra 800 de ventana).
+ *
+ * El scroll se hace sobre la lista entera con `scrollIntoView({ block: 'end' })` —alinea su borde
+ * de abajo con el del contenedor, o sea el final— y no tocando `scrollTop` del padre, que
+ * ataría este componente a la estructura interna de `Cajon`. Y funciona sin esconder el botón
+ * "Cerrar" porque `Cajon` ahora scrollea el cuerpo y deja el encabezado fijo (ver su CSS).
  */
 export function Historial({ log, abierto, onCerrar }: HistorialProps) {
+  const lista = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const el = lista.current;
+    // `Cajon` no dibuja nada mientras está cerrado, así que la ref recién existe en el commit
+    // que lo abre. El `typeof` es porque jsdom no implementa `scrollIntoView`.
+    if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'end' });
+  }, [abierto]);
+
   return (
     <Cajon titulo={S.historial.titulo} abierto={abierto} onCerrar={onCerrar}>
       {log.length === 0 ? (
         <p className={styles.vacio}>{S.historial.vacio}</p>
       ) : (
-        <div className={styles.lista} data-testid="historial">
+        <div ref={lista} className={styles.lista} data-testid="historial">
           {log.map((entry, i) => (
             <Entrada key={i} entry={entry} />
           ))}

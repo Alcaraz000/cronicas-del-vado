@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { bloqueDeMedia, cuerpoDe } from '../fixtures/css';
+import { espiarScrollIntoView } from '../fixtures/scroll';
 import type { Campaign } from '@/content/schema';
 import type { LogEntry, ResolvedParagraph, Run } from '@/engine/types';
 import { useStore } from '@/state/store';
@@ -82,30 +83,6 @@ function montarEscena(campaign: Campaign, runOverrides: Partial<Run> = {}): void
     seen: {},
     ui: { ...s.ui, screen: 'escena', campaign, pending: null },
   }));
-}
-
-/**
- * Lista de los elementos sobre los que se llamó `scrollIntoView`, en orden, más un
- * `restaurar()`. jsdom no implementa `scrollIntoView` (por eso el código lo llama detrás de un
- * `typeof === 'function'`), así que acá se instala uno que solo anota el elemento.
- */
-interface ScrollEspiado extends Array<Element> {
-  restaurar: () => void;
-}
-
-function espiarScrollIntoView(): ScrollEspiado {
-  const vistos = [] as unknown as ScrollEspiado;
-  // Vía `Reflect` y no por asignación directa: en el tipo de `Element` la propiedad no es
-  // opcional, así que no se puede borrar para dejar el prototipo como estaba.
-  const original: unknown = Reflect.get(Element.prototype, 'scrollIntoView');
-  Reflect.set(Element.prototype, 'scrollIntoView', function (this: Element): void {
-    vistos.push(this);
-  });
-  vistos.restaurar = (): void => {
-    if (original === undefined) Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
-    else Reflect.set(Element.prototype, 'scrollIntoView', original);
-  };
-  return vistos;
 }
 
 /**
@@ -876,12 +853,9 @@ describe('EscenaScreen — el historial detrás de un botón', () => {
   });
 
   it('el botón del historial vive en el cromo, al lado del de la Ficha', () => {
-    // Medido a 375×812 en el navegador, que es lo que decidió dónde va: el cromo mide 91 px de
-    // alto con dos botones y 91 px con tres (el grupo pasa de 152 a 233 px y entra en el mismo
-    // renglón), y 104 px en los dos casos a 125 %. Recién a 150 % suma un renglón (118 → 159).
-    // Montado sobre el filo de la caja, en cambio, chocaba con la placa del hablante: con el
-    // nombre más ancho ("Capitán Dravos": borde derecho en 221 / 272 / 323 px) y el botón de
-    // 73 / 90 / 108 px pegado a la derecha, se pisan 3 px a 125 % y 72 px a 150 %.
+    // Lo decidió una medición de navegador a 375×812 que vive en un solo lugar: el comentario de
+    // `src/ui/components/StatusBar.tsx`, arriba de `.acciones`. Acá no se copia — ya divergió una
+    // vez entre el código y el informe.
     montarConPartida();
     render(<EscenaScreen />);
 
