@@ -32,47 +32,50 @@ import { partirBandera, tomarValor } from './lib/args';
 const RAIZ = path.resolve(fileURLToPath(import.meta.url), '../..');
 
 /**
- * Medida de la foto. **El alto no es decorativo: es lo que decide si la prosa entra en la caja.**
+ * Medida de la foto: **la ventana de Gabriel**, que es un navegador a pantalla completa en un
+ * monitor de 1920×1080. Es la medida sobre la que se diagnosticó y se verificó la fase del
+ * escalado entera, y la única en la que la foto muestra lo que esa fase hizo.
  *
- * `.caja` mide `height: 44%` de la pantalla (`EscenaScreen.module.css`), y adentro las opciones se
- * quedan con lo suyo y el texto con lo que sobra. O sea que el lugar para la prosa sale del ALTO de
- * la ventana y de nada más: medido con `a1_orell_mesa`, 1440×900 y 1600×900 dan exactamente el
- * mismo desborde, porque ensanchar reacomoda las líneas pero no cambia cuántas entran. (El número
- * de ese par pasó de 28 px a **56** con el escalado de la tarea 1 —a 900 px de alto el diálogo ya
- * mide 21,375 px—, pero que los dos anchos empaten sigue valiendo: la prosa corta en 812,25 px en
- * los dos, porque la corta `--ancho-prosa` y no la ventana.)
+ * **El ancho dejó de ser cosmético.** Hasta la fase del escalado la única dimensión que decidía
+ * algo era el alto —`.caja` mide `height: var(--alto-caja)`, el 44 % de la pantalla, y adentro las
+ * opciones se llevan lo suyo y el texto se queda con lo que sobra—, así que acá decía «el ancho no
+ * cambia el desborde» y era cierto. Ya no: **arriba de 1400 px de ancho la caja se reparte en dos
+ * columnas** (`@media (min-width: 1400px)` en `EscenaScreen.module.css`), la prosa a la izquierda y
+ * las opciones a la derecha, y las dos se quedan con el alto entero del interior en vez de pelearse
+ * por él. Una foto a 1280 de ancho no puede mostrar eso: muestra el layout apilado, que es el que
+ * la fase vino a reemplazar.
  *
- * **ESTE 970 ESTÁ ROTO Y LA HERRAMIENTA NO SACA LA FOTO: se va 51 px.** Lo rompió la tarea 1 del
- * escalado, y el motivo es que **desde esa tarea el alto mueve DOS cosas a la vez**: el lugar que
- * hay (la caja sigue siendo el 44 %) y también la letra, porque `--tam-texto-juego` pasó a ser
- * `clamp(19px, 2.375vh, 25px)`. A 970 px de alto el piso ya no manda: el diálogo mide 23,04 px,
- * un 21 % más grande, y el texto crece más rápido de lo que crece la caja. Por eso la tabla vieja
- * —800 → 55 px · 864 → 43 · 900 → 28 · 960 → 1 · 970 → entra— **no se puede leer más**: valía
- * cuando subir el alto solo agregaba lugar.
+ * **Por qué 905 y no 1080.** 1080 es el alto del monitor; 905 es el del viewport con la barra de
+ * título, la de direcciones y la de tareas puestas. Es la medida real de una ventana maximizada y
+ * es la que el ledger de la fase usa en todas sus mediciones.
  *
- * Barrido nuevo, medido por DOM sobre `a1_orell_mesa` a 1280 de ancho (el mismo `desborde` que
- * `leerEstado` calcula acá abajo): 800 → 55 px · 970 → 51 · 1050 → 41 · 1100 → 20 · **1150 → 0**.
- * Ojo con los extremos: a 800 da los mismos 55 px de siempre —el piso del `clamp()` está anclado
- * justo ahí— y recién cierra pasado el TECHO del `clamp()` (1053 px de alto), donde la letra deja
- * de crecer y el alto de más es lugar puro.
+ * Medido por DOM sobre la escena de la foto (`a1_taberna`) a 1920×905, escala 1:
  *
- * **No se sube el `ALTO` acá.** 1280×1150 es 1,11:1, casi cuadrado, así que es una decisión de
- * encuadre y no un cambio de constante; y el reparto en dos columnas de la tarea 2 va a mover el
- * desborde otra vez. Se cierra en la tarea 5, después de aquella. Está anotado en el ledger.
+ *   la prosa pide 341,52 px y tiene 353    -> entra con 11,48 px de sobra, 11 renglones
+ *   la lista de 7 opciones pide 296,03     -> entra con 56,97 px de sobra, 7 de 7 a la vista
+ *   columna de prosa 832,75 px · columna de acciones 959,25 px · diálogo 21,49 px
+ *   desborde de la página: 0 horizontal y 0 vertical
  *
- * **El ancho, en cambio, sí es cosmético, y por eso bajó de 1440 a 1280.** La prosa corta a
- * `--ancho-prosa` —38em, o sea 875,4 px a 970 px de alto; ya NO a los 720 px fijos de
- * `--ancho-columna-max`, que desde la tarea 1 es otro token y lo usan otras pantallas— y la lista
- * de opciones no corta en ningún lado, así que cuanto más ancha la ventana más se nota el
- * desbalance entre una columna de texto angosta y unas opciones que llegan al borde derecho. Que
- * las opciones lleguen al borde está decidido y se queda —igualarlas a la medida de la prosa achica
- * la lista, los chips envuelven y una encrucijada de siete opciones crece a lo alto, que es el
- * recurso escaso—; lo que se arregla acá es que el desbalance salga en la foto. 1280 es además el
- * ancho al que esta interfaz se jugó y se verificó. El ancho no cambia el desborde: es la medición
- * de acá arriba.
+ * **La herramienta estuvo rota toda la fase y se arregló sola, que es lo que hay que saber antes de
+ * tocar estos dos números.** Con la medida vieja (1280×970 sobre `a1_orell_mesa`) la prosa se iba
+ * 51 px por debajo del recorte y el script fallaba sin escribir el PNG. La causa fue el escalado de
+ * la tarea 1: desde entonces el alto mueve DOS cosas a la vez —el lugar que hay y también la letra,
+ * porque `--tam-texto-juego` pasó a `clamp(19px, 2.375vh, 25px)`— y a 970 px de alto el piso ya no
+ * manda (el diálogo mide 23,04 px, un 21 % más). Lo que lo cerró fue otra cosa: la tarea 2 apretó el
+ * alto de cada opción y a 1280 la lista de 7 opciones bajó de 441 a 254 px, o sea 187 px que le
+ * volvieron a la prosa. Barrido rehecho hoy, por DOM, sobre `a1_orell_mesa` a 1280 de ancho:
+ *
+ *   alto de ventana          800   970   1050   1100   1150
+ *   desborde en la tarea 1    55    51     41     20      0
+ *   desborde HOY              10     0      0      0      0
+ *
+ * O sea que la medida vieja hoy funcionaría. **No se deja igual igual**, y el motivo no es que no
+ * funcione sino lo que muestra: a 1280 no hay reparto, y la única escena con hablante que entra ahí
+ * sigue siendo `a1_orell_mesa` —60 palabras, 4 opciones, las cuatro marcadas «· ya elegida» y
+ * ninguna con tirada—. Ver `RUTA` para la comparación entre escenas, que es donde se decide.
  */
-const ANCHO = 1280;
-const ALTO = 970;
+const ANCHO = 1920;
+const ALTO = 905;
 
 const SALIDA_POR_DEFECTO = 'docs/captura-escena.png';
 
@@ -88,74 +91,72 @@ const PUERTO_POR_DEFECTO = 5179;
  * El camino hasta la escena que se fotografía: en qué escena hay que estar y qué opción se elige
  * para salir de ella. La última de la lista es la que sale en la foto.
  *
- * **Las cuatro opciones son `outcome` sin tirada**, y eso no es comodidad: con dados de por medio la
+ * **Las tres opciones son `outcome` sin tirada**, y eso no es comodidad: con dados de por medio la
  * foto saldría distinta en cada corrida —otra banda, otro texto, otras Heridas— y una captura que
  * cambia sola no sirve para documentar nada.
  *
- * **Por qué `a1_orell_mesa` y no una escena más vistosa. Leé esto antes de "mejorar" la captura:
- * las dos escenas que dan más ganas ya se probaron y las dos se cayeron por medirlas.**
+ * **Por qué `a1_taberna`. Leé esto antes de "mejorar" la captura: las candidatas ya se probaron una
+ * por una y todas están medidas acá abajo.**
  *
  * Lo que tiene que verse es una escena con hablante (para que estén la placa y el recorte) **y con la
  * prosa entera adentro de la caja**. Que la prosa entre no es un capricho: la caja no crece, y lo que
  * no entra scrollea, así que la foto sale empezando a mitad de frase. El jugador nunca ve eso mal
  * —lee mientras se tipea y el autoscroll lo sigue—, pero una foto quieta que arranca en «aprender:
- * «El paso está cerrado…» se lee como texto roto.
+ * «El paso está cerrado…» se lee como texto roto. Desde esta fase se le exige lo mismo a la lista de
+ * opciones, que en el reparto es la columna que anda corta (ver `leerEstado`).
  *
- * - **`p_puente`** (la barricada del prólogo, la primera elegida) es la que más juego muestra: dos
- *   tiradas con fichas, riesgo y probabilidades, una opción de clase y una cerrada con su motivo.
- *   Sus 7 opciones con fichas se llevan el tope del 60 % de la caja (`.acciones` en
- *   `EscenaScreen.module.css`) y a la columna le quedan cuatro líneas para 105 palabras: **223 px de
- *   más a 1280×800**, y como el lugar para la prosa sale del alto (ver `ALTO`), entrar entera le
- *   pediría **unos 2070 px de alto**. O sea que no es cuestión de agrandar la ventana: no entra nunca.
- * - **`c2_otra_orilla`** (el molino, acto 2) es la única escena corta con hablante que tiene una
- *   opción con tirada, así que sería la única capaz de mostrar prosa entera Y el sistema de dados, y
- *   encima sin ningún "ya elegida". Tiene camino sin dados —15 pasos por la rama de la ley— y
- *   **entra a 1450 px de alto** (a 1360 le faltan 36; a 1200, 107). Se descartó por la forma: a
- *   1280×1450 la imagen es VERTICAL, y ninguna ventana de navegador tiene esa forma — en un README se
- *   lee como una tira estirada. La del Ancla Seca parece una pantalla de juego, y el criterio es lo
- *   que dice un desconocido mirando la captura, no cuántas cosas entran en ella. Si el sistema de
- *   tiradas merece una frase, va en el texto del README, no en esta foto.
+ * `a1_taberna` es **la encrucijada peor de la campaña** —10 líneas de prosa y 7 opciones, la escena
+ * sobre la que se diagnosticó y se verificó la fase entera— y a 1920×905 entra completa: prosa con
+ * 11,48 px de sobra y lista con 56,97. Muestra, en una sola foto, todo lo que hay que mostrar:
  *
- * Lo que esta escena NO muestra, para que nadie lo descubra de nuevo: sus cuatro opciones salen
- * marcadas "· ya elegida". Sale del DESTINO, no del id de la opción (`alreadySeen` en
- * `engine/resolve.ts`), y es estructural: la única arista de entrada a `a1_orell_mesa` viene de
- * `a1_taberna`, las cuatro opciones vuelven a `a1_taberna`, y `seen` se deriva al SALIR de una
- * escena — que es justo cómo se entró. Lo ve cualquier jugador la primera vez que se sienta en esa
- * mesa, así que la foto muestra lo que el juego hace.
+ *   - el reparto en dos columnas, que es lo que la fase hizo;
+ *   - la placa de Mausi y su recorte, o sea el hablante;
+ *   - **el sistema de tiradas**: dos opciones con su atributo y modificador, la etiqueta de riesgo y
+ *     las tres probabilidades, y entre las dos están las cuatro clases de ficha que existen — la
+ *     primera lleva «Presencia +0 · ▼ Debilidad: Explorador · Peligroso · Éxito 5 % · Con costo
+ *     27 % · Fallo 68 %» y la segunda, «Astucia +2 · Difícil −1 · Arriesgado · Éxito 28 % · Con
+ *     costo 44 % · Fallo 28 %»;
+ *   - dos opciones cerradas con su motivo **en el mismo renglón**, que es la palanca 5 de la tarea 2.
  *
- * Escenas con hablante, ordenadas por lo que ocupan (palabras de prosa | opciones), con el desborde
- * medido a 1280×800, que es la medida con la que esto empezó:
+ * Las candidatas que se descartaron, todas medidas por DOM y no estimadas:
  *
- *   60 | 4 | orell  | a1_orell_mesa          55 px de más  ← la elegida (entra a 970 de alto)
- *   68 | 4 | mausi  | a1_taberna_trastienda 151 px de más
- *   70 | 5 | orell  | p_puente_amanecer     141 px de más
- *   78 | 6 | ilse   | a2_fuera_fuga         más prosa y más opciones que la primera
- *   86 | 4 | orell  | c2_otra_orilla        más prosa que la primera
+ * - **`a1_orell_mesa` a 1280×970**, la de antes. Entra (hoy con 0 de desborde), pero a 1280 no hay
+ *   reparto: la foto mostraría el layout apilado, que es el que esta fase reemplazó. Y la escena es
+ *   la más chica que hay —60 palabras, 4 opciones, **las cuatro marcadas «· ya elegida»** y ninguna
+ *   con tirada—. Lo de «ya elegida» es estructural y no un defecto: sale del DESTINO y no del id de
+ *   la opción (`alreadySeen` en `engine/resolve.ts`), y la única arista de entrada a esa escena
+ *   viene de `a1_taberna`, adonde vuelven sus cuatro opciones.
+ * - **`p_puente`** (la barricada del prólogo) es la otra que muestra bien el sistema de tiradas, y
+ *   estuvo cerquísima: le faltan **23 px a 1920×905** y **2 px a 1920×1080**. Cierra recién a
+ *   **2048×1152**, que es 16:9 exacto y por lo tanto no es la forma de ninguna ventana de navegador.
+ *   (El comentario viejo decía que pedía «unos 2070 px de alto»: era cierto **antes** de la tarea 2,
+ *   con las siete opciones apiladas llevándose el tope del 60 % de la caja.)
+ * - **`c2_otra_orilla`** (el molino, acto 2) entraba a 1280×1450, o sea una imagen VERTICAL que en
+ *   un README se lee como una tira estirada. Además son 15 pasos de camino sin dados contra los 3
+ *   de acá: cuanto más largo el camino, más superficie para que un cambio de contenido lo rompa.
+ * - `a1_taberna_trastienda`, `p_puente_amanecer` y `a2_fuera_fuga` tienen más prosa, más opciones o
+ *   las dos cosas que `a1_taberna`, y a las tres se entra por desenlaces que sí escriben párrafo.
  *
- * A 1280×800 no entra NINGUNA: a esa altura la columna da para tres líneas y media, y una escena con
- * hablante son dos párrafos como mínimo. `a1_orell_mesa` es la que menos se pasa porque es la más
- * corta **y** porque se llega por un desenlace sin texto; las dos últimas no se midieron una por una
- * porque no pueden ganarle —más prosa, y encima se entra a las dos por desenlaces que sí llevan
- * párrafo—. Lo que resolvió el empate fue el alto de la ventana, que es de donde sale el lugar para
- * la prosa (ver `ALTO`).
- *
- * Si algún día `a1_orell_mesa` crece y deja de entrar, el script falla diciéndolo y la lista de acá
+ * Si algún día `a1_taberna` crece y deja de entrar, el script falla diciéndolo y la lista de acá
  * arriba es por dónde seguir: la siguiente que entre, con un camino sin tiradas hasta ella.
  *
- * Ojo con el último paso: `sentarte_en_la_mesa_de_orell` es un desenlace **sin texto**, y eso
- * también cuenta. La caja muestra lo que escribió el último paso (desenlace + escena, ver
+ * Ojo con el último paso: `entrar_al_ancla_seca` es un desenlace **sin texto**, y eso también
+ * cuenta. La caja muestra lo que escribió el último paso (desenlace + escena, ver
  * `entradasDelUltimoPaso` en `TextColumn.tsx`), así que una opción con desenlace en prosa metería
  * ese párrafo arriba de la escena y se comería el lugar que la escena necesita para entrar.
+ *
+ * Y ojo con lo que el camino deja puesto: `entregarle_la_carta_para_cruzar` **entrega** la carta
+ * lacrada, así que la primera opción de la taberna —que tiene `advantageIf: { item: 'carta_lacrada' }`—
+ * sale sin ventaja. Es determinista, pero es una razón más para no reordenar la `RUTA` a la ligera.
  */
 const RUTA = [
   { escena: 'p_camino', opcion: 'seguir_hasta_el_puente' },
   { escena: 'p_puente', opcion: 'entregarle_la_carta_para_cruzar' },
   { escena: 'a1_plaza', opcion: 'entrar_al_ancla_seca' },
-  { escena: 'a1_taberna', opcion: 'sentarte_en_la_mesa_de_orell' },
 ];
 
 /** La escena de la foto: a la que llega el último paso de `RUTA`. */
-const ESCENA = 'a1_orell_mesa';
+const ESCENA = 'a1_taberna';
 
 /**
  * Prefijos de los `alt` que escribe `EscenaScreen` (`S.placeholder` en `src/ui/strings.es.ts`).
@@ -470,8 +471,9 @@ async function escenaListaYQuieta(page: Page, escena: string): Promise<boolean> 
  * De la pantalla de inicio hasta la escena de la foto, siguiendo `RUTA` (ver allá el porqué de cada
  * escena y de cada opción).
  *
- * El personaje es un Explorador, pero en esta escena la clase no se ve: `a1_orell_mesa` no tiene
- * opciones de clase. Se elige una y listo, porque la creación no se puede saltear.
+ * El personaje es un Explorador, y en esta escena la clase se ve de refilón: `a1_taberna` no tiene
+ * opciones de clase, pero su opción más cargada lleva el chip «▼ Debilidad: Explorador», que es la
+ * Debilidad de la clase elegida acá. Si algún día se cambia de clase, ese chip cambia con ella.
  */
 async function jugarHastaLaEscena(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
@@ -488,12 +490,19 @@ async function jugarHastaLaEscena(page: Page, base: string): Promise<void> {
   await page.locator('[data-testid="siguiente"]').click();
 
   // Paso 3: dos rasgos. Se eligen los dos primeros que la clase permita, sin saber cuáles son: la
-  // Debilidad del Explorador bloquea algunos, y `:not([disabled])` ya deja afuera esos y también
-  // los que se apagan al llegar al cupo de dos. El `:not([aria-pressed="true"])` es lo que evita
-  // el chiste de clicar dos veces el mismo rasgo: el botón es un interruptor, así que el segundo
-  // clic lo soltaría y el paso quedaría bloqueado pidiendo un rasgo más.
+  // Debilidad del Explorador bloquea algunos, y el filtro deja afuera esos y también los que se
+  // apagan al llegar al cupo de dos. El `:not([aria-pressed="true"])` es lo que evita el chiste de
+  // clicar dos veces el mismo rasgo: el botón es un interruptor, así que el segundo clic lo
+  // soltaría y el paso quedaría bloqueado pidiendo un rasgo más.
+  //
+  // **Es `aria-disabled` y no `disabled` a secas, y este es el segundo modo en que esta herramienta
+  // estuvo rota durante la fase.** El rediseño de la creación sacó el `disabled` nativo justamente
+  // para que un rasgo bloqueado se pueda enfocar y el lector de pantalla lea el motivo (§4 del
+  // diseño: el callejón sin salida de accesibilidad). Con el filtro viejo, `:not([disabled])` ya no
+  // descartaba nada, el script clickeaba dos veces un rasgo bloqueado, el cupo se quedaba en cero y
+  // el clic sobre «Siguiente» —que sí conserva el `disabled` nativo— esperaba para siempre.
   for (let i = 0; i < 2; i += 1) {
-    await page.locator('[data-testid^="rasgo-"]:not([disabled]):not([aria-pressed="true"])').first().click();
+    await page.locator('[data-testid^="rasgo-"]:not([aria-disabled="true"]):not([aria-pressed="true"])').first().click();
   }
   await page.locator('[data-testid="siguiente"]').click();
 
@@ -522,6 +531,14 @@ interface Estado {
   opciones: number;
   /** Cuánto texto queda fuera del recorte de la columna, en píxeles. Tiene que ser 0. */
   desborde: number;
+  /**
+   * Lo mismo para la lista de opciones, que desde el reparto en dos columnas es **la que anda
+   * corta**: la prosa de la escena de la foto pide 341,52 px de los 353 que hay y la lista 296,03,
+   * pero el clímax `cl_dravos` pide 378 y se va 25. Hasta esta fase nadie lo miraba, así que una
+   * opción cortada por la mitad se habría guardado sin que el script dijera nada — que es el mismo
+   * error que se arregló para la prosa, un panel más a la derecha.
+   */
+  desbordeOpciones: number;
 }
 
 /**
@@ -540,6 +557,8 @@ async function leerEstado(page: Page, altFondo: string, altSprite: string): Prom
       // El que scrollea es el padre de la columna de texto (`.columna` de `EscenaScreen`); el
       // `data-testid` está en el hijo, que es el único nodo con nombre estable desde acá.
       const scroll = document.querySelector('[data-testid="columna-texto"]')?.parentElement ?? null;
+      // La columna de acciones scrollea en su propio elemento, que sí tiene `data-testid`.
+      const acciones = document.querySelector('[data-testid="acciones"]');
       return {
         escena: seccion?.getAttribute('data-scene') ?? null,
         placa: placa?.textContent?.trim() ?? null,
@@ -547,6 +566,7 @@ async function leerEstado(page: Page, altFondo: string, altSprite: string): Prom
         sprite: dibujadas.some((alt) => alt.startsWith(prefijoSprite)),
         opciones: document.querySelectorAll('[data-testid="acciones"] button').length,
         desborde: scroll === null ? -1 : Math.max(0, scroll.scrollHeight - scroll.clientHeight),
+        desbordeOpciones: acciones === null ? -1 : Math.max(0, acciones.scrollHeight - acciones.clientHeight),
       };
     },
     [altFondo, altSprite] as [string, string],
@@ -636,8 +656,16 @@ async function sacarLaFoto(base: string, destino: string, conVentana: boolean): 
     if (estado.desborde !== 0) {
       problemas.push(
         `la prosa no entra entera en la caja: se va ${String(estado.desborde)} px por debajo del recorte, ` +
-          `así que la foto arrancaría a mitad de párrafo. Se arregla subiendo ALTO (la caja es el 44 % ` +
-          `de la ventana, así que el ancho no cambia nada) o pasando a la escena que sigue en la lista de RUTA`,
+          `así que la foto arrancaría a mitad de párrafo. Las palancas son ALTO (la caja es el 44 % de ` +
+          `la ventana), ANCHO (arriba de 1400 la caja se reparte en dos columnas y la prosa deja de ` +
+          `pelear por el alto con las opciones) o la escena: ver la lista de candidatas en RUTA`,
+      );
+    }
+    // Lo mismo del otro lado del reparto. Ver `Estado.desbordeOpciones`.
+    if (estado.desbordeOpciones !== 0) {
+      problemas.push(
+        `las opciones no entran enteras: se van ${String(estado.desbordeOpciones)} px por debajo del ` +
+          `recorte, así que la foto mostraría la lista cortada. Mismas palancas que la prosa`,
       );
     }
     if (errores.length > 0) problemas.push(`la página tiró errores: ${errores.join(' · ')}`);
