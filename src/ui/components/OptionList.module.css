@@ -79,10 +79,16 @@
    El 0,9 y el "17 contra 20" de la maqueta aprobada no son el mismo número, y hasta esta oleada
    el comentario citaba uno y la regla usaba el otro. Lo que se conserva de la maqueta es el
    TAMAÑO, no la proporción: la maqueta tenía la prosa en 20 px y la etiqueta en 17, y acá
-   `--tam-texto-juego` es 19 px, así que el 17 px de la maqueta son 17/19 = 0,895 — el 0,9 de
-   abajo, que da 17,1 px. Con el 0,85 de la proporción la etiqueta caería a 16,15 px, casi un
-   punto por debajo de lo aprobado. La escala manda igual: todo esto se multiplica por
-   `--escala-fuente`. */
+   `--tam-texto-juego` arranca en 19 px, así que el 17 px de la maqueta son 17/19 = 0,895 — el 0,9
+   de abajo, que da 17,1 px. Con el 0,85 de la proporción la etiqueta caería a 16,15 px, casi un
+   punto por debajo de lo aprobado.
+
+   Ojo con ese "19 px": desde el escalado de la tarea 1 es el PISO de un `clamp()`, no un valor
+   plano. Los 17,1 px valen en cualquier ventana de hasta 800 px de alto, que es donde el piso
+   manda y donde se tomó la medida de la maqueta; más arriba sube con la ventana (medido a
+   1919x905: prosa 21,494 px, etiqueta 19,344). La comparación con la maqueta sobrevive igual
+   porque lo que se fija acá es un MULTIPLICADOR, y la proporción 0,9 no se mueve nunca. La escala
+   del jugador manda además de todo esto: se multiplica por `--escala-fuente`. */
 .label {
   min-width: 0;
   font-family: var(--fuente-juego);

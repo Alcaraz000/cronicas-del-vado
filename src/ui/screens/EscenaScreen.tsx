@@ -231,8 +231,13 @@ export function EscenaScreen() {
   //
   // Por qué un `scrollTop = 0` y no confiar en que el panel entre: el tope del 78 % de
   // `.acciones[data-tirada='true']` se midió a `--escala-fuente` 1, y el panel no escala parejo
-  // —los dados tienen un tamaño fijo en `rem` y el resto crece con la escala—, así que a 1,25 y a
-  // 1,5 el panel no entra en la región. Poner el scroll en cero no depende de que entre.
+  // —los espaciados son tokens en px fijos (`--esp-*`) y el texto crece con la escala—, así que a
+  // 1,25 y a 1,5 el panel no entra en la región. Poner el scroll en cero no depende de que entre.
+  //
+  // (Hasta el escalado de la tarea 1 el que no escalaba eran los DADOS, que medían `3.5rem`. Ya
+  // no: siguen a `--tam-ui`. La conclusión no cambió, el motivo sí —medido a 1280x800 sobre
+  // `a1_taberna`/`robar_el_libro`: el panel pasa de 255,59 px a escala 1 a 346,88 px a 150 %,
+  // contra los 236 px que da el tope; antes iba de 271 a 311.)
   useEffect(() => {
     if (pending === null) return;
     const region = accionesRef.current;

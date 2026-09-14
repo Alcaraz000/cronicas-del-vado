@@ -79,13 +79,15 @@
      placa 24,7 px (el 1,3x de EscenaScreen), cromo 13 px — los mismos de antes. A 1919x905 dan
      21,49 / 27,94 / 14,71. OJO: por abajo de 800 px de alto el piso manda y el texto NO se
      achica; el que sí crece es cualquier ventana más alta, teléfono incluido (a 375x812 el
-     diálogo da 19,29 px, así que las medidas del bloque de teléfono de EscenaScreen quedaron
-     corridas un 1,5 %).
+     diálogo da 19,29 px, así que los siete números del bloque de teléfono de
+     `EscenaScreen.module.css` —el de "La placa NO se achica en el teléfono"— quedaron corridos un
+     1,5 % y hay que rehacerlos).
      `vh` y no `vw` porque toda la geometría de la escena sale del ALTO (caja 44 %, sprite 80 %,
      acciones 60 %): con `vw`, un ultrawide 2560x1080 inflaría la letra sin dar una línea más de
      caja. Los techos están en 1,32x / 1,27x / 1,23x el piso, bien abajo del 2,5x a partir del
      cual el texto pega un tirón en el medio del rango; se tocan a 1053 / 1013 / 985 px de alto
-     de ventana, o sea recién arriba de un 1080p a pantalla completa.
+     de ventana, o sea **ya en un 1080p a pantalla completa** (1053 < 1080) y no en una ventana
+     normal de ese mismo monitor, que ronda los 905.
      La preferencia del jugador multiplica POR FUERA del clamp (los módulos hacen
      `calc(var(--tam-...) * var(--escala-fuente))`), así que pedir 150 % siempre agranda de
      verdad: meter la escala adentro del clamp la anularía arriba del techo, que es fallo de
@@ -114,15 +116,19 @@
      que antes.
      OJO con la medida en caracteres, que estaba mal contada en el spec. Medido en el navegador
      sobre `a1_taberna` a 1280x800 (Range.getClientRects sobre el texto real, no una estimación):
-     una línea llena lleva 82-85 caracteres, no 76 — la prosa de la campaña en Georgia 19px sale
-     a 8,25-8,36 px por carácter. O sea que esta medida ya estaba arriba del <= 80 de WCAG 1.4.8
-     desde los 720 px, y sigue estándolo: para bajar a 80 habría que ir a 34,7em, y a los ~67 de
-     la caja ADV de Ren'Py, a 29em. Se deja en 38em porque es la medida de hoy pasada a `em` —el
-     objetivo de esta tarea es que NO se mueva a 1280x800—; angostarla es una decisión de diseño
-     aparte, con su medición y su ojo.
+     una línea llena lleva **81-86 caracteres**, no 76 — la prosa de la campaña en Georgia 19px
+     corre a ~8,3 px por carácter. Se cuentan solo las líneas que el ancho cortó y sin el espacio
+     del corte: la ÚLTIMA línea de un párrafo termina donde termina el texto, no donde termina la
+     medida, así que meterla en la cuenta tira el número para abajo y esconde justo la línea que
+     decide, la de 86. O sea que esta medida ya estaba arriba del <= 80 de WCAG 1.4.8 desde los
+     720 px, y sigue estándolo: para bajar a 80 habría que ir a ~35em, y a los ~67 de la caja ADV
+     de Ren'Py, a ~29em. Se deja en 38em porque es la medida de hoy pasada a `em` —el objetivo de
+     esta tarea es que NO se mueva a 1280x800—; angostarla es una decisión de diseño aparte, y
+     conviene volver a contar DESPUÉS del reparto en dos columnas, que la angosta solo.
      Es un token APARTE de `--ancho-columna-max`, que es px y lo consumen `Cajon`, `Dialogo`,
-     `OpcionesModal`, `CreacionScreen`, `FinScreen` (dos reglas) y `HubScreen`: tocar aquel
-     mueve seis pantallas que no tienen nada que ver con la prosa de la escena. */
+     `OpcionesModal`, `CreacionScreen`, `FinScreen` (dos reglas) y `HubScreen`: tocar aquel mueve
+     seis ARCHIVOS —tres de ellos componentes, no pantallas— que no tienen nada que ver con la
+     prosa de la escena. */
   --ancho-prosa: 38em;
 }
 

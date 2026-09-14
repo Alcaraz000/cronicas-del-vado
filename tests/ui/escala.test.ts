@@ -38,11 +38,42 @@ describe('el modelo de escalado', () => {
   });
 
   it('la medida de la prosa se mide en em, no en px', () => {
-    // Con la medida en px y la fuente escalando, pedir letra grande ANGOSTABA la columna: a
-    // --escala-fuente 1,5 los 720px pasaban de 76 a 50 caracteres. En `em` el número de
-    // caracteres por línea es constante a cualquier escala.
+    // Con la medida en px y la fuente escalando, pedir letra grande ANGOSTABA la columna: los
+    // 720 px eran fijos y los glifos crecían 1,5x, así que la línea pasaba de las 81-86 letras
+    // medidas a 1280x800 a unas 55. En `em` el recuento no se mueve.
     expect(valorDe('ancho-prosa'), '--ancho-prosa no existe').not.toBe('');
     expect(valorDe('ancho-prosa')).toMatch(/em\b/);
+  });
+
+  it('la medida de la prosa es una medida de prosa, no cualquier número', () => {
+    // `--ancho-prosa: 4em` pasaba todos los casos de acá arriba —lo mutó el revisor— y dejaba la
+    // prosa en una tira de nueve caracteres. La banda sale de la medición: a 19px la prosa de la
+    // campaña en Georgia corre a 8,3 px por carácter, así que 28em son ~64 caracteres (la caja
+    // ADV de Ren'Py mide ~67) y 42em son ~96, bastante más que el <= 80 de WCAG 1.4.8. Fuera de
+    // esa banda no hay decisión de diseño posible. El valor exacto y su porqué, en tokens.css.
+    const em = Number(/^([\d.]+)em$/.exec(valorDe('ancho-prosa'))?.[1]);
+    expect(em, '--ancho-prosa no es un número de `em` pelado').toBeGreaterThan(0);
+    const angosta = '--ancho-prosa deja la prosa más angosta que la caja ADV de Ren’Py';
+    const larga = '--ancho-prosa se pasa de largo: más de ~96 caracteres por línea';
+    expect(em, angosta).toBeGreaterThanOrEqual(28);
+    expect(em, larga).toBeLessThanOrEqual(42);
+  });
+
+  it('la columna de la escena consume --ancho-prosa, y acotada con min()', () => {
+    // Sin este caso el token queda huérfano: el revisor volvió `TextColumn.module.css` a
+    // `max-width: var(--ancho-columna-max)` y los 1134 tests seguían en verde, con el token nuevo
+    // declarado y sin usar. Y el `min()` no es adorno: a --escala-fuente 1,5 los 38em miden
+    // 1083 px y desbordarían cualquier ventana de 1024 (medido: con el `min()` la columna se
+    // corta en 902 px a 1024x768 y no hay scroll horizontal).
+    const columna =
+      /\.columna\s*\{([^}]*)\}/.exec(
+        readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8'),
+      )?.[1] ?? '';
+    expect(columna, '.columna no tiene regla propia').not.toBe('');
+    expect(columna, 'la prosa de la escena no consume --ancho-prosa').toContain('--ancho-prosa');
+    expect(columna, 'la medida de la prosa no está acotada con min(): desborda a 150 %').toMatch(
+      /max-width:\s*min\(/,
+    );
   });
 
   it('--ancho-columna-max sigue en px y sin tocar: lo comparten Cajon, Dialogo y FinScreen', () => {

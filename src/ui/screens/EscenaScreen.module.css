@@ -266,10 +266,15 @@
    salió, qué modificó qué—.
 
    Lo que el 78 % NO hace es garantizar que el panel entre, y hasta esta oleada el código se
-   portaba como si sí: medido en el navegador, el panel asentado mide 271 px a escala 1 y 311 a
-   150 %, contra los 236 que este tope da (los dados tienen un tamaño fijo en `rem` y el resto
-   crece con la escala, así que el panel no escala parejo). Subirlo más no alcanza: a 150 % no
-   entra ni en la caja entera. Lo que garantiza que la línea del objetivo se lea son otras dos
+   portaba como si sí: medido en el navegador a 1280x800 sobre `a1_taberna`/`robar_el_libro`, el
+   panel asentado mide **255,59 px a escala 1 y 346,88 a 150 %**, contra los 236 que este tope da.
+   Subirlo más no alcanza: a 150 % no entra ni en la caja entera.
+
+   (Esos dos números se volvieron a medir con el escalado de la tarea 1; antes decían 271 y 311.
+   Y el motivo escrito acá cambió: decía que el panel no escala parejo porque «los dados tienen un
+   tamaño fijo en `rem`», y los dados ya siguen a `--tam-ui` como todo lo demás. Lo que hoy hace
+   que no escale parejo son los espaciados, que son tokens en px fijos: por eso de 1 a 1,5 el panel
+   crece 1,36x y no 1,5x.) Lo que garantiza que la línea del objetivo se lea son otras dos
    cosas, cada una contra un scroll distinto: `EscenaScreen` pone este `scrollTop` en cero al
    abrirse la tirada (el scroll heredado de la lista de opciones) y `RollPanel` deja su línea
    de objetivo pegada arriba (el scroll que provoca el foco a "Continuar", 700 ms después). */

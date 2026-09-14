@@ -37,21 +37,39 @@ const RAIZ = path.resolve(fileURLToPath(import.meta.url), '../..');
  * `.caja` mide `height: 44%` de la pantalla (`EscenaScreen.module.css`), y adentro las opciones se
  * quedan con lo suyo y el texto con lo que sobra. O sea que el lugar para la prosa sale del ALTO de
  * la ventana y de nada más: medido con `a1_orell_mesa`, 1440×900 y 1600×900 dan exactamente el
- * mismo desborde (28 px), porque ensanchar reacomoda las líneas pero no cambia cuántas entran.
+ * mismo desborde, porque ensanchar reacomoda las líneas pero no cambia cuántas entran. (El número
+ * de ese par pasó de 28 px a **56** con el escalado de la tarea 1 —a 900 px de alto el diálogo ya
+ * mide 21,375 px—, pero que los dos anchos empaten sigue valiendo: la prosa corta en 812,25 px en
+ * los dos, porque la corta `--ancho-prosa` y no la ventana.)
  *
- * Desborde medido a lo largo del alto: 800 → 55 px · 864 → 43 px · 900 → 28 px · 960 → 1 px ·
- * 970 → entra. De ahí este 970: a 960 entra por 1 px, que es empatar, y 970 es el primer redondo con
- * margen de verdad. Y de ahí también que 1440×900 —que parecía la medida obvia para un README— no
- * sirva: se queda a una línea.
+ * **ESTE 970 ESTÁ ROTO Y LA HERRAMIENTA NO SACA LA FOTO: se va 51 px.** Lo rompió la tarea 1 del
+ * escalado, y el motivo es que **desde esa tarea el alto mueve DOS cosas a la vez**: el lugar que
+ * hay (la caja sigue siendo el 44 %) y también la letra, porque `--tam-texto-juego` pasó a ser
+ * `clamp(19px, 2.375vh, 25px)`. A 970 px de alto el piso ya no manda: el diálogo mide 23,04 px,
+ * un 21 % más grande, y el texto crece más rápido de lo que crece la caja. Por eso la tabla vieja
+ * —800 → 55 px · 864 → 43 · 900 → 28 · 960 → 1 · 970 → entra— **no se puede leer más**: valía
+ * cuando subir el alto solo agregaba lugar.
+ *
+ * Barrido nuevo, medido por DOM sobre `a1_orell_mesa` a 1280 de ancho (el mismo `desborde` que
+ * `leerEstado` calcula acá abajo): 800 → 55 px · 970 → 51 · 1050 → 41 · 1100 → 20 · **1150 → 0**.
+ * Ojo con los extremos: a 800 da los mismos 55 px de siempre —el piso del `clamp()` está anclado
+ * justo ahí— y recién cierra pasado el TECHO del `clamp()` (1053 px de alto), donde la letra deja
+ * de crecer y el alto de más es lugar puro.
+ *
+ * **No se sube el `ALTO` acá.** 1280×1150 es 1,11:1, casi cuadrado, así que es una decisión de
+ * encuadre y no un cambio de constante; y el reparto en dos columnas de la tarea 2 va a mover el
+ * desborde otra vez. Se cierra en la tarea 5, después de aquella. Está anotado en el ledger.
  *
  * **El ancho, en cambio, sí es cosmético, y por eso bajó de 1440 a 1280.** La prosa corta a
- * `--ancho-columna-max` (720 px) y la lista de opciones no, así que cuanto más ancha la ventana más
- * se nota el desbalance entre una columna de texto angosta y unas opciones que llegan al borde
- * derecho. Que las opciones lleguen al borde está decidido y se queda —igualarlas a 720 achica la
- * lista, los chips envuelven y una encrucijada de siete opciones crece a lo alto, que es el recurso
- * escaso—; lo que se arregla acá es que el desbalance salga en la foto. 1280 es además el ancho al
- * que esta interfaz se jugó y se verificó. Entra igual porque el desborde no depende del ancho:
- * es la medición de acá arriba.
+ * `--ancho-prosa` —38em, o sea 875,4 px a 970 px de alto; ya NO a los 720 px fijos de
+ * `--ancho-columna-max`, que desde la tarea 1 es otro token y lo usan otras pantallas— y la lista
+ * de opciones no corta en ningún lado, así que cuanto más ancha la ventana más se nota el
+ * desbalance entre una columna de texto angosta y unas opciones que llegan al borde derecho. Que
+ * las opciones lleguen al borde está decidido y se queda —igualarlas a la medida de la prosa achica
+ * la lista, los chips envuelven y una encrucijada de siete opciones crece a lo alto, que es el
+ * recurso escaso—; lo que se arregla acá es que el desbalance salga en la foto. 1280 es además el
+ * ancho al que esta interfaz se jugó y se verificó. El ancho no cambia el desborde: es la medición
+ * de acá arriba.
  */
 const ANCHO = 1280;
 const ALTO = 970;

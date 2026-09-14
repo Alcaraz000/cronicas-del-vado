@@ -5,7 +5,7 @@
   gap: var(--esp-2);
   /* La medida en `em` y no en px (ver `--ancho-prosa` en tokens.css): con la medida en píxeles
      y la fuente escalando, pedir letra grande ANGOSTABA la columna. Los 720 px eran fijos y los
-     glifos crecían 1,5x, así que la línea pasaba de las 82-85 letras medidas a 1280x800 a unas
+     glifos crecían 1,5x, así que la línea pasaba de las 81-86 letras medidas a 1280x800 a unas
      55: pedir letra grande costaba un tercio de la medida. En `em` el recuento no se mueve.
      El `min()` es obligatorio: a 150 % los 38em miden 1083 px (38 x 19 x 1,5) y desbordarían
      cualquier ventana de 1024. */

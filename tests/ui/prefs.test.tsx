@@ -118,5 +118,13 @@ describe('usePrefsCss', () => {
     // escalar con la ventana— pasaba las tres aserciones de este caso. Probado rompiéndolo.
     expect(dado, 'el dado sigue midiendo en rem, que no escala').not.toMatch(/\d(?:\.\d+)?rem\b/);
     expect(dado).toContain('--escala-fuente');
+    // Y que siga al CUERPO DE LA INTERFAZ, que es lo que lo ata a la ventana. Sin esto pasaban
+    // en verde dos medios arreglos que el revisor mutó: `calc(56px * var(--escala-fuente))`
+    // —píxeles clavados, sigue la preferencia pero no la ventana— y
+    // `calc(3.5 * var(--tam-texto-juego) * ...)`, que es el token equivocado y da 66,5 px.
+    // `var(--tam-ui)` con los paréntesis a propósito: `--tam-ui-chico` lo contiene como prefijo.
+    expect(dado, 'el dado no se mide contra --tam-ui, así que no sigue a la ventana').toMatch(
+      /var\(--tam-ui\)/,
+    );
   });
 });
