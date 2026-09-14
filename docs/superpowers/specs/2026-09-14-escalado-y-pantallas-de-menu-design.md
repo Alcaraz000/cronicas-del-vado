@@ -80,7 +80,7 @@ Y la medida de 720 px tiene **dos** cosas mal, no una: es un poco larga (82-85 c
 ~67 del género) y, sobre todo, **está pegada a la izquierda** en una caja de 1919. De ahí el "está a
 un costado". La segunda es la que el jugador siente; la primera es la que conviene no empeorar.
 
-### 0.4 Los cuatro bugs que aparecieron midiendo
+### 0.4 Los cinco bugs que aparecieron midiendo
 
 1. **`.tarjeta { all: unset }`** (`CreacionScreen.module.css:75`) pisa el `*{box-sizing:border-box}`
    global y devuelve la tarjeta a `content-box`. Con `height: 100%` más 12 px de relleno por lado y
@@ -95,6 +95,13 @@ un costado". La segunda es la que el jugador siente; la primera es la que convie
 4. **Los dados no siguen la escala de fuente.** `Dados.module.css:8-9` mide `3.5rem`;
    `usePrefsCss.ts:13` escribe la variable en `<html>` pero `tokens.css:139` pone el `font-size` en
    `body`, así que **`rem` vale 16 px siempre** y el dado mide 56 px con escala 1, 1,25 y 1,5.
+5. **Lo deshabilitado de la creación es un callejón sin salida de accesibilidad.** El botón de un
+   rasgo bloqueado lleva `disabled` nativo (`CreacionScreen.tsx:377`), así que sale del orden de
+   tabulación y **un jugador de teclado nunca lo enfoca y por lo tanto nunca escucha el
+   `aria-describedby`** que explica por qué no puede elegirlo. (*Agregado el 14 de septiembre, al
+   implementar la tarea 4: este bug vivía sólo en el §4 y el plan lo contaba como "el cuarto",
+   mientras acá el cuarto eran los dados. Eran cinco desde el principio y la numeración no cerraba
+   entre los dos documentos.*)
 
 ### 0.5 Y tres acoplamientos que ningún test vigila
 
@@ -201,7 +208,7 @@ termina en x = 539,8 px **en las cinco medidas**, dejando el 71,9 % del ancho si
 "SELECT ARCHETYPE" de Disco Elysium, y resuelve de raíz el 72 % de pantalla vacía: con una sola
 pregunta a la vez, el retrato puede ser enorme. Hoy los 20 retratos generados se muestran a 160 px.
 
-- **Los cuatro bugs de §0.4 que viven acá se arreglan primero**, porque son la causa mecánica de que
+- **Los bugs de §0.4 que viven acá se arreglan primero**, porque son la causa mecánica de que
   se vea rota: el `box-sizing`, el párrafo que cuelga fuera de su celda, y el id de archivo a la
   vista del jugador.
 - **Lo deshabilitado deja de ser gris con una itálica flotando.** El motivo va **integrado en la
@@ -244,7 +251,7 @@ pregunta a la vez, el retrato puede ser enorme. Hoy los 20 retratos generados se
 4. **1280×800 queda idéntico**, capturas del README incluidas.
 5. **El hub y la creación se leen como el mismo juego que la escena**: usan su vocabulario visual, su
    tipografía y su arte, y no dejan dos tercios de pantalla vacíos.
-6. **Los cuatro bugs de §0.4 están arreglados**, cada uno con un test que muerde.
+6. **Los cinco bugs de §0.4 están arreglados**, cada uno con un test que muerde.
 7. **Todo lo de las fases anteriores sigue funcionando**: revelado, saltar lo leído, teclado
    completo, foco, preferencias, contraste, historial, Ficha.
 8. `npm test`, `npx tsc --noEmit`, `npm run validate` y `npm run build`, los cuatro en verde, cero
