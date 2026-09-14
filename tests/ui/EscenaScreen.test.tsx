@@ -138,8 +138,10 @@ describe('EscenaScreen — arte', () => {
 
     // El recorte con alfa de la tarea 1, no el cuadro 3:4 CON fondo: pegado sobre el arte, un
     // retrato se lee como una foto pegada encima. `retrato` sigue existiendo y sigue siendo lo
-    // correcto en la creación de personaje y en la Ficha; acá, no.
-    const sprite = await screen.findByAltText(`${S.placeholder.retrato}: El mensajero`);
+    // correcto en la creación de personaje y en la Ficha; acá, no. Y el `alt` lo dice: en esta
+    // pantalla el personaje está EN la escena, no colgado en un cuadro.
+    const sprite = await screen.findByAltText(`${S.placeholder.sprite}: El mensajero`);
+    expect(S.placeholder.sprite).not.toBe(S.placeholder.retrato);
     expect(sprite.tagName).toBe('IMG');
     expect(sprite.getAttribute('src')).toMatch(/sprite/);
     expect(sprite.getAttribute('src')).toMatch(/orell/);
@@ -154,7 +156,7 @@ describe('EscenaScreen — arte', () => {
     render(<EscenaScreen />);
 
     expect(screen.getByRole('img', { name: `${S.placeholder.fondo}: El claro` })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: `${S.placeholder.retrato}: El guía` })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: `${S.placeholder.sprite}: El guía` })).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
 
     // Nada rompió: las opciones de la escena están y se pueden elegir.
@@ -318,12 +320,93 @@ describe('EscenaScreen — el revelado', () => {
       const opcion = screen.getByTestId('opcion-descansar');
       expect(opcion).toBeInTheDocument();
       // Lo que `TextColumn` scrollea es el ancla del final del texto, y ese nodo no contiene a
-      // las opciones: están en otra región. Si alguien volviera a meterlas en el mismo scroll,
-      // esto seguiría pasando — por eso el reparto se fija además en el CSS, más abajo.
+      // las opciones: están en otra región.
       expect(vistos.some((el) => el.contains(opcion))).toBe(false);
+      // La aserción de arriba es por la negativa y sola no alcanza: seguiría pasando si alguien
+      // devolviera las opciones ADENTRO de la columna de texto y de paso se llevara el
+      // `scrollIntoView`. Esta es la afirmativa que tapa el agujero — las opciones están fuera
+      // del nodo que scrollea, que es la estructura que reemplazó al efecto.
+      expect(screen.getByTestId('columna-texto').contains(opcion)).toBe(false);
     } finally {
       vistos.restaurar();
     }
+  });
+});
+
+/**
+ * `.acciones` es el MISMO nodo del DOM con la lista de opciones y con el panel de tirada (React
+ * cambia los hijos, no el contenedor), así que su `scrollTop` sobrevive al cambio de estado: con
+ * la lista scrolleada, el panel nace desplazado y lo primero que se pierde es la línea del
+ * objetivo, que está arriba de todo y dice contra qué se tiró.
+ *
+ * jsdom no tiene layout, así que `scrollTop` nativo no scrollea nada y leerlo siempre da 0: el
+ * test instrumenta la propiedad en el nodo para ver la ESCRITURA, que es lo que el efecto hace.
+ */
+describe('EscenaScreen — el panel de tirada nace arriba de todo', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.getState().setPrefs({ cps: 0, reducedMotion: 'on' });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.getState().setPrefs({ cps: 40, reducedMotion: 'auto' });
+  });
+
+  it('al abrirse una tirada, la región de acciones vuelve a su tope', () => {
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    const acciones = screen.getByTestId('acciones');
+    let valor = 0;
+    const escrituras: number[] = [];
+    Object.defineProperty(acciones, 'scrollTop', {
+      configurable: true,
+      get: () => valor,
+      set: (v: number) => {
+        valor = v;
+        escrituras.push(v);
+      },
+    });
+
+    // El jugador scrolleó la lista de opciones para llegar a las de abajo.
+    acciones.scrollTop = 120;
+    escrituras.length = 0;
+
+    fireEvent.click(screen.getByTestId('opcion-trepar'));
+    expect(useStore.getState().ui.pending).not.toBeNull();
+
+    expect(escrituras, 'la región de acciones no se llevó al tope al abrirse la tirada').toContain(0);
+    expect(acciones.scrollTop).toBe(0);
+  });
+
+  it('sin tirada pendiente nadie le toca el scroll a la lista de opciones', () => {
+    // La otra dirección: el efecto no puede estar pisando el scroll en cada render, o el jugador
+    // no podría scrollear una lista de siete opciones sin que lo devuelva al principio.
+    montarEscena(minimal);
+    render(<EscenaScreen />);
+
+    const acciones = screen.getByTestId('acciones');
+    let valor = 0;
+    const escrituras: number[] = [];
+    Object.defineProperty(acciones, 'scrollTop', {
+      configurable: true,
+      get: () => valor,
+      set: (v: number) => {
+        valor = v;
+        escrituras.push(v);
+      },
+    });
+
+    acciones.scrollTop = 120;
+    escrituras.length = 0;
+
+    // Un render cualquiera que no abre ninguna tirada: abrir y cerrar la Ficha.
+    fireEvent.keyDown(window, { key: 'c' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(escrituras).toEqual([]);
+    expect(acciones.scrollTop).toBe(120);
   });
 });
 
@@ -699,6 +782,59 @@ describe('EscenaScreen — la placa del hablante', () => {
     expect(screen.getByTestId('placa-hablante')).toHaveAttribute('aria-hidden', 'true');
     // Y el nombre sigue estando en el texto, que es de donde lo toma la región viva.
     expect(screen.getByTestId('columna-texto')).toHaveTextContent('El mensajero');
+  });
+
+  /**
+   * El caso que faltaba, y el que más fácil se "arregla" por accidente: `[hablante, narración]`.
+   * La placa NO se apaga cuando el bloque sigue con narración del mismo hablante — se queda
+   * puesta hasta el final del revelado.
+   *
+   * Es deliberado. El prefijo del párrafo ("El mensajero: ") está escondido a la VISTA dentro de
+   * la caja, así que la placa es lo único que en pantalla dice quién habló: apagarla dejaría un
+   * diálogo entrecomillado sin atribución ninguna. En la campaña `vado` publicada hay 14 bloques
+   * con un párrafo con hablante seguido de narración y 13 terminan en narración; uno real está en
+   * `src/content/campaigns/vado/scenes/acto1_pueblo.ts:628-639` (Orell contesta por la firma del
+   * bando y el bloque cierra con "El puente se cerró antes de que Tomé faltara."), que es la forma
+   * que este test copia.
+   */
+  it('con [hablante, narración] la placa se queda puesta después de terminado el revelado', () => {
+    montarEscena(conArte, {
+      log: [
+        escenaLog([
+          { speaker: 'mensajero', text: '—La firma es del capitán, de hace doce días.' },
+          'El puente se cerró antes de que nadie faltara.',
+        ]),
+      ],
+    });
+    render(<EscenaScreen />);
+
+    // `cps: 0` (el `beforeEach` de este bloque): el revelado ya terminó, los dos párrafos están.
+    expect(screen.getByText(/El puente se cerró antes/)).toBeInTheDocument();
+    expect(screen.getByTestId('placa-hablante')).toHaveTextContent('El mensajero');
+  });
+
+  /** Lo mismo, pero llegando por el revelado: la placa no se apaga cuando entra la narración. */
+  it('la narración que sigue a un diálogo no apaga la placa mientras se revela', () => {
+    useStore.getState().setPrefs({ cps: 40 });
+    vi.useFakeTimers();
+    try {
+      montarEscena(conArte, {
+        log: [
+          escenaLog([
+            { speaker: 'mensajero', text: '—Vengo de lejos y con prisa.' },
+            'Se va sin esperar respuesta, y la plaza queda como estaba.',
+          ]),
+        ],
+      });
+      render(<EscenaScreen />);
+
+      act(() => { vi.advanceTimersByTime(10_000); });
+
+      expect(screen.getByText(/Se va sin esperar respuesta/)).toBeInTheDocument();
+      expect(screen.getByTestId('placa-hablante')).toHaveTextContent('El mensajero');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('la placa dice quién habla AHORA: no se adelanta al párrafo que todavía no se reveló', () => {

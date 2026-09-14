@@ -105,15 +105,31 @@
   }
 
   /* Con el arte a sangre, el cromo ya no tiene una barra propia donde derramarse: cada
-     renglón que suma se come una franja del fondo. Se aprieta el aire y se sacan las dos
-     palabras ("Heridas: ", "Fortuna: "), que son lo único redundante que hay acá — las marcas
-     y el valor se quedan, y el `title` del `span` de afuera conserva la palabra entera. */
+     renglón que suma se come una franja del fondo. Se aprieta el aire y se sacan de la VISTA
+     las dos palabras ("Heridas: ", "Fortuna: "), que es lo único redundante que hay acá para
+     quien mira la pantalla — las marcas y el valor se quedan. */
   .barra {
     gap: var(--esp-3);
     padding: var(--esp-2) var(--esp-3) var(--esp-4);
   }
 
+  /* De la vista, NO del árbol de accesibilidad: las marcas (●○○, ◆◆◇) son `aria-hidden`, así
+     que lo único que un lector de pantalla recibe de estas dos líneas es la palabra más el
+     valor. Con `display: none` abajo de 800 px quedaba "Herido" y "2/3" sueltos, y "2/3" solo
+     no significa nada. El `title` del `span` de afuera no lo salva: no se anuncia cuando el
+     contenido del elemento ya es texto.
+     Mismo patrón de ocultamiento visual que `TextColumn.module.css` usa para el prefijo del
+     hablante —`position: absolute` + `clip-path`—, que saca de la vista sin sacar del árbol.
+     El layout no cambia: al salir del flujo, la etiqueta deja el mismo hueco que dejaba con
+     `display: none`. */
   .etiqueta {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }

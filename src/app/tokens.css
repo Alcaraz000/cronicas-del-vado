@@ -91,6 +91,33 @@
   --ancho-columna-max: 720px;
 }
 
+/* Respaldo de las capas para un navegador sin `color-mix()` (pide Chrome 111 / Safari 16.2 /
+   Firefox 113, todos de 2023).
+   Sin esto, ahí cada token de capa es INVÁLIDO, y un token inválido no "no hace nada": se lleva
+   puesta la declaración entera que lo usa. Lo que cae es el degradado del velo, el del cromo y
+   el de la caja de la escena, o sea todo lo que separa el texto del arte: la prosa y la barra
+   de estado quedan sobre la imagen cruda. Es la caída más cara de la pantalla nueva, y sale
+   barato taparla.
+
+   Los valores son la misma cuenta que hace `color-mix(in srgb, C P%, transparent)`, que es
+   exactamente C con alfa P (mezclar con `transparent` en srgb no cambia el color, solo el
+   alfa). Son literales porque acá no hay otra forma: si `color-mix` no existe, tampoco existe
+   con qué derivarlos. Quedan en deuda con los tres tokens de arriba —si alguno cambia de valor,
+   estos siete hay que rehacerlos a mano—, y por eso viven pegados a ellos y no en otro archivo.
+   Hoy: --color-fondo #14120f = 20 18 15, --color-superficie-alta #2b2620 = 43 38 32,
+   --color-acento #c9a24a = 201 162 74. */
+@supports not (color: color-mix(in srgb, white 50%, transparent)) {
+  :root {
+    --capa-arte: rgb(20 18 15 / 55%);
+    --capa-cromo: rgb(20 18 15 / 70%);
+    --capa-caja: rgb(20 18 15 / 86%);
+    --capa-densa: rgb(20 18 15 / 97%);
+    --capa-opcion: rgb(43 38 32 / 62%);
+    --filo-acento: rgb(201 162 74 / 28%);
+    --borde-acento: rgb(201 162 74 / 45%);
+  }
+}
+
 /* Reset mínimo */
 *,
 *::before,

@@ -185,6 +185,23 @@ describe('StatusBar', () => {
     expect(vacias).toMatch(/display\s*:\s*none/);
   });
 
+  it('en móvil "Heridas:"/"Fortuna:" se esconden de la vista, NO del árbol de accesibilidad', () => {
+    // Las marcas (●○○, ◆◆◇) son `aria-hidden`, así que la palabra es lo único que le da sentido
+    // al valor: con `display: none` abajo de 800 px un lector de pantalla recibía "Herido" y
+    // "2/3" sueltos, y "2/3" solo no significa nada. El patrón correcto es el mismo que
+    // `TextColumn.module.css` usa para el prefijo del hablante: sacar de la vista con
+    // `position: absolute` + `clip-path`, que deja el texto en el árbol.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
+    const etiqueta = cuerpoDeBloque(movil, '.etiqueta');
+    expect(etiqueta, '.etiqueta no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(etiqueta, '`display: none` se lleva la palabra del árbol de accesibilidad').not.toMatch(
+      /display\s*:\s*none/,
+    );
+    expect(etiqueta).toMatch(/clip-path\s*:\s*inset\(50%\)/);
+    expect(etiqueta).toMatch(/position\s*:\s*absolute/);
+  });
+
   it('la línea de condiciones tiene su propia clase además de `.dato`, para poder ocultarla en móvil sin tocar heridas ni Fortuna', () => {
     render(
       <StatusBar

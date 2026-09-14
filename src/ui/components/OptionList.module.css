@@ -74,7 +74,15 @@
 }
 
 /* Un punto por debajo de la prosa: la voz del narrador manda en la caja y las opciones son lo
-   que el jugador hace, no lo que lee. (En la maqueta aprobada, 17 contra 20.) */
+   que el jugador hace, no lo que lee.
+
+   El 0,9 y el "17 contra 20" de la maqueta aprobada no son el mismo número, y hasta esta oleada
+   el comentario citaba uno y la regla usaba el otro. Lo que se conserva de la maqueta es el
+   TAMAÑO, no la proporción: la maqueta tenía la prosa en 20 px y la etiqueta en 17, y acá
+   `--tam-texto-juego` es 19 px, así que el 17 px de la maqueta son 17/19 = 0,895 — el 0,9 de
+   abajo, que da 17,1 px. Con el 0,85 de la proporción la etiqueta caería a 16,15 px, casi un
+   punto por debajo de lo aprobado. La escala manda igual: todo esto se multiplica por
+   `--escala-fuente`. */
 .label {
   min-width: 0;
   font-family: var(--fuente-juego);

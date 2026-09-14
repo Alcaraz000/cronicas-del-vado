@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
@@ -48,17 +48,42 @@ function spriteIdDe(campaign: Campaign, npcId: string): string {
 }
 
 /**
- * Nombre para la placa: el hablante del último párrafo YA VISIBLE de la última entrada del log.
+ * Nombre para la placa: **el hablante de la entrada**, leído hacia atrás desde el último párrafo
+ * YA VISIBLE. La regla, dicha sin ambigüedad porque el recorrido hacia atrás confunde:
  *
- * Es la misma cuenta que hace el motor para elegir el sprite (`ultimoHablante` en
- * `engine/resolve.ts`), pero contada sobre lo que el revelado mostró hasta ahora y no sobre la
- * entrada entera: mientras se tipea, la placa tiene que decir quién habla AHORA, no quién va a
- * hablar al final del párrafo que todavía no empezó.
+ * - Mientras se tipea, la placa dice quién habla AHORA y no quién va a hablar al final del
+ *   párrafo que todavía no empezó. Por eso se cuenta sobre lo revelado y no sobre la entrada
+ *   entera. (Es la misma cuenta que hace el motor para elegir el sprite, `ultimoHablante` en
+ *   `engine/resolve.ts`, pero recortada por el revelado.)
+ * - **La placa SE QUEDA PUESTA aunque después venga narración del mismo bloque.** En
+ *   `[Orell habla, narración]` la placa sigue diciendo "Sargento Orell" cuando el segundo
+ *   párrafo aparece. No es un descuido del `for` hacia atrás: es la regla.
+ * - Solo desaparece cuando NINGÚN párrafo visible tiene hablante — o sea, una entrada de
+ *   narración pura. Ahí no hay placa, igual que en cualquier novela visual.
  *
- * Sin ningún párrafo con hablante a la vista devuelve `null` y no hay placa: la narración en
- * tercera persona no la lleva, igual que en cualquier novela visual. Ojo con el caso de
- * `rendered.portraitNpc`, que NO sirve para esto: cuando ningún párrafo tiene `speaker` cae al
- * primer PNJ de la escena, y ese está presente pero no está hablando.
+ * **Por qué se queda, para que nadie lo "arregle" dentro de seis meses.** Sacarla en cuanto
+ * aparece un párrafo de narración parece más prolijo y es peor:
+ *
+ * El prefijo del hablante está escondido a la VISTA dentro de la caja (`TextColumn.module.css`
+ * lo saca con `position: absolute` + `clip-path`, no con `display: none`, así que un lector de
+ * pantalla sigue recibiendo "Orell: …" y el efecto es puramente visual). Sacar la placa en una
+ * entrada `[Orell habla, narración]` dejaría ese diálogo **visualmente sin atribución**: el
+ * jugador lee una línea entrecomillada y no hay nada en pantalla que diga quién la dijo.
+ * Contados sobre la campaña `vado` publicada (381 bloques de texto entre escenas, desenlaces de
+ * opción y de banda, y finales): **14 bloques** tienen un párrafo con hablante seguido de
+ * narración, y en **13** de ellos el bloque TERMINA en narración — o sea, 13 diálogos que
+ * quedarían huérfanos en pantalla. Ren'Py también deja la placa puesta entre líneas del mismo
+ * hablante.
+ *
+ * **El caso que esta regla no cubre, dicho para que no se descubra como sorpresa:** hay 5
+ * bloques con DOS hablantes distintos (`a1_ronda`, `c1_acusacion`, `a2_fuera_sotano`,
+ * `cl_desenlace`, `cl_halvar`). Ahí la placa nombra al último que habló y la línea del primero
+ * queda igual de huérfana. No es algo que este `for` pueda arreglar: sale de que la caja muestre
+ * un bloque entero con una sola placa, y apagar la placa en la narración lo empeoraría (quedarían
+ * huérfanas las dos). Es material de la tarea 3, que es la que decide qué muestra la caja.
+ *
+ * Ojo con `rendered.portraitNpc`, que NO sirve para esto: cuando ningún párrafo tiene `speaker`
+ * cae al primer PNJ de la escena, y ese está presente pero no está hablando.
  */
 function hablanteVisible(
   log: LogEntry[],
@@ -120,6 +145,7 @@ export function EscenaScreen() {
   const abandonRun = useStore((s) => s.abandonRun);
 
   const [fichaAbierta, setFichaAbierta] = useState(false);
+  const accionesRef = useRef<HTMLDivElement>(null);
 
   const rendered = useMemo(
     () => (campaign !== null && gs !== null ? renderScene(campaign, gs) : null),
@@ -190,6 +216,24 @@ export function EscenaScreen() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [avanzar]);
 
+  // Al abrirse una tirada, la región de acciones vuelve a su tope.
+  //
+  // `.acciones` es el MISMO nodo del DOM con la lista de opciones y con el panel: React cambia
+  // los hijos, no el contenedor, así que su `scrollTop` sobrevive al cambio de estado. Si el
+  // jugador había scrolleado la lista para llegar a la séptima opción, el panel de tirada nace
+  // desplazado y lo primero que se pierde es la línea del objetivo, que está arriba de todo y es
+  // la que dice contra qué se tiró.
+  //
+  // Por qué un `scrollTop = 0` y no confiar en que el panel entre: el tope del 78 % de
+  // `.acciones[data-tirada='true']` se midió a `--escala-fuente` 1, y el panel no escala parejo
+  // —los dados tienen un tamaño fijo en `rem` y el resto crece con la escala—, así que a 1,25 y a
+  // 1,5 el panel no entra en la región. Poner el scroll en cero no depende de que entre.
+  useEffect(() => {
+    if (pending === null) return;
+    const region = accionesRef.current;
+    if (region !== null) region.scrollTop = 0;
+  }, [pending]);
+
   // Acá vivía un efecto que, al terminar el revelado, traía las opciones a la vista con
   // `scrollIntoView`: hasta el rediseño el texto y las acciones scrolleaban JUNTOS, y como el
   // autoscroll de `TextColumn` clava la última línea contra el borde de abajo, lo que nacía
@@ -252,7 +296,7 @@ export function EscenaScreen() {
             tipo="sprite"
             id={spriteIdDe(campaign, rendered.portraitNpc)}
             aspect="3:4"
-            alt={`${S.placeholder.retrato}: ${enEscena}`}
+            alt={`${S.placeholder.sprite}: ${enEscena}`}
           />
         </div>
       )}
@@ -281,7 +325,12 @@ export function EscenaScreen() {
         </div>
         {/* Las acciones son su propia región de la caja, con su propio scroll: ver el comentario
             largo de `.columna` en el CSS. Mientras el revelado no termina está vacía y mide 0. */}
-        <div className={styles.acciones} data-tirada={pending !== null ? 'true' : 'false'}>
+        <div
+          ref={accionesRef}
+          className={styles.acciones}
+          data-testid="acciones"
+          data-tirada={pending !== null ? 'true' : 'false'}
+        >
           {terminado &&
             (pending !== null ? (
               <RollPanel

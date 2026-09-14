@@ -391,5 +391,13 @@ export const S = {
   placeholder: {
     fondo: 'Fondo',
     retrato: 'Retrato',
+    /**
+     * El recorte que se para EN la escena (tarea 1), no el cuadro 3:4 de la creación de
+     * personaje y la Ficha. Son dos cosas distintas para el jugador y el `alt` tiene que
+     * decirlo: "Retrato: Sargento Orell" describe un cuadro colgado; acá hay alguien parado
+     * en el cuarto. Es texto que un lector de pantalla lee en voz alta, no una etiqueta
+     * técnica: `sprite` no se dice en castellano.
+     */
+    sprite: 'Personaje',
   },
 } as const;

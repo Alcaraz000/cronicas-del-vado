@@ -43,11 +43,13 @@ export function StatusBar({
   return (
     <header className={styles.barra}>
       <span className={styles.lugar}>{placeName}</span>
-      {/* La palabra ("Heridas", "Fortuna") va en su propio `span` para poder achicarla en el
-          teléfono: ahí el cromo flota sobre el arte, y con las dos etiquetas enteras se va a
-          tres renglones que se comen la mitad del fondo. Lo que NO se toca es el valor —las
-          marcas, "Herido", "2/3"—, que es lo que el jugador necesita leer; y el `title` de acá
-          arriba conserva la palabra completa. */}
+      {/* La palabra ("Heridas", "Fortuna") va en su propio `span` para poder sacarla de la
+          VISTA en el teléfono: ahí el cromo flota sobre el arte, y con las dos etiquetas
+          enteras se va a tres renglones que se comen la mitad del fondo. Lo que NO se toca es
+          el valor —las marcas, "Herido", "2/3"—, que es lo que el jugador necesita leer.
+          Del árbol de accesibilidad la palabra no se va nunca: las marcas de al lado son
+          `aria-hidden`, así que sin ella un lector de pantalla recibiría "2/3" a secas. Cómo
+          se esconde (`clip-path`, no `display: none`) está en el bloque de móvil del CSS. */}
       <span className={styles.dato} title={S.barra.heridas}>
         <span className={styles.etiqueta}>{S.barra.heridas}: </span>
         <span aria-hidden="true">{marcas(wounds, 3, '●', '○')}</span> {WOUND_LABELS[wounds]}
