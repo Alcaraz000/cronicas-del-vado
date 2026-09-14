@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { CampaignEntry } from '@/content/campaigns';
 import type { Campaign, CampaignMeta } from '@/content/schema';
 import type { Character } from '@/engine/types';
@@ -24,8 +24,32 @@ const css = (): string => readFileSync(resolve(process.cwd(), 'src/ui/screens/Hu
  * teléfono o contra la de `prefers-reduced-motion`: probado, borrar `.tarjeta:hover` de la base
  * dejaba los 24 casos en verde porque `cuerpoDe` encontraba el `.tarjeta:hover` del bloque de
  * movimiento reducido. Cortar acá es lo que hace que estas aserciones muerdan.
+ *
+ * Corta por el texto `@media` **en cualquier parte**, comentarios incluidos: si algún día un
+ * comentario de la cabecera lo nombra, esto se queda corto. No es silencioso —se lleva reglas
+ * puestas y los casos caen en rojo, no en verde—, así que alcanza con saberlo.
  */
 const cssBase = (): string => css().split('@media')[0] ?? '';
+
+/**
+ * Los cuerpos de TODAS las reglas de `bloque` cuyo selector incluye a `selector` como una de sus
+ * partes separadas por coma.
+ *
+ * `cuerpoDe` pide el selector entero y acá hace falta lo contrario: adentro del bloque de
+ * movimiento reducido las cinco clases comparten una sola regla (`.tarjeta, .jugar, …`), así que
+ * preguntar por `.tarjeta` sola con `cuerpoDe` devuelve `null` y preguntar por el bloque entero
+ * con un `toMatch` es ciego a qué selector recibe la declaración — que es justo el agujero que
+ * este helper cierra.
+ */
+function reglasPara(bloque: string, selector: string): string[] {
+  const sinComentariosCss = (texto: string): string => texto.replace(/\/\*[\s\S]*?\*\//g, '');
+  const cuerpos: string[] = [];
+  for (const [, sel = '', cuerpo = ''] of bloque.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const partes = sinComentariosCss(sel).replace(/\s+/g, '').split(',');
+    if (partes.includes(selector)) cuerpos.push(sinComentariosCss(cuerpo));
+  }
+  return cuerpos;
+}
 const fuente = (): string => readFileSync(resolve(process.cwd(), 'src/ui/screens/HubScreen.tsx'), 'utf8');
 
 /** El fuente sin comentarios: `window.confirm` se sigue NOMBRANDO en los comentarios del repo. */
@@ -448,7 +472,7 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // Y los tres selectores encadenados son parte de lo que se fija: `.marco[data-aspect='3:4']`
     // pesa (0,2,0), así que con dos no alcanza y el resultado dependería del orden de
     // importación, que ningún CSS Module garantiza.
-    for (const selector of [".pantalla>.fondo>[data-aspect='3:4']", ".tarjeta>.portada>[data-aspect='3:4']"]) {
+    for (const selector of ['.pantalla>.fondo>[data-aspect]', ".tarjeta>.portada>[data-aspect='3:4']"]) {
       const regla = cuerpoDe(cssBase(), selector);
       expect(regla, `no hay regla ${selector}`).not.toBeNull();
       expect(regla ?? '', `${selector} no anula el tope de 160px de Imagen.module.css`).toMatch(
@@ -461,9 +485,73 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // `repeat(auto-fill, minmax(300px, 1fr))` abre columnas VACÍAS: con una sola campaña la
     // tarjeta medía 395 px a 1280x800, 358,39 a 1919x905 y 300 a 2560x1440 (medido por DOM).
     // O sea que trabajaba al revés: cuanta más pantalla, más chica la tarjeta.
+    //
+    // Prohibir `auto-fill` no alcanza: borrar `grid-template-columns` entero, o volver a
+    // `minmax(300px, 1fr)`, pasaba en verde. Se pide la forma completa. El `min(100%, …)` es la
+    // parte que evita que en un teléfono la pista pedida (26em) sea más ancha que la pantalla y
+    // la tarjeta se desborde.
     const grilla = cuerpoDe(cssBase(), '.grilla');
     expect(grilla, 'no hay regla .grilla').not.toBeNull();
     expect(grilla ?? '', 'la grilla sigue en auto-fill').not.toMatch(/auto-fill/);
+    expect(grilla ?? '', 'la grilla no reparte con auto-fit').toMatch(
+      /grid-template-columns:\s*repeat\(\s*auto-fit\s*,/,
+    );
+    expect(grilla ?? '', 'la pista no está acotada al ancho de la pantalla').toMatch(
+      /minmax\(\s*min\(\s*100%/,
+    );
+  });
+
+  it('el arte está clavado al viewport y el título mide contra la ventana', () => {
+    // Dos líneas que sostienen argumentos escritos en el archivo y que no vigilaba nadie
+    // (las dos pasaban mutadas):
+    //
+    // (1) `.fondo` y `.velo` son `fixed` y no `absolute` PORQUE esta pantalla scrollea: con
+    //     `absolute` el arte se va con el scroll y abajo queda el fondo liso, que es justo lo
+    //     que la tarea vino a sacar. La escena puede darse el lujo de `absolute` porque no
+    //     scrollea nunca.
+    // (2) el título mide contra `--tam-texto-juego`, no en `rem`. `rem` vale 16 px SIEMPRE (el
+    //     `font-size` del documento vive en `body`, no en `<html>`), así que un `2rem` acá no
+    //     seguiría ni a la ventana ni a la preferencia de letra grande: es el mismo bug que la
+    //     tarea 1 arregló en el dado.
+    for (const selector of ['.fondo', '.velo']) {
+      expect(cuerpoDe(cssBase(), selector) ?? '', `${selector} se iría con el scroll`).toMatch(
+        /position\s*:\s*fixed/,
+      );
+    }
+    const titulo = cuerpoDe(cssBase(), '.titulo') ?? '';
+    expect(titulo, 'no hay regla .titulo').not.toBe('');
+    expect(titulo, 'el nombre del juego no escala con la ventana').toMatch(
+      /font-size:[^;]*var\(--tam-texto-juego\)/,
+    );
+  });
+
+  it('el cromo no puede pisar la placa del título', () => {
+    // Estuvo `position: absolute; top: 0; right: 0`, que es donde el género pone el cromo, y era
+    // un bug: así no reserva ni ancho ni alto y la placa —que crece con el ALTO de la ventana—
+    // se le mete encima. Medido en el navegador: 196,5 px de solape a 810x905, 151,5 a 900x905,
+    // 121,5 a 960x905 (media pantalla en el monitor de Gabriel), 51,5 a 1100x905 y 36,1 a
+    // 1280x1200. Una media query de ancho NO lo arregla —a 1280 de ancho solapa o no según el
+    // alto—, así que lo que se fija es que el cromo esté en el flujo.
+    const cromo = cuerpoDe(cssBase(), '.cromo') ?? '';
+    expect(cromo, 'no hay regla .cromo').not.toBe('');
+    expect(cromo, 'el cromo volvió a salirse del flujo').not.toMatch(
+      /position\s*:\s*(absolute|fixed)/,
+    );
+  });
+
+  it('en el teléfono la tarjeta apila y la portada se acota por alto', () => {
+    // El bloque `@media (max-width: 800px)` entero no lo vigilaba nadie: borrándolo, los casos
+    // quedaban en verde y con él se iban la tarjeta apilada y la portada acotada, o sea los
+    // 231,41 x 308,55 px que el informe reporta como resultado a 375x812. Sin acotar, esa
+    // portada mediría 425,33 px de alto —más de la mitad de la ventana— y empujaría la premisa
+    // y el botón fuera de la pantalla.
+    const telefono = bloqueDeMedia(css(), '@media (max-width: 800px)');
+    const tarjeta = cuerpoDe(telefono, '.tarjeta') ?? '';
+    expect(tarjeta, 'la tarjeta no apila en el teléfono').toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*;/,
+    );
+    const portada = cuerpoDe(telefono, ".tarjeta>.portada>[data-aspect='3:4']") ?? '';
+    expect(portada, 'la portada del teléfono no se acota por alto').toMatch(/height:\s*\d+(\.\d+)?vh/);
   });
 
   it('el hub habla el idioma visual de la escena y no el suyo propio', () => {
@@ -483,6 +571,15 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // Y el velo, que es lo que hace legible el texto sobre una imagen que no controlamos.
     const velo = cuerpoDe(cssBase(), '.velo') ?? '';
     expect(velo, 'el velo no usa las capas del vocabulario').toMatch(/var\(--capa-(arte|caja|cromo)\)/);
+    // El título de sección es el ÚNICO texto que no vive adentro de un panel, así que apoya
+    // contra el arte y nada más, y su capa propia es lo que sostiene el contraste: calculado
+    // contra el peor caso (una portada BLANCA), `--color-acento` sobre el velo da 2,00:1 —no
+    // llega ni al 3:1 de texto grande— y con esta capa encima, 5,56:1. Sin este caso, borrar la
+    // línea no rompía nada y el §4 del informe quedaba sin nada que lo sostenga.
+    const subtitulo = cuerpoDe(cssBase(), '.subtitulo') ?? '';
+    expect(subtitulo, 'el título de sección se quedó apoyado contra el arte pelado').toContain(
+      'var(--capa-cromo)',
+    );
   });
 
   it('la tarjeta y los botones contestan al cursor, y el movimiento se apaga si lo piden', () => {
@@ -498,13 +595,88 @@ describe('HubScreen: el menú se construye sobre el arte', () => {
     // La transición respeta la preferencia del sistema, como `Imagen.module.css` y
     // `Dados.module.css`. Se lee el bloque `@media` contando llaves (`bloqueDeMedia`) y no
     // cortando en la primera `}`: adentro hay más de una regla.
+    //
+    // Y se pide SELECTOR POR SELECTOR, no por texto libre sobre el bloque. Un
+    // `expect(bloque).toMatch(/transition:\s*none/)` es ciego a quién recibe la declaración:
+    // sacando `.tarjeta` de los dos selectores del bloque y dejando las declaraciones en
+    // `.jugar` quedaba en verde, con la tarjeta animando para quien pidió que no. Es la misma
+    // familia del `\brem\b` de la tarea 1 y del `cuerpoDe` del `@media` de más arriba.
     const reducido = bloqueDeMedia(css(), '@media (prefers-reduced-motion');
-    expect(reducido, 'la transición no se apaga con prefers-reduced-motion').toMatch(
-      /transition\s*:\s*none/,
-    );
-    expect(reducido, 'el desplazamiento de la tarjeta sigue vivo con prefers-reduced-motion').toMatch(
-      /transform\s*:\s*none/,
-    );
+    for (const selector of ['.tarjeta', '.jugar', '.secundario', '.elegir', '.borrar']) {
+      expect(
+        reglasPara(reducido, selector).join('\n'),
+        `${selector} sigue animando con prefers-reduced-motion`,
+      ).toMatch(/transition\s*:\s*none/);
+    }
+    expect(
+      reglasPara(reducido, '.tarjeta:hover').join('\n'),
+      'el desplazamiento de la tarjeta sigue vivo con prefers-reduced-motion',
+    ).toMatch(/transform\s*:\s*none/);
+  });
+
+  it('el fondo a sangre sale del fondo que la campaña declara, y cae a su portada si no hay', async () => {
+    // `CampaignMeta.cover` existía en el esquema y no lo leía nadie: la única lectura del repo
+    // era una aserción de `tests/content/vado.test.ts`. Y el autor ya había escrito el valor
+    // —`cover: 'molino_de_tome'`, el nombre de un FONDO de escena—, así que el contenido ya había
+    // dicho cuál es su imagen y la interfaz la ignoraba y usaba la portada.
+    //
+    // Importa por el encuadre, no por prolijidad: una portada es 900x1200 (retrato) y a 1919x905
+    // `cover` sólo deja ver el 35,4 % de su alto; un fondo 16:9 se ve al 83,8 % (medido).
+    registrar([meta('vado', [1, 3], { cover: 'molino_de_tome' })]);
+    montarStore([], null);
+    await montar();
+
+    await waitFor(() => {
+      const decorativa = document.querySelector('[aria-hidden="true"] img');
+      expect(decorativa?.getAttribute('src'), 'el fondo no es el que declara la campaña').toMatch(
+        /molino_de_tome/,
+      );
+    });
+    // Y la tarjeta sigue mostrando la PORTADA, que es otra imagen y otro papel.
+    const portada = await screen.findByAltText(S.hub.campana.portadaAlt('Campaña vado'));
+    expect(portada.getAttribute('src')).toMatch(/portada_vado/);
+    cleanup();
+
+    // Sin fondo declarado que exista, el respaldo es la portada de la campaña.
+    registrar([meta('vado', [1, 3])]); // `cover` de fixture: 'vado_portada', que no es ningún fondo
+    montarStore([], null);
+    await montar();
+    await waitFor(() => {
+      expect(document.querySelector('[aria-hidden="true"] img')?.getAttribute('src')).toMatch(
+        /portada_vado/,
+      );
+    });
+    cleanup();
+
+    // Y sin ninguna de las dos, NADA: a sangre, la caja gris del `Placeholder` no es un fondo
+    // sino un error a pantalla completa. La campaña de humo `prueba` está en este caso.
+    registrar([meta('sin_arte', [1, 3], { cover: 'tampoco_existe' })]);
+    montarStore([], null);
+    await montar();
+    expect(document.querySelector('[aria-hidden="true"] img')).toBeNull();
+  });
+
+  it('una campaña sin escenas mortales no explica la regla de la muerte', async () => {
+    // La regla dejó de vivir en un `<details>` y se pinta sólo si hay escenas mortales. Ninguna
+    // fixture del hub usaba `lethalScenes: 0`, así que esa rama no la cubría nadie.
+    registrar([meta('c1', [1, 3], { lethalScenes: 0 })]);
+    await montar();
+
+    expect(screen.getByText(S.hub.campana.mortales(0))).toBeInTheDocument();
+    expect(screen.queryByText(S.hub.campana.reglaMortal)).toBeNull();
+  });
+
+  it('después de borrar, el foco no se queda en un botón que ya no existe', async () => {
+    // La trampa de foco del `Dialogo` devuelve el foco a quien lo abrió, y al confirmar un
+    // borrado ese botón se desmonta con su fila: el foco caía a `<body>` y el jugador de teclado
+    // quedaba sin lugar. Con `window.confirm` terminaba igual, pero eso lo resolvía el navegador
+    // y esto es código nuestro.
+    montarStore([makeCharacter({ level: 2 })], 'pj_prueba', { deleteCharacter: vi.fn() });
+    await montar();
+
+    fireEvent.click(screen.getByRole('button', { name: /Borrar a/i }));
+    fireEvent.click(screen.getByRole('button', { name: S.hub.personaje.borrarBoton }));
+    expect(screen.getByTestId('crear-personaje')).toHaveFocus();
   });
 
   it('la premisa de la campaña no es más chica que el texto de una escena', () => {

@@ -177,6 +177,33 @@ type Pendiente =
   | { tipo: 'jugar'; campaignId: string; cuerpo: string }
   | { tipo: 'borrar'; personajeId: string; nombre: string };
 
+/**
+ * Qué arte va a sangre detrás del hub.
+ *
+ * **Primero el fondo que la campaña declara.** `CampaignMeta.cover` existía desde el esquema y no
+ * lo leía nadie: la única lectura en todo el repo era una aserción de `tests/content/vado.test.ts`.
+ * Y el autor ya había escrito el valor —`cover: 'molino_de_tome'` en la meta de Aldamar, o sea el
+ * nombre de un FONDO de escena—, así que el contenido ya había dicho cuál es su imagen y la
+ * interfaz la estaba ignorando. Leerlo desde acá no rompe el sentido de las dependencias: la
+ * interfaz lee un campo del contenido, que es lo que hace con todos los demás.
+ *
+ * No es sólo prolijidad, es encuadre, y está medido: una portada es 900x1200 (retrato) y a
+ * 1919x905 `cover` sólo deja ver el 35,4 % de su alto, mientras que un fondo 16:9 se ve al
+ * 83,8 %. La convención del género separa por archivo el fondo del menú del arte del submenú
+ * justamente por esto: el de menú se compone para la forma de la ventana.
+ *
+ * El respaldo es la portada de la campaña, para una que no declare un fondo que exista. Y si
+ * tampoco hay portada, **nada**: `Imagen` caería al `Placeholder`, y a sangre una caja gris no es
+ * un fondo sino un error a pantalla completa. La campaña de humo `prueba` no tiene ninguna de las
+ * dos y tiene que seguir jugándose igual.
+ */
+function fondoDe(meta: CampaignMeta | undefined): { tipo: 'fondo' | 'portada'; aspect: '16:9' | '3:4' } | null {
+  if (meta === undefined) return null;
+  if (existeImagen('fondo', meta.cover)) return { tipo: 'fondo', aspect: '16:9' };
+  if (existeImagen('portada', meta.id)) return { tipo: 'portada', aspect: '3:4' };
+  return null;
+}
+
 export function HubScreen() {
   const characters = useStore((s) => s.characters);
   const activeCharacterId = useStore((s) => s.activeCharacterId);
@@ -189,6 +216,8 @@ export function HubScreen() {
   const [opciones, setOpciones] = useState(false);
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
   const titulo = useRef<HTMLHeadingElement>(null);
+  const crear = useRef<HTMLButtonElement>(null);
+  const devolverFoco = useRef(false);
   useEnfocarAlEntrar(titulo);
 
   const metas = useMemo(() => listCampaigns(false), []);
@@ -198,16 +227,13 @@ export function HubScreen() {
   const enCursoEn = (id: string): boolean => activo?.run?.campaignId === id;
 
   /**
-   * Qué portada se pinta a sangre detrás de todo: la de la partida en curso si hay una y, si
-   * no, la de la primera campaña de la lista. La partida en curso primero porque el fondo es
-   * lo que le dice al jugador dónde estaba, sin que ningún texto tenga que decirlo.
-   *
-   * Si esa campaña no tiene arte no se dibuja nada: `Imagen` caería al `Placeholder`, que es
-   * una caja gris con su etiqueta, y a sangre eso no es un fondo sino un error a pantalla
-   * completa. La campaña de humo `prueba` no tiene portada y tiene que seguir jugándose igual.
+   * Qué campaña manda el arte del fondo: la de la partida en curso si hay una y, si no, la
+   * primera de la lista. La partida en curso primero porque el fondo es lo que le dice al
+   * jugador dónde estaba, sin que ningún texto tenga que decirlo. Qué imagen suya se usa lo
+   * decide `fondoDe`.
    */
   const destacada = metas.find((m) => enCursoEn(m.id)) ?? metas[0];
-  const fondo = destacada !== undefined && existeImagen('portada', destacada.id) ? destacada : null;
+  const fondo = fondoDe(destacada);
 
   /**
    * Todo lo que el jugador tiene que saber ANTES de arrancar, en una sola confirmación:
@@ -254,12 +280,34 @@ export function HubScreen() {
     setPendiente({ tipo: 'borrar', personajeId: id, nombre });
   };
 
+  /**
+   * Al confirmar, la trampa de foco del `Dialogo` devuelve el foco a quien lo abrió — y si lo
+   * que se confirmó fue un borrado, ese botón acaba de desmontarse con su fila, así que el foco
+   * cae a `<body>` y el jugador de teclado queda sin lugar. Con `window.confirm` terminaba igual,
+   * pero eso lo resolvía el navegador y esto es código nuestro. Se lleva al botón de crear
+   * personaje, que es el único control de la sección que está siempre montado y el que más
+   * probablemente sea el próximo paso después de hacer lugar en el perfil.
+   *
+   * Va en un efecto y no acá abajo, y eso es la mitad del arreglo: la trampa devuelve el foco
+   * desde la LIMPIEZA de su efecto, que React corre después del `confirmar()` y antes de los
+   * efectos nuevos de este commit. Enfocando en la mano, la trampa pisaba el foco un instante
+   * después y el foco terminaba en `<body>` igual.
+   */
   const confirmar = (): void => {
     if (pendiente === null) return;
     if (pendiente.tipo === 'jugar') void startRun(pendiente.campaignId);
-    else deleteCharacter(pendiente.personajeId);
+    else {
+      deleteCharacter(pendiente.personajeId);
+      devolverFoco.current = true;
+    }
     setPendiente(null);
   };
+
+  useEffect(() => {
+    if (pendiente !== null || !devolverFoco.current) return;
+    devolverFoco.current = false;
+    crear.current?.focus();
+  }, [pendiente]);
 
   const sinCupo = characters.length >= LIMITS.maxCharacters;
 
@@ -268,9 +316,14 @@ export function HubScreen() {
       {/* 1. El arte, a sangre y detrás de TODO. `alt=""` y `aria-hidden` porque es decorativo:
              la misma portada se dibuja con su nombre dentro de la tarjeta, y anunciarla dos
              veces sería ruido para un lector de pantalla. */}
-      {fondo !== null && (
+      {fondo !== null && destacada !== undefined && (
         <div className={styles.fondo} aria-hidden="true">
-          <Imagen tipo="portada" id={fondo.id} aspect="3:4" alt="" />
+          <Imagen
+            tipo={fondo.tipo}
+            id={fondo.tipo === 'fondo' ? destacada.cover : destacada.id}
+            aspect={fondo.aspect}
+            alt=""
+          />
         </div>
       )}
       <div className={styles.velo} aria-hidden="true" />
@@ -297,7 +350,9 @@ export function HubScreen() {
           <h2 id="hub-campanas" className={styles.subtitulo}>
             {S.hub.campanas}
           </h2>
-          <ul className={styles.grilla} aria-labelledby="hub-campanas">
+          {/* Etiqueta propia y no `aria-labelledby="hub-campanas"`: con el mismo id, la `<section>`
+              y la `<ul>` se anunciaban las dos como "Campañas", una atrás de la otra. */}
+          <ul className={styles.grilla} aria-label={S.hub.campanasLista}>
             {metas.map((meta) => (
               <TarjetaCampana
                 key={meta.id}
@@ -380,6 +435,7 @@ export function HubScreen() {
             )}
 
             <button
+              ref={crear}
               type="button"
               className={styles.secundario}
               data-testid="crear-personaje"

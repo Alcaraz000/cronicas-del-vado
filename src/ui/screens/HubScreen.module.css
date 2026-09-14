@@ -52,7 +52,11 @@
   overflow: hidden;
 }
 
-/* El marco de `Imagen` trae su `aspect-ratio`, su radio de tarjeta y —esto es lo que importa
+/* Se selecciona `[data-aspect]` sin valor porque acá pueden llegar las dos formas: el fondo que
+   la campaña declara (`meta.cover`, 16:9, compuesto para una ventana apaisada) y, si esa campaña
+   no declara ninguno, su portada como respaldo (3:4). Ver `fondoDe()` en `HubScreen.tsx`.
+
+   El marco de `Imagen` trae su `aspect-ratio`, su radio de tarjeta y —esto es lo que importa
    acá— el `max-width: 160px` que `Imagen.module.css:13-16` le pone a TODO `[data-aspect='3:4']`.
    Esa regla se escribió para los retratos de la creación de personaje y nadie la pensó para una
    portada: es la que dejaba el archivo de 900x1200 en 160 px de ancho, igual en un monitor de
@@ -67,7 +71,7 @@
    depender del orden de importación, que ningún CSS Module garantiza. (0,3,0) le gana siempre.
    `background: none` porque el marco pinta el gris del placeholder por debajo mientras la imagen
    decodifica, y a sangre ese gris es una pantalla entera parpadeando. */
-.pantalla > .fondo > [data-aspect='3:4'] {
+.pantalla > .fondo > [data-aspect] {
   width: 100%;
   height: 100%;
   max-width: none;
@@ -102,14 +106,29 @@
 
 /* 3. El encabezado. El título va CENTRADO y como placa, no a la izquierda de una barra con
    botones a la derecha: esa forma es un encabezado de aplicación, y es exactamente lo que la
-   pantalla dejaba de ser. El cromo (Opciones, Volver) se va a la esquina, que es donde el género
-   lo pone, y por eso el `<header>` es `position: relative` y el cromo `absolute`. */
+   pantalla dejaba de ser.
+
+   El cromo (Opciones, Volver) va DEBAJO del título y en el flujo. Estuvo un rato en la esquina
+   —`position: absolute; top: 0; right: 0`, que es donde el género lo pone— y era un bug: así no
+   reserva ni ancho ni alto, y la placa, que crece con el alto de la ventana, se le mete encima.
+   Medido en el navegador, no estimado:
+
+     810x905  -> 196,5 px de solape       1100x905  ->  51,5 px
+     900x905  -> 151,5 px                 1280x1200 ->  36,1 px
+     960x905  -> 121,5 px                 1280x800  -> no solapa
+
+   La franja de 801 a 1279 px de ancho es justo media pantalla en un monitor de 1920, o sea el
+   caso cotidiano. Y **una media query de ancho no puede arreglarlo**: a 1280x1200 también solapa,
+   porque la placa y el cromo miden en `vh` (los `clamp()` de la tarea 1) mientras que el lugar
+   disponible lo da el ANCHO. El umbral no es un ancho: es un ancho por cada alto. Por eso el
+   arreglo es que el cromo ocupe su renglón, que no puede solapar por construcción. */
 .encabezado {
   position: relative;
   z-index: 2;
   display: grid;
   justify-items: center;
-  padding-block: var(--esp-6) var(--esp-4);
+  gap: var(--esp-3);
+  padding-block: var(--esp-5) var(--esp-4);
 }
 
 .titulo {
@@ -126,11 +145,9 @@
 }
 
 .cromo {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--esp-2);
 }
 
@@ -528,9 +545,9 @@
 }
 
 /* Teléfono. La tarjeta apila —con 375 px de ancho no hay dos columnas posibles— y la portada se
-   acota por ALTO, no por ancho: a 375 px una portada 3:4 a todo el ancho mediría 436 px de alto,
-   más de la mitad de la ventana, y empujaría la premisa y el botón fuera de la pantalla. El cromo
-   deja de estar en la esquina porque ahí choca con la placa del título. */
+   acota por ALTO, no por ancho: con el relleno de este bloque quedan 319 px útiles adentro de la
+   tarjeta, y una portada 3:4 a todo ese ancho mediría **425,33 px** de alto, más de la mitad de la
+   ventana, empujando la premisa y el botón fuera de la pantalla. */
 @media (max-width: 800px) {
   .pantalla {
     padding: var(--esp-3);
@@ -544,10 +561,6 @@
   .titulo {
     padding: var(--esp-2) var(--esp-4);
     font-size: calc(var(--tam-texto-juego) * 1.6 * var(--escala-fuente));
-  }
-
-  .cromo {
-    position: static;
   }
 
   .contenido {

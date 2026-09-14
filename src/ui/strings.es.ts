@@ -59,6 +59,9 @@ export const S = {
      */
     titulo: 'Crónicas del Vado',
     campanas: 'Campañas',
+    /* El nombre accesible de la `<ul>`. Distinto del encabezado de la sección a propósito: con el
+       mismo texto, un lector de pantalla anunciaba "Campañas" dos veces seguidas. */
+    campanasLista: 'Campañas disponibles',
     volver: 'Volver al inicio',
     opciones: 'Opciones',
     personaje: {
