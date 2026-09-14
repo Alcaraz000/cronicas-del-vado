@@ -2,13 +2,13 @@
  * Cuántos modales hay abiertos ahora mismo, para que los atajos de teclado de la pantalla de
  * juego no sigan disparando por detrás de uno.
  *
- * Los tres listeners de la pantalla de juego (1-9 en `OptionList`, C en `EscenaScreen` y
- * Enter/Espacio del revelado) escuchan en `window`: un modal dibujado encima no los tapa, por
- * más `aria-modal="true"` que declare. Hasta la tarea 6 eso no se notaba porque la
- * confirmación de escena mortal era `window.confirm`, que bloquea el hilo; al reemplazarla por
- * `Dialogo` los atajos quedaron vivos debajo de la confirmación, y en un juego con muerte
- * permanente eso significa que un dígito ejecuta otra opción mientras el jugador está mirando
- * el "¿seguro?".
+ * Los tres listeners de la pantalla de juego (1-9 en `OptionList`, C y H en `EscenaScreen` —la
+ * Ficha y el Historial— y Enter/Espacio del revelado) escuchan en `window`: un modal dibujado
+ * encima no los tapa, por más `aria-modal="true"` que declare. Hasta la tarea 6 eso no se
+ * notaba porque la confirmación de escena mortal era `window.confirm`, que bloquea el hilo; al
+ * reemplazarla por `Dialogo` los atajos quedaron vivos debajo de la confirmación, y en un juego
+ * con muerte permanente eso significa que un dígito ejecuta otra opción mientras el jugador
+ * está mirando el "¿seguro?".
  *
  * Es un contador y no un booleano porque puede haber más de un modal a la vez (la Ficha
  * abierta y encima una confirmación): con un booleano, cerrar el de arriba diría que ya no hay

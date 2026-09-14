@@ -21,8 +21,8 @@ export interface ParrafosProps {
    * dentro de la caja de la escena. Solo ahí un párrafo se marca `data-hablante="placa"`, que es
    * la marca que `TextColumn.module.css` esconde de la vista; todos los demás quedan en
    * `"propio"` y conservan su prefijo. Lo pone `TextColumn`, que es quien sabe cuál entrada es
-   * la última; `FinScreen` y el futuro cajón de historial no lo pasan y por eso nunca pierden
-   * un prefijo, sin depender de qué valor tenga el atributo.
+   * la última; `FinScreen` y el cajón del `Historial` no lo pasan y por eso nunca pierden un
+   * prefijo, sin depender de qué valor tenga el atributo.
    */
   conPlaca?: boolean;
 }

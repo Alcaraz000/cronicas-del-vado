@@ -79,7 +79,7 @@ export function Entrada({ entry, revelado, conPlaca = false }: EntradaProps) {
  * opción no queda NUNCA último: `choose` y `commitRoll` apilan el 'outcome' y en la misma acción
  * llaman a `enter()`, que apila enseguida la escena nueva (`src/engine/resolve.ts`). Con la regla
  * literal, toda la prosa de desenlaces se salteaba la pantalla y aparecía solo en el historial:
- * contados sobre la campaña publicada, **335 de 344 desenlaces tienen texto, 9.809 palabras** —o
+ * contados sobre la campaña publicada, **335 de 344 desenlaces tienen texto, 9.820 palabras** —o
  * sea, la consecuencia de cada cosa que el jugador decide—. Eso no es un scrollback, es el texto
  * en curso, y el propio plan lo dice cuando describe qué muestra la caja ("la prosa de la escena,
  * o el desenlace de la tirada recién resuelta").
@@ -121,11 +121,20 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
     if (el !== null && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'end' });
     // El párrafo en curso crece con `caracteresVisibles`: sin seguirlo, el texto que se está
     // revelando queda por debajo del borde apenas supera el alto visible. Con el scrollback
-    // afuera de la caja eso pasa menos seguido que antes, pero sigue pasando y por lejos: el
-    // BLOQUE más largo de la campaña son 183 palabras (`c1_acusacion`, contadas sobre
-    // `campaign.scenes`; el párrafo suelto más largo son 64) y eso no entra en la caja ni a
-    // escala 1 — medido jugando a 375×812, la columna mide 174 px de alto con las opciones
-    // dibujadas y el contenido de una escena así pasa los 700.
+    // afuera de la caja eso pasa menos seguido que antes, pero sigue pasando y por lejos.
+    //
+    // La unidad es el TRAMO, que es lo que esta caja dibuja (ver `entradasDelUltimoPaso`), no un
+    // bloque suelto. El tramo más largo que puede caer acá son 217 palabras:
+    // `c1_cuerpo.darle_el_ultimo_rito` (44) → `c1_acusacion` (173). Medido sobre `campaign.scenes`
+    // con `contar(textoBase(...))` de `tools/lib/lint/texto.ts`, que es la regla con la que mide
+    // todo lo demás en este repo: una variante por párrafo, la base —la última, la que no lleva
+    // `when`—. Tomándole a cada párrafo su variante MÁS LARGA el techo es 227; el piso, 205. (Las
+    // cuatro escenas `ending` son más largas que cualquiera de estas, pero no cuentan: al entrar
+    // en una, el store rutea a `FinScreen` y esta caja no las dibuja nunca.)
+    //
+    // Y eso no entra en la caja ni a escala 1 — medido jugando a 375×812, la columna mide 174 px
+    // de alto con las opciones dibujadas y el contenido de un tramo así pasa los 700. El párrafo
+    // suelto más largo de la campaña, para comparar, son 64 palabras.
     //
     // La dependencia es la IDENTIDAD de `ultima` y no `log.length` (que era lo que había): el
     // motor recorta el log a `LIMITS.maxLog`, así que pasado ese tope cada entrada nueva empuja

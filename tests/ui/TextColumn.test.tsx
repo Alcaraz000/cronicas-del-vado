@@ -136,9 +136,11 @@ describe('TextColumn', () => {
    * Sin este test, borrar el efecto entero deja la suite verde — y es justo la línea que el plan
    * y el spec §3 dan por innecesaria ("el autoscroll de la columna deja de hacer falta"), así que
    * es la combinación exacta para que alguien la borre de buena fe. Sigue haciendo falta: el
-   * bloque más largo de la campaña son 183 palabras y la columna mide 174 px de alto a 375×812
-   * con las opciones dibujadas, así que sin seguir al texto el carácter que se está tipeando cae
-   * abajo del borde. De paso, `.saltarLeido` es `position: sticky` PORQUE esta columna scrollea.
+   * tramo más largo que esta caja puede dibujar son 217 palabras (`c1_cuerpo.darle_el_ultimo_rito`
+   * → `c1_acusacion`; la cuenta y con qué regla se midió están en `TextColumn.tsx`) y la columna
+   * mide 174 px de alto a 375×812 con las opciones dibujadas, así que sin seguir al texto el
+   * carácter que se está tipeando cae abajo del borde. De paso, `.saltarLeido` es
+   * `position: sticky` PORQUE esta columna scrollea, y eso lo fija `tests/ui/saltar-leido.test.tsx`.
    */
   it('sigue al texto que se revela: trae el ancla del final en cada carácter', () => {
     const vistos = espiarScrollIntoView();

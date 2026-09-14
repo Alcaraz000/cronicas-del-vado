@@ -67,7 +67,7 @@ describe('Parrafos', () => {
 
   /**
    * `conPlaca` es lo que decide si ALGÚN prefijo se puede esconder, y por defecto está apagado.
-   * Es la garantía de `FinScreen` y del futuro cajón de historial: ahí no hay placa del hablante,
+   * Es la garantía de `FinScreen` y del cajón del `Historial`: ahí no hay placa del hablante,
    * así que el prefijo es la única pista de quién habla y no puede perderse. Y no depende de qué
    * valor tenga el atributo —depende de que `"placa"` no aparezca nunca—, que es lo que lo hace
    * seguro cuando alguien reutilice `Parrafos` en otra pantalla.

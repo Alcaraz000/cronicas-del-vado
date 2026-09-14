@@ -70,9 +70,9 @@ function spriteIdDe(campaign: Campaign, npcId: string): string {
  * `display: none`, así que un lector de pantalla sigue recibiendo "Orell: …" y el efecto es
  * puramente visual). Sacar la placa en una entrada `[Orell habla, narración]` dejaría ese
  * diálogo **visualmente sin atribución**: el jugador lee una línea entrecomillada y no hay nada
- * en pantalla que diga quién la dijo. Contados sobre la campaña `vado` publicada (381 bloques de
- * texto entre escenas, desenlaces de opción y de banda, y finales): **14 bloques** tienen un
- * párrafo con hablante seguido de narración, y en **13** de ellos el bloque TERMINA en narración
+ * en pantalla que diga quién la dijo. Contados sobre la campaña `vado` publicada (385 bloques de
+ * texto: 46 escenas + 335 desenlaces de opción y de banda con texto + 4 epílogos): **14 bloques**
+ * tienen un párrafo con hablante seguido de narración, y en **13** el bloque TERMINA en narración
  * — o sea, 13 diálogos que quedarían huérfanos en pantalla. Ren'Py también deja la placa puesta
  * entre líneas del mismo hablante.
  *

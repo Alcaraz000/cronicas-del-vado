@@ -43,8 +43,17 @@ const RAIZ = path.resolve(fileURLToPath(import.meta.url), '../..');
  * 970 → entra. De ahí este 970: a 960 entra por 1 px, que es empatar, y 970 es el primer redondo con
  * margen de verdad. Y de ahí también que 1440×900 —que parecía la medida obvia para un README— no
  * sirva: se queda a una línea.
+ *
+ * **El ancho, en cambio, sí es cosmético, y por eso bajó de 1440 a 1280.** La prosa corta a
+ * `--ancho-columna-max` (720 px) y la lista de opciones no, así que cuanto más ancha la ventana más
+ * se nota el desbalance entre una columna de texto angosta y unas opciones que llegan al borde
+ * derecho. Que las opciones lleguen al borde está decidido y se queda —igualarlas a 720 achica la
+ * lista, los chips envuelven y una encrucijada de siete opciones crece a lo alto, que es el recurso
+ * escaso—; lo que se arregla acá es que el desbalance salga en la foto. 1280 es además el ancho al
+ * que esta interfaz se jugó y se verificó. Entra igual porque el desborde no depende del ancho:
+ * es la medición de acá arriba.
  */
-const ANCHO = 1440;
+const ANCHO = 1280;
 const ALTO = 970;
 
 const SALIDA_POR_DEFECTO = 'docs/captura-escena.png';
@@ -570,8 +579,9 @@ async function sacarLaFoto(base: string, destino: string, conVentana: boolean): 
   try {
     const contexto = await navegador.newContext({
       viewport: { width: ANCHO, height: ALTO },
-      // La foto se guarda a 1280×800 clavados: sin esto, en una pantalla con escalado el PNG
-      // saldría al doble y el README mostraría otra medida.
+      // La foto se guarda a 1280×970 clavados —`ANCHO`×`ALTO`, que es lo que después verifica
+      // `medirPng`—: sin esto, en una pantalla con escalado el PNG saldría al doble y el README
+      // mostraría otra medida.
       deviceScaleFactor: 1,
     });
     const page = await contexto.newPage();

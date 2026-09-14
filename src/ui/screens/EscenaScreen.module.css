@@ -6,8 +6,11 @@
    texto se apoya abajo, a todo el ancho, con una placa que nombra a quien habla. Las
    proporciones de Ren'Py (el motor estándar del género) sobre 1920×1080 son caja de 278 px
    —el 26 % del alto—, diálogo de 33 px y nombre de 45 px, o sea 1,36× el diálogo. Acá la caja
-   va bastante más alta (44 %) porque esta campaña tiene párrafos de hasta 160 palabras y con
-   el 26 % habría que scrollear en todas las escenas para llegar a las opciones.
+   va bastante más alta (44 %), y lo que lo justifica no es el párrafo sino el TRAMO: la caja
+   dibuja lo que escribió el último paso —desenlace más escena— y el más largo de la campaña
+   son 217 palabras (ver la cuenta en `TextColumn.tsx`). El párrafo suelto más largo, para
+   comparar, son 64. Con el 26 % habría que scrollear en todas las escenas para llegar a las
+   opciones.
 
    Todo hijo de `.pantalla` es absoluto y se apila por `z-index`: fondo y sprite (0) → velo (1)
    → caja (2) → cromo (3). El sprite comparte capa con el fondo, DEBAJO del velo, y eso es a
@@ -215,7 +218,7 @@
 
    Con una sola región (el texto y las opciones scrolleando juntos, que es como venía) pasa
    esto: la caja tiene un alto fijo de 352 px en 1280×800, y una encrucijada del Vado —medida
-   en el navegador, `a1_puente` con el sargento— llega a SIETE opciones con sus chips y sus
+   en el navegador, `p_puente` con el sargento— llega a SIETE opciones con sus chips y sus
    probabilidades, 429 px, más que la caja entera. Apenas el revelado termina, el autoscroll
    trae las opciones y empuja toda la prosa fuera del recorte: el jugador elige mirando una
    lista y ni una línea de lo que acaba de leer. Es justo lo contrario de una novela visual,
@@ -289,7 +292,11 @@
    apretar. Por eso también deja de ser transparente: el texto pasa por debajo.
 
    `z-index` sobre el texto que scrollea, y `--color-superficie-alta` de fondo para taparlo (la
-   caja ya no es `--color-superficie`: sobre ella un botón de ese color desaparecería). */
+   caja ya no es `--color-superficie`: sobre ella un botón de ese color desaparecería).
+
+   El `position: sticky` y el `top: 0` de acá abajo están fijados por un test —lee esta misma
+   regla del archivo, en `tests/ui/saltar-leido.test.tsx`—, así que sacarlos rompe la suite en
+   vez de romper el juego en la segunda escena. */
 .saltarLeido {
   position: sticky;
   top: 0;
@@ -353,8 +360,9 @@
 
      `bottom: 46%` contra una caja que empieza al 58 %: el recorte se mete 12 puntos detrás del
      borde de la hoja —que es el "anclado al borde de la hoja" del diseño— y deja la cara en la
-     franja de arte. Se queda en poco más de la mitad del ancho de la pantalla; más alto y el
-     fondo desaparece detrás del personaje. */
+     franja de arte. Con `height: 30%` y el `aspect-ratio: 3 / 4` de la regla base, a 375×812 el
+     hueco mide 244 px de alto por 183 de ancho: **el 48,7 % del ancho de la pantalla**, un poco
+     menos de la mitad. Más alto y el fondo desaparece detrás del personaje. */
   .sprite {
     left: auto;
     right: var(--esp-2);
