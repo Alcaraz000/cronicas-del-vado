@@ -23,6 +23,7 @@ describe('StatusBar', () => {
         conditions={['asustado']}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     expect(screen.getByText('Torre abandonada')).toBeInTheDocument();
@@ -41,6 +42,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     expect(screen.getByText(new RegExp(S.barra.sinCondiciones))).toBeInTheDocument();
@@ -57,12 +59,39 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={onOpenFicha}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const boton = screen.getByRole('button', { name: S.barra.ficha });
     expect(boton).toHaveAttribute('title', expect.stringContaining('C'));
     fireEvent.click(boton);
     expect(onOpenFicha).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * El historial es el otro cajón de la pantalla (tarea 3) y vive al lado de la Ficha, no montado
+   * sobre el filo de la caja ni al lado de "Saltar lo leído". La medición de navegador que lo
+   * decidió está en el comentario de `src/ui/components/StatusBar.tsx`, arriba de `.acciones`, y
+   * vive ahí sola: copiarla acá ya la hizo divergir una vez.
+   */
+  it('el botón Historial menciona la tecla H y llama a onOpenHistorial', () => {
+    const onOpenHistorial = vi.fn();
+    render(
+      <StatusBar
+        placeName="Torre abandonada"
+        wounds={0}
+        fortune={3}
+        fortuneMax={3}
+        conditions={[]}
+        onAbandon={vi.fn()}
+        onOpenFicha={vi.fn()}
+        onOpenHistorial={onOpenHistorial}
+      />,
+    );
+    const boton = screen.getByRole('button', { name: S.barra.historial });
+    expect(boton).toHaveAttribute('title', expect.stringContaining('H'));
+    fireEvent.click(boton);
+    expect(onOpenHistorial).toHaveBeenCalledOnce();
   });
 
   it('Abandonar pide confirmación con un Dialogo de tono peligro y solo llama a onAbandon si se confirma', () => {
@@ -76,6 +105,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={onAbandon}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
 
@@ -99,9 +129,10 @@ describe('StatusBar', () => {
     expect(onAbandon).toHaveBeenCalledOnce();
   });
 
-  it('con abandonDisabled, Abandonar está deshabilitado y no ofrece la confirmación; Ficha sigue habilitado', () => {
+  it('con abandonDisabled, Abandonar está deshabilitado y no ofrece la confirmación; Ficha e Historial siguen habilitados', () => {
     const onAbandon = vi.fn();
     const onOpenFicha = vi.fn();
+    const onOpenHistorial = vi.fn();
     render(
       <StatusBar
         placeName="Torre abandonada"
@@ -111,6 +142,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={onAbandon}
         onOpenFicha={onOpenFicha}
+        onOpenHistorial={onOpenHistorial}
         abandonDisabled={true}
       />,
     );
@@ -125,6 +157,13 @@ describe('StatusBar', () => {
     expect(botonFicha).not.toBeDisabled();
     fireEvent.click(botonFicha);
     expect(onOpenFicha).toHaveBeenCalledOnce();
+
+    // Y el historial igual: es la otra cosa que solo mira, y su JSDoc promete lo mismo. Releer lo
+    // que pasó con una tirada en curso es justo cuando hace falta.
+    const botonHistorial = screen.getByRole('button', { name: S.barra.historial });
+    expect(botonHistorial).not.toBeDisabled();
+    fireEvent.click(botonHistorial);
+    expect(onOpenHistorial).toHaveBeenCalledOnce();
   });
 
   it('Abandonar no se ve igual que Ficha: la acción destructiva tiene jerarquía propia', () => {
@@ -145,9 +184,30 @@ describe('StatusBar', () => {
     };
 
     expect(cuerpoDe('.abandonar')).toMatch(/var\(--color-peligro/);
-    // La regla que los dos comparten sigue siendo neutra: el rojo es solo del destructivo.
-    expect(cuerpoDe('.ficha,.abandonar')).toMatch(/var\(--color-borde\)/);
-    expect(cuerpoDe('.ficha,.abandonar')).not.toMatch(/var\(--color-peligro/);
+    // La regla que los TRES comparten (la tarea 3 sumó "Historial") sigue siendo neutra: el rojo
+    // es solo del destructivo.
+    expect(cuerpoDe('.ficha,.historial,.abandonar')).toMatch(/var\(--color-borde\)/);
+    expect(cuerpoDe('.ficha,.historial,.abandonar')).not.toMatch(/var\(--color-peligro/);
+  });
+
+  it('el cromo FLOTA sobre el arte: un degradado que se desvanece, no una barra sólida con borde', () => {
+    // El rediseño pone el arte a sangre debajo de todo. Una barra de herramientas con fondo
+    // sólido y un borde de 1 px cruzándole la cabeza a la imagen es justo lo que hace que la
+    // pantalla se lea como una aplicación web: el cromo tiene que apoyarse sobre el arte y
+    // desvanecerse. jsdom no aplica módulos CSS, así que la regla se lee del archivo.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const barra = cuerpoDeBloque(css, '.barra');
+    expect(barra, '.barra no tiene regla propia').not.toBeNull();
+    expect(barra).toMatch(/linear-gradient\(\s*to bottom/);
+    expect(barra, 'el borde inferior le cruza una línea al arte').not.toMatch(/border-bottom/);
+  });
+
+  it('el lugar se lee como el título de la escena: la serif del juego, en el acento', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const lugar = cuerpoDeBloque(css, '.lugar');
+    expect(lugar, '.lugar no tiene regla propia').not.toBeNull();
+    expect(lugar).toMatch(/var\(--fuente-juego\)/);
+    expect(lugar).toMatch(/var\(--color-acento\)/);
   });
 
   it('en móvil solo se oculta "sin condiciones": la regla vieja que tapaba toda la línea no debe quedar', () => {
@@ -165,6 +225,23 @@ describe('StatusBar', () => {
     expect(vacias).toMatch(/display\s*:\s*none/);
   });
 
+  it('en móvil "Heridas:"/"Fortuna:" se esconden de la vista, NO del árbol de accesibilidad', () => {
+    // Las marcas (●○○, ◆◆◇) son `aria-hidden`, así que la palabra es lo único que le da sentido
+    // al valor: con `display: none` abajo de 800 px un lector de pantalla recibía "Herido" y
+    // "2/3" sueltos, y "2/3" solo no significa nada. El patrón correcto es el mismo que
+    // `TextColumn.module.css` usa para el prefijo del hablante: sacar de la vista con
+    // `position: absolute` + `clip-path`, que deja el texto en el árbol.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+    const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
+    const etiqueta = cuerpoDeBloque(movil, '.etiqueta');
+    expect(etiqueta, '.etiqueta no tiene una regla propia en el bloque de móvil').not.toBeNull();
+    expect(etiqueta, '`display: none` se lleva la palabra del árbol de accesibilidad').not.toMatch(
+      /display\s*:\s*none/,
+    );
+    expect(etiqueta).toMatch(/clip-path\s*:\s*inset\(50%\)/);
+    expect(etiqueta).toMatch(/position\s*:\s*absolute/);
+  });
+
   it('la línea de condiciones tiene su propia clase además de `.dato`, para poder ocultarla en móvil sin tocar heridas ni Fortuna', () => {
     render(
       <StatusBar
@@ -175,6 +252,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
@@ -191,6 +269,7 @@ describe('StatusBar', () => {
         conditions={[]}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');
@@ -207,6 +286,7 @@ describe('StatusBar', () => {
         conditions={['perseguido']}
         onAbandon={vi.fn()}
         onOpenFicha={vi.fn()}
+        onOpenHistorial={vi.fn()}
       />,
     );
     const condiciones = screen.getByText(new RegExp(`^${S.barra.condiciones}:`)).closest('span');

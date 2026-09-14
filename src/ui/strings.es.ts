@@ -133,6 +133,8 @@ export const S = {
     sinCondiciones: 'sin condiciones',
     ficha: 'Ficha',
     fichaTitulo: 'Ver tu ficha de personaje (tecla C)',
+    historial: 'Historial',
+    historialTitulo: 'Ver todo lo que pasó en la partida (tecla H)',
     abandonar: 'Abandonar',
     abandonarDeshabilitado: 'No podés abandonar mientras hay una tirada en curso',
     confirmarAbandonoTitulo: 'Abandonar la partida',
@@ -251,6 +253,16 @@ export const S = {
     // `aria-label` y eso es lo que se anuncia en su lugar.
     finalOculto: '● ● ● ●',
     finalOcultoEtiqueta: 'Un final que todavía no descubriste',
+  },
+  /**
+   * El cajón del historial (tarea 3): la caja de la escena muestra lo que escribió el último paso
+   * del jugador —el desenlace de la opción y la escena que abrió, ver `entradasDelUltimoPaso` en
+   * `TextColumn.tsx`— y toda la partida anterior vive acá. El botón dice "Historial" a secas
+   * —es lo que entra en el cromo— y el cajón se titula entero, que es donde hay lugar para decirlo.
+   */
+  historial: {
+    titulo: 'Historial de la partida',
+    vacio: 'Todavía no pasó nada que recordar.',
   },
   ficha: {
     titulo: 'Ficha de personaje',
@@ -391,5 +403,13 @@ export const S = {
   placeholder: {
     fondo: 'Fondo',
     retrato: 'Retrato',
+    /**
+     * El recorte que se para EN la escena (tarea 1), no el cuadro 3:4 de la creación de
+     * personaje y la Ficha. Son dos cosas distintas para el jugador y el `alt` tiene que
+     * decirlo: "Retrato: Sargento Orell" describe un cuadro colgado; acá hay alguien parado
+     * en el cuarto. Es texto que un lector de pantalla lee en voz alta, no una etiqueta
+     * técnica: `sprite` no se dice en castellano.
+     */
+    sprite: 'Personaje',
   },
 } as const;

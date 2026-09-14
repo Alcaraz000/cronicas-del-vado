@@ -11,9 +11,54 @@
   cursor: pointer;
 }
 
+/* El nombre del hablante ya está en la placa, montada sobre el borde de arriba de la caja.
+   Repetido otra vez como prefijo del párrafo ("Berta: —Mirá, la cosa es simple…") la escena se
+   lee como un guión de teatro y no como una novela visual: el género pone el nombre en la
+   placa y el diálogo empieza por la raya.
+
+   **Solo el prefijo `placa`**, que es el único que está dicho dos veces. Antes esta regla decía
+   `[data-hablante]` a secas y se llevaba puestos TODOS, y ahí el remedio era peor que la
+   enfermedad en los cinco bloques de la campaña que tienen dos hablantes (`a1_ronda`,
+   `c1_acusacion`, `a2_fuera_sotano`, `cl_desenlace`, `cl_halvar`): la placa nombra a uno solo
+   —el último— y los demás quedaban dibujados debajo de ese cartel. En `cl_desenlace`, que es el
+   clímax, la línea de Berta caía abajo de un cartel que dice "Ilse". Atribución EQUIVOCADA, no
+   faltante, y en tres de los momentos más cargados del juego. `Parrafos` marca `"placa"` en el
+   párrafo que la placa nombra y `"propio"` en todos los demás, con una sola cuenta compartida
+   (`indiceDeLaPlaca`) para que no puedan divergir.
+
+   Se esconde a la VISTA, no del árbol de accesibilidad: la región viva de `TextColumn` es lo
+   único que le dice a un lector de pantalla quién habla (la placa es `aria-hidden` justo para
+   no anunciar el nombre dos veces), así que un `display: none` acá se lo llevaría puesto.
+
+   `data-hablante` es la marca pública que `Parrafos` expone para este selector desde otro
+   módulo, igual que `data-aspect` en `Imagen`/`Placeholder`: sus clases tienen hash y no hay
+   forma de nombrarlas desde acá. Y la regla está anidada bajo `.columna` a propósito:
+   `FinScreen` dibuja los mismos párrafos sin ninguna placa, y ahí el prefijo sigue siendo la
+   única pista de quién habla. Doble red, porque son independientes: afuera de `.columna` no
+   hay regla, y adentro el valor solo es `"placa"` donde hay una placa repitiendo el nombre. */
+.columna [data-hablante='placa'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .escena {
   padding-top: var(--esp-2);
   border-top: 1px solid var(--color-borde);
+}
+
+/* La primera entrada no separa nada de nada. Con la columna metida en la caja de la escena
+   —donde el log empieza pegado al borde de arriba— esa línea se lee como un filo suelto a
+   milímetros del filo de oro de la caja, y en el prólogo, que es una sola entrada, es lo
+   primero que ve alguien que abre el juego. */
+.escena:first-child {
+  padding-top: 0;
+  border-top: none;
 }
 
 .eleccion {

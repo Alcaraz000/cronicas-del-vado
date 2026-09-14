@@ -4,7 +4,7 @@
  * Hace tres cosas, según el tipo:
  *  - retrato: recorta a 3:4 desde arriba (la cara está en el tercio superior) y baja a 768x1024.
  *  - fondo y portada: reescala a 1920x1080 / 900x1200 sin recortar.
- *  - objeto: se espera que ya venga con canal alfa (lo recorta `art/recorte.mts` con BiRefNet).
+ *  - objeto y sprite: se esperan que ya vengan con canal alfa (los recorta `art/recorte.mts` con BiRefNet).
  *
  * Sale en WebP, que es lo que soporta todo navegador actual y pesa la mitad que el PNG.
  * Los archivos quedan en `src/assets/<tipo>/<id>.webp`, con el mismo id que usa el contenido.
@@ -24,6 +24,7 @@ const SALIDA: Record<string, { w: number; h: number; recorte: boolean }> = {
   fondo: { w: 1920, h: 1080, recorte: false },
   objeto: { w: 256, h: 256, recorte: false },
   portada: { w: 900, h: 1200, recorte: false },
+  sprite: { w: 768, h: 1024, recorte: false },
 };
 
 function masterDe(tipo: string, id: string): string | null {
@@ -58,7 +59,7 @@ for (const e of manifiesto.entradas) {
     const alto = Math.min(altoObjetivo, meta.height ?? e.height);
     img = img.extract({ left: 0, top: 0, width: w, height: alto });
   }
-  const conAlfa = e.tipo === 'objeto';
+  const conAlfa = e.tipo === 'objeto' || e.tipo === 'sprite';
   await img
     .resize(spec.w, spec.h, { fit: conAlfa ? 'contain' : 'cover', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .webp({ quality: 82, alphaQuality: 90 })

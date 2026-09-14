@@ -23,6 +23,10 @@ describe('registro de imágenes (src/ui/assets)', () => {
     expect(existeImagen('objeto', 'sello_del_vado')).toBe(true);
   });
 
+  it('encuentra el sprite recortado de un PNJ de escena', () => {
+    expect(existeImagen('sprite', 'berta')).toBe(true);
+  });
+
   it('la portada de una campaña se busca por el id de la campaña', () => {
     // El archivo es `portada_vado.webp`: la portada no se busca por `CampaignMeta.cover`
     // (ese campo es una decisión de contenido ya cerrada en el outline y no coincide con
@@ -35,12 +39,20 @@ describe('registro de imágenes (src/ui/assets)', () => {
     expect(existeImagen('fondo', 'torre_abandonada')).toBe(false);
     expect(existeImagen('portada', 'prueba')).toBe(false);
     expect(existeImagen('objeto', 'no_existe')).toBe(false);
+    expect(existeImagen('sprite', 'no_existe')).toBe(false);
   });
 
   it('carga la URL de una imagen que existe', async () => {
     const url = await cargarImagen('retrato', 'orell');
     expect(url).not.toBeNull();
     expect(url).toMatch(/orell/);
+    expect(url).toMatch(/\.webp/);
+  });
+
+  it('carga la URL del sprite de un PNJ de escena', async () => {
+    const url = await cargarImagen('sprite', 'berta');
+    expect(url).not.toBeNull();
+    expect(url).toMatch(/berta/);
     expect(url).toMatch(/\.webp/);
   });
 

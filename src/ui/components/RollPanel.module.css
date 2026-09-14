@@ -1,32 +1,74 @@
+/* El panel de tirada vive DENTRO de la caja de texto, en el lugar de las opciones. Mismo
+   criterio que ellas: translúcido, para que se lea como parte de la caja y no como una tarjeta
+   apilada encima, y apretado, porque el alto de la caja es fijo.
+
+   Lo apretado no es estética: medido jugando la tirada de `p_puente`, el panel suelto medía
+   277 px contra los 182 que la región de acciones le daba, así que al asentarse los dados el
+   foco saltaba a "Continuar" y el scroll se llevaba puesta la línea del objetivo —justo la que
+   dice contra qué se tiró— y la mitad de los dados.
+
+   Apretarlo achicó el problema pero no lo resolvió, y conviene decirlo acá para que nadie crea
+   que sí: ni con el tope subido al 78 % el panel entra (271 px contra 236 a escala 1, 311 a
+   150 %). Lo que garantiza que el objetivo se lea es que `.objetivo` va pegado arriba del
+   scroll; el detalle está en su propio comentario, más abajo. */
 .panel {
-  margin-top: var(--esp-4);
-  padding: var(--esp-4);
+  margin-top: var(--esp-3);
+  padding: var(--esp-2) var(--esp-3) var(--esp-3);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--capa-opcion);
   font-family: var(--fuente-ui);
 }
 
+/* La línea del objetivo —"Necesitás 8+ en los dados para éxito, 5+ con costo…"— es el
+   encabezado del panel, y se queda pegada arriba del scroll.
+
+   Por qué, medido en el navegador a `--escala-fuente: 1.5` y 1280×800, con la tirada de la
+   orilla: el panel asentado mide 311 px contra los 236 que la región de acciones le da (el
+   78 % de la caja), o sea 75 px de más. Apenas los dados se asientan, `RollPanel` manda el foco
+   a "Continuar", que está al pie, el navegador scrollea para traerlo y la línea del objetivo se
+   va entera: quedaba 20 px por ENCIMA del borde de arriba del recorte, justo cuando el jugador
+   necesita leer contra qué se tiró. `EscenaScreen` pone el scroll de la región en cero al
+   abrirse la tirada, que arregla el scroll heredado de la lista de opciones pero no este —el
+   del foco llega 700 ms después—, y el tope no se puede subir: a 1,5 el panel no entra ni en la
+   caja entera. Pegada, la línea sobrevive a cualquier scroll y a cualquier escala.
+   Verificado con el panel scrolleado hasta el fondo: el objetivo queda a 0 px del borde de
+   arriba y "Continuar" sigue entero a la vista.
+
+   Los márgenes negativos son el ancho del relleno lateral del panel: así el fondo tapa de
+   borde a borde y los dados no asoman por los costados al pasar por debajo. Fondo opaco
+   (`--color-superficie`, prácticamente el color al que el panel translúcido se resuelve sobre
+   la caja, así que no se lee como una banda) porque es lo que tiene que tapar, y el filo de
+   abajo lo separa de lo que scrollea. */
 .objetivo {
-  margin: 0 0 var(--esp-1);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 calc(var(--esp-3) * -1) var(--esp-2);
+  padding: var(--esp-2) var(--esp-3);
+  border-bottom: 1px solid var(--color-borde);
+  background: var(--color-superficie);
   font-weight: 600;
 }
 
 .modo {
-  margin: 0 0 var(--esp-2);
+  margin: 0 0 var(--esp-1);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
+/* El total y el sello en el mismo renglón ("Total: 9  ± Con costo"): son la misma frase leída
+   de dos formas, y apilados gastaban dos líneas de un panel que no las tiene. */
 .total {
-  margin: var(--esp-2) 0 var(--esp-1);
+  display: inline-block;
+  margin: var(--esp-1) var(--esp-3) var(--esp-2) 0;
   font-size: calc(var(--tam-ui) * var(--escala-fuente));
   font-weight: 600;
 }
 
 .sello {
   display: inline-block;
-  margin: 0 0 var(--esp-2);
+  margin: var(--esp-1) 0 var(--esp-2);
   padding: 0.2em 0.8em;
   border-radius: 999px;
   font-weight: 700;

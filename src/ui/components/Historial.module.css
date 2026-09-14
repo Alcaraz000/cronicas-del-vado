@@ -1,0 +1,27 @@
+/* La lista del cajón: la misma tipografía de juego que la caja de la escena, porque lo que hay
+   acá adentro es la misma prosa leída hace un rato. `Entrada` trae sus propias clases desde
+   `TextColumn.module.css` (el separador de cada escena, la sangría del desenlace, la línea de la
+   tirada) y eso es a propósito: el brief pide el mismo formato en las dos superficies.
+
+   Lo que NO se hereda de `.columna` es todo lo que es de la caja y no del texto —el reparto
+   flex, el scroll propio, el `cursor: pointer` del clic que adelanta el revelado—: acá el que
+   scrollea es el panel de `Cajon` y un clic no adelanta nada. Por eso la tipografía se declara
+   otra vez en vez de reusar aquella regla; son tres tokens, y ninguno es un valor literal. */
+.lista {
+  display: grid;
+  gap: var(--esp-2);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+  line-height: var(--interlineado-juego);
+}
+
+/* Con el log vacío —que en una partida de verdad no pasa, porque entrar a una escena ya escribe
+   su entrada— el cajón dice que no hay nada en vez de abrirse en blanco. Mismo tono que los
+   "Todavía ninguna." de la Ficha: fuente de UI y texto suave, para que se lea como una nota de
+   la interfaz y no como prosa del juego. */
+.vacio {
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  color: var(--color-texto-suave);
+  font-style: italic;
+}

@@ -34,7 +34,7 @@ const ESTILO = {
 
 interface Entrada {
   id: string;
-  tipo: 'retrato' | 'fondo' | 'objeto' | 'portada';
+  tipo: 'retrato' | 'fondo' | 'objeto' | 'portada' | 'sprite';
   prompt: string;
   negativo: string;
   width: number;
@@ -59,6 +59,19 @@ for (const npc of [...Object.values(campaign.npcs), ...Object.values(WORLD.npcs)
   entradas.push({
     id: npc.portrait,
     tipo: 'retrato',
+    prompt: `${ESTILO.base}, ${ESTILO.retrato}, ${npc.canonPrompt}`,
+    negativo: `${ESTILO.negativoBase}, ${ESTILO.retratoNegativo}`,
+    width: 896,
+    height: 1152,
+    seed: semilla(npc.portrait),
+  });
+  // El sprite de escena de este mismo PNJ: mismo id y misma semilla que su retrato porque
+  // no se genera de nuevo, se recorta con alfa (`art/recorte.mts`) del mismo máster que ya
+  // existe en `art/masters/retrato/<id>/`. `prompt`/`negativo` quedan documentados por si
+  // algún día hace falta regenerar el máster, pero el recorte no los usa.
+  entradas.push({
+    id: npc.portrait,
+    tipo: 'sprite',
     prompt: `${ESTILO.base}, ${ESTILO.retrato}, ${npc.canonPrompt}`,
     negativo: `${ESTILO.negativoBase}, ${ESTILO.retratoNegativo}`,
     width: 896,
@@ -159,9 +172,17 @@ entradas.push({
   seed: semilla(`portada_${campaign.id}`),
 });
 
+// La clave es tipo+id, no solo el id: un sprite comparte a propósito el id de su retrato
+// (mismo máster, ver el bucle de PNJ más arriba), y los dos son archivos distintos porque
+// el tipo va en la ruta (`src/assets/<tipo>/<id>.webp`).
 const vistos = new Set<string>();
-const duplicados = entradas.filter((e) => (vistos.has(e.id) ? true : (vistos.add(e.id), false)));
-if (duplicados.length > 0) throw new Error(`ids repetidos en el manifiesto: ${duplicados.map((d) => d.id).join(', ')}`);
+const duplicados = entradas.filter((e) => {
+  const clave = `${e.tipo}/${e.id}`;
+  if (vistos.has(clave)) return true;
+  vistos.add(clave);
+  return false;
+});
+if (duplicados.length > 0) throw new Error(`ids repetidos en el manifiesto: ${duplicados.map((d) => `${d.tipo}/${d.id}`).join(', ')}`);
 
 const salida = { campana: campaign.id, generado: 'derivado del contenido, no editar a mano', entradas };
 writeFileSync('art/manifest.generated.json', `${JSON.stringify(salida, null, 2)}\n`, 'utf-8');

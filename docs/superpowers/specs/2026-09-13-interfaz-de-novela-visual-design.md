@@ -81,6 +81,13 @@ Hoy la columna acumula **toda la partida** y se scrollea. Ninguna novela visual 
 - El autoscroll de la columna deja de hacer falta para seguir el texto que crece; queda el scroll interno de la caja para una entrada larga.
 - **La tecla H** abre el historial, junto a la C de la Ficha.
 
+> **Nota de implementación (13 de septiembre de 2026).** Las dos viñetas de arriba se escribieron antes de implementar y **dos de sus afirmaciones resultaron falsas al llevarlas al código**. El spec queda como está —está aprobado y es el registro de lo que se decidió—; esto dice qué se encontró y con qué quedó reemplazado.
+>
+> 1. **"La caja muestra la última entrada del log" no servía.** El desenlace de una opción **nunca queda último**: `choose()` y `commitRoll()` (`src/engine/resolve.ts`) apilan la entrada `'outcome'` y en la misma acción llaman a `enter()`, que apila enseguida la entrada `'scene'` de la escena nueva; el único caso en que el desenlace queda último es cuando la partida termina ahí, y ahí la app ya se fue a `FinScreen`. Con la regla literal, toda la prosa de desenlaces se salteaba la pantalla y solo se podía leer abriendo el historial: contados sobre la campaña publicada, **335 de 344 desenlaces tienen texto, ~9.800 palabras**. La regla que quedó es **lo que escribió el último paso del jugador**: el tramo final de prosa del log, cortado hacia atrás en el primer `'choice'` o `'roll'` — en la práctica, el desenlace más la escena que abrió, o la escena sola. Está en `entradasDelUltimoPaso`, en `src/ui/components/TextColumn.tsx`, con la cuenta escrita al lado.
+> 2. **"El autoscroll de la columna deja de hacer falta" tampoco.** Con el scrollback afuera de la caja la columna scrollea menos seguido, pero scrollea igual: el tramo más largo que la caja puede dibujar son **217 palabras** (`c1_cuerpo.darle_el_ultimo_rito` → `c1_acusacion`, medido con `contar(textoBase(...))` de `tools/lib/lint/texto.ts`; 227 si a cada párrafo se le toma su variante más larga) y la columna mide 174 px de alto a 375×812 con las opciones dibujadas. Sin el autoscroll, el carácter que se está tipeando cae abajo del borde, y además "Saltar lo leído" es `position: sticky` **porque** esa columna scrollea. El autoscroll se conservó y ahora tiene un test propio.
+>
+> Lo que sí se cumplió tal cual: `useRevelado` y el salto de lo leído no se tocaron y sus tests pasaron sin una sola modificación.
+
 ---
 
 ## 4. Móvil

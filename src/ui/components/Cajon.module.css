@@ -7,20 +7,35 @@
   background: var(--color-velo);
 }
 
+/* El que scrollea es `.cuerpo`, no el panel: el encabezado —con el título y el botón "Cerrar"—
+   queda fijo arriba.
+
+   Antes el `overflow-y` vivía acá y se llevaba el encabezado con él. En la Ficha eso ya era una
+   molestia (la de un personaje con recuerdos pasa largo de la ventana y el botón de cerrar se va
+   de pantalla), y con el historial de la tarea 3 se volvió un problema: ese cajón abre scrolleado
+   al final —que es lo que el jugador viene a ver— y con el encabezado adentro del scroll, abrirlo
+   empezaba sin ningún "Cerrar" a la vista. Medido jugando: con DOS escenas el cajón ya scrollea
+   (978 px de contenido contra 800 de ventana).
+
+   `overflow: hidden` acá y no dejarlo suelto: el panel es el que recorta, y sin esto lo que sale
+   del cuerpo se dibujaría encima del relleno del panel. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--esp-4);
   width: min(100%, var(--ancho-columna-max));
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--esp-5);
   border-left: 1px solid var(--color-borde);
   background: var(--color-superficie);
 }
 
+/* `flex: 0 0 auto`: pide su alto real y no se achica cuando el cuerpo trae más contenido del que
+   entra, que es la trampa de siempre de un ítem flex al lado de otro que crece. */
 .encabezado {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-3);
@@ -40,7 +55,19 @@
   color: var(--color-texto);
 }
 
+/* `flex: 1 1 0` (base cero: se queda con lo que sobra, no con lo que su contenido pide) y
+   `min-height: 0` por el `min-height: auto` implícito de todo ítem flex, que si no lo infla con
+   su contenido y el `overflow-y` nunca llega a activarse. Es el mismo reparto que la caja de la
+   escena hace entre su texto y sus acciones. */
 .cuerpo {
   display: grid;
+  flex: 1 1 0;
   gap: var(--esp-3);
+  min-height: 0;
+  overflow-y: auto;
+  /* Como en la caja de la escena: con la barra ancha de siempre, una tira clara pegada al borde
+     se ve más que el texto. Fina y en el color del borde es una marca de que hay más, que es
+     todo lo que tiene que ser. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-borde) transparent;
 }

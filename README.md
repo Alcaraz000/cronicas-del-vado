@@ -10,7 +10,9 @@ Elegís una de cuatro clases —Guerrero, Explorador, Mago o Clérigo— y una c
 
 Hoy hay una sola campaña, **"El vado de Aldamar"**: 46 escenas, cuatro finales (uno de ellos oculto) y entre 30 y 45 minutos por partida.
 
-![Una escena de "El vado de Aldamar", con el fondo, el texto narrativo, las opciones y una tirada con su probabilidad de éxito](docs/captura-escena.png)
+Una escena se lee como una novela visual: el arte ocupa la pantalla entera, el personaje con el que estás hablando está parado adentro, y encima van la placa con su nombre, el texto y las opciones. Arriba, el lugar, las heridas, la Fortuna y las condiciones; lo que pasó antes se relee en **Historial**.
+
+![Una escena de "El vado de Aldamar": la taberna del Ancla Seca ocupa toda la pantalla —vigas, faroles encendidos, una rueda de timón en la pared— y a la izquierda, recortado sobre el arte, está el Sargento Orell del pecho para arriba, de barba gris y gambesón, mirando a un costado y hundiéndose detrás de la caja de texto; encima del arte van la placa con su nombre, la línea que acaba de decir y las cuatro opciones de la escena](docs/captura-escena.png)
 
 La partida se guarda sola en el navegador (no en un servidor): si cambiás de navegador, de máquina, o borrás los datos del sitio, la perdés. Para llevarla con vos, en **Opciones** hay botones para exportar el guardado a un archivo y para importarlo de vuelta.
 
@@ -32,6 +34,7 @@ El diseño aprobado está en `docs/superpowers/specs/2026-09-10-juegorol-design.
 | `npm run typecheck` | `tsc --noEmit` sobre `src`, `tests` y `tools` |
 | `npm run validate` | valida el contenido de las campañas (`tools/validate.ts`) |
 | `npm run simulate` | simula carreras de partidas y escribe `design/sim-report.md` (`tools/simulate.ts`) |
+| `npm run captura` | rehace `docs/captura-escena.png`, la foto de acá arriba (`tools/captura.mts`) |
 | `npm run build` | tests + tipos + `vite build` a `dist/` |
 | `npm run preview` | sirve `dist/` en local |
 
@@ -42,7 +45,7 @@ El diseño aprobado está en `docs/superpowers/specs/2026-09-10-juegorol-design.
 - `src/content/` catálogo, esquema y campañas (solo datos).
 - `src/state/` store de Zustand con persistencia en `localStorage`.
 - `src/ui/` pantallas y componentes.
-- `tools/` scripts de Node (validador de contenido).
+- `tools/` scripts de Node (validador de contenido, captura del README).
 - `tests/` tests de Vitest (`tests/**/*.test.{ts,tsx}`).
 
 Alias de import: `@/` apunta a `src/`.

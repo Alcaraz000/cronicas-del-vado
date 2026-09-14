@@ -65,6 +65,32 @@ describe('Parrafos', () => {
     expect(document.body.textContent).not.toContain('m_guia');
   });
 
+  /**
+   * `conPlaca` es lo que decide si ALGÚN prefijo se puede esconder, y por defecto está apagado.
+   * Es la garantía de `FinScreen` y del cajón del `Historial`: ahí no hay placa del hablante,
+   * así que el prefijo es la única pista de quién habla y no puede perderse. Y no depende de qué
+   * valor tenga el atributo —depende de que `"placa"` no aparezca nunca—, que es lo que lo hace
+   * seguro cuando alguien reutilice `Parrafos` en otra pantalla.
+   */
+  it('sin `conPlaca` ningún prefijo se marca para esconder (el fin y el historial no tienen placa)', () => {
+    const { container } = render(<Parrafos parrafos={dos} />);
+
+    expect(container.querySelector("[data-hablante='placa']")).toBeNull();
+    expect(container.querySelector("[data-hablante='propio']")).not.toBeNull();
+  });
+
+  it('con `conPlaca` se marca uno solo: el último dibujado con hablante, que es el que la placa dice', () => {
+    const tres: ResolvedParagraph[] = [
+      { speaker: 'm_guia', text: 'Primero habla el guía.' },
+      { speaker: 'nadie', text: 'Después habla otro.' },
+      { text: 'Y cierra la narración.' },
+    ];
+    const { container } = render(<Parrafos parrafos={tres} conPlaca />);
+
+    const marcas = [...container.querySelectorAll('[data-hablante]')];
+    expect(marcas.map((m) => m.getAttribute('data-hablante'))).toEqual(['propio', 'placa']);
+  });
+
   it('un hablante que la campaña no conoce no rompe el párrafo', () => {
     // La rama defensiva de `nombres[p.speaker] ?? p.speaker`: preferible a no dibujar la línea.
     render(<Parrafos parrafos={[{ speaker: 'nadie', text: DIALOGO }]} />);

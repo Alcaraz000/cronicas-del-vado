@@ -19,6 +19,30 @@
   --color-placeholder: #332f29;
   --color-velo: rgb(0 0 0 / 65%); /* fondo semitransparente detrás de un modal o panel */
 
+  /* Capas de la escena de novela visual. En esa pantalla el arte va a sangre detrás de TODO,
+     así que cada superficie de encima es la misma pintura de siempre con alfa: lo que cambia
+     de una a otra es cuánta imagen deja pasar, no el color. La paleta no cambia.
+
+     Se derivan con color-mix de --color-fondo / --color-superficie-alta / --color-acento en
+     vez de escribir el rgb() a mano para que sigan al token si alguna vez cambia de valor:
+     un rgb(20 18 15 / 86%) copiado acá quedaría huérfano de --color-fondo a la primera.
+
+     --capa-arte es apenas una sombra (el cromo necesita despegarse de la imagen sin
+     ensuciarla); --capa-caja y --capa-densa son el degradado sobre el que se lee la prosa, y
+     se apilan con el velo: donde los dos coinciden el fondo queda prácticamente opaco, que es
+     lo que sostiene el contraste sobre cualquier fondo, claro u oscuro. */
+  --capa-arte: color-mix(in srgb, var(--color-fondo) 55%, transparent);
+  --capa-cromo: color-mix(in srgb, var(--color-fondo) 70%, transparent);
+  --capa-caja: color-mix(in srgb, var(--color-fondo) 86%, transparent);
+  --capa-densa: color-mix(in srgb, var(--color-fondo) 97%, transparent);
+  /* Las opciones y el panel de tirada viven DENTRO de la caja: con el fondo sólido de antes se
+     leían como tarjetas apiladas sobre una página. Translúcidas son parte de la caja. */
+  --capa-opcion: color-mix(in srgb, var(--color-superficie-alta) 62%, transparent);
+  /* El filo de oro del borde de la caja (tenue: es una línea, no un marco) y el borde de la
+     placa del hablante, que sí tiene que sostenerse sola sobre el arte. */
+  --filo-acento: color-mix(in srgb, var(--color-acento) 28%, transparent);
+  --borde-acento: color-mix(in srgb, var(--color-acento) 45%, transparent);
+
   /* Colores semánticos. --color-peligro se usa como BORDE (Dialogo, OpcionesModal): no lo
      tocamos, para no desentonar ahí. Donde se necesita como TEXTO (Chips, CreacionScreen)
      se usa --color-peligro-texto en su lugar — ver esa entrada más abajo. */
@@ -65,6 +89,33 @@
   --esp-7: 48px;
   --radio: 6px;
   --ancho-columna-max: 720px;
+}
+
+/* Respaldo de las capas para un navegador sin `color-mix()` (pide Chrome 111 / Safari 16.2 /
+   Firefox 113, todos de 2023).
+   Sin esto, ahí cada token de capa es INVÁLIDO, y un token inválido no "no hace nada": se lleva
+   puesta la declaración entera que lo usa. Lo que cae es el degradado del velo, el del cromo y
+   el de la caja de la escena, o sea todo lo que separa el texto del arte: la prosa y la barra
+   de estado quedan sobre la imagen cruda. Es la caída más cara de la pantalla nueva, y sale
+   barato taparla.
+
+   Los valores son la misma cuenta que hace `color-mix(in srgb, C P%, transparent)`, que es
+   exactamente C con alfa P (mezclar con `transparent` en srgb no cambia el color, solo el
+   alfa). Son literales porque acá no hay otra forma: si `color-mix` no existe, tampoco existe
+   con qué derivarlos. Quedan en deuda con los tres tokens de arriba —si alguno cambia de valor,
+   estos siete hay que rehacerlos a mano—, y por eso viven pegados a ellos y no en otro archivo.
+   Hoy: --color-fondo #14120f = 20 18 15, --color-superficie-alta #2b2620 = 43 38 32,
+   --color-acento #c9a24a = 201 162 74. */
+@supports not (color: color-mix(in srgb, white 50%, transparent)) {
+  :root {
+    --capa-arte: rgb(20 18 15 / 55%);
+    --capa-cromo: rgb(20 18 15 / 70%);
+    --capa-caja: rgb(20 18 15 / 86%);
+    --capa-densa: rgb(20 18 15 / 97%);
+    --capa-opcion: rgb(43 38 32 / 62%);
+    --filo-acento: rgb(201 162 74 / 28%);
+    --borde-acento: rgb(201 162 74 / 45%);
+  }
 }
 
 /* Reset mínimo */

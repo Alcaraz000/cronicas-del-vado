@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { App } from '@/app/App';
 import { useStore } from '@/state/store';
 import { selectGameState, writeGameState } from '@/state/selectors';
@@ -102,8 +102,19 @@ describe('flujo de la rebanada vertical', () => {
 
     const patio = escena('p_patio');
     await screen.findByText(textoSeguro(patio));
-    expect(screen.getByText(`› ${rodear.label}`)).toBeInTheDocument();
-    expect(screen.getByText(textoSeguro(umbral))).toBeInTheDocument();
+
+    // La caja muestra la escena nueva y NADA más: desde la tarea 3 la elección y la escena
+    // anterior no se apilan en pantalla, se leen en el cajón del historial. Las dos mitades se
+    // verifican acá porque el log sigue siendo el mismo log: cambió dónde se dibuja.
+    expect(screen.queryByText(`› ${rodear.label}`)).toBeNull();
+    expect(screen.queryByText(textoSeguro(umbral))).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'h' });
+    const historial = within(screen.getByTestId('historial'));
+    expect(historial.getByText(`› ${rodear.label}`)).toBeInTheDocument();
+    expect(historial.getByText(textoSeguro(umbral))).toBeInTheDocument();
+    expect(historial.getByText(textoSeguro(patio))).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
 
     const gs = selectGameState(useStore.getState());
     expect(gs?.run.sceneId).toBe('p_patio');

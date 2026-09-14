@@ -15,6 +15,11 @@ export interface StatusBarProps {
   /** Abre la Ficha (tarea 5). Ver la ficha es seguro en cualquier momento: nunca se deshabilita. */
   onOpenFicha: () => void;
   /**
+   * Abre el historial de la partida (tarea 3). Como la Ficha: solo mira, así que tampoco se
+   * deshabilita nunca, ni con una tirada pendiente.
+   */
+  onOpenHistorial: () => void;
+  /**
    * true mientras hay una tirada pendiente. El store no limpia `run.pending` al
    * abandonar (tarea 13), así que la UI evita ese camino: en vez de ofrecer
    * "Abandonar", lo deshabilita hasta que la tirada se consolide o se descarte.
@@ -34,6 +39,7 @@ export function StatusBar({
   conditions,
   onAbandon,
   onOpenFicha,
+  onOpenHistorial,
   abandonDisabled = false,
 }: StatusBarProps) {
   const [confirmando, setConfirmando] = useState(false);
@@ -43,11 +49,20 @@ export function StatusBar({
   return (
     <header className={styles.barra}>
       <span className={styles.lugar}>{placeName}</span>
+      {/* La palabra ("Heridas", "Fortuna") va en su propio `span` para poder sacarla de la
+          VISTA en el teléfono: ahí el cromo flota sobre el arte, y con las dos etiquetas
+          enteras se va a tres renglones que se comen la mitad del fondo. Lo que NO se toca es
+          el valor —las marcas, "Herido", "2/3"—, que es lo que el jugador necesita leer.
+          Del árbol de accesibilidad la palabra no se va nunca: las marcas de al lado son
+          `aria-hidden`, así que sin ella un lector de pantalla recibiría "2/3" a secas. Cómo
+          se esconde (`clip-path`, no `display: none`) está en el bloque de móvil del CSS. */}
       <span className={styles.dato} title={S.barra.heridas}>
-        {S.barra.heridas}: <span aria-hidden="true">{marcas(wounds, 3, '●', '○')}</span> {WOUND_LABELS[wounds]}
+        <span className={styles.etiqueta}>{S.barra.heridas}: </span>
+        <span aria-hidden="true">{marcas(wounds, 3, '●', '○')}</span> {WOUND_LABELS[wounds]}
       </span>
       <span className={styles.dato} title={S.barra.fortuna}>
-        {S.barra.fortuna}: <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
+        <span className={styles.etiqueta}>{S.barra.fortuna}: </span>
+        <span aria-hidden="true">{marcas(fortune, fortuneMax, '◆', '◇')}</span> {fortune}/{fortuneMax}
       </span>
       {/* En la hoja móvil (Fase H, tarea 5; revisado en la oleada final) el lugar y las marcas
           de heridas/Fortuna se quedan siempre. "Condiciones: ..." se oculta con
@@ -58,9 +73,40 @@ export function StatusBar({
       <span className={`${styles.dato} ${styles.condiciones}${sinCondiciones ? ` ${styles.condicionesVacias}` : ''}`}>
         {S.barra.condiciones}: {nombresCondiciones}
       </span>
+      {/* Los dos cajones juntos y el destructivo aparte, al final. "Ficha" e "Historial" se abren
+          los dos con una letra (C y H), los dos solo miran y los dos se montan sobre el mismo
+          `Cajon`: son la misma clase de cosa y se leen mejor como un par.
+
+          ── LA MEDICIÓN QUE DECIDIÓ DÓNDE VA EL BOTÓN DEL HISTORIAL ──
+          Vive acá y en ningún otro lado. Los tests que la invocan referencian este comentario en
+          vez de copiar los números: ya divergieron una vez.
+
+          Tomada en el navegador jugando el prólogo a 375×812, clonando el botón dentro del grupo
+          y leyendo el alto del `<header>` con y sin él, en las tres escalas de letra:
+
+            escala 1     cromo 91 px con dos botones · 91 px con tres · grupo 152 → 233 px
+            escala 1,25  cromo 104 px · 104 px · grupo 187 → 285 px
+            escala 1,5   cromo 118 px · 159 px · grupo 222 → 338 px
+
+          O sea: a la medida en la que se juega el tercer botón no le come ni un píxel de arte
+          —el grupo entra en el renglón que ya ocupaba—; recién a 150 % se lleva un renglón
+          propio (+41 px, un 5 % de la pantalla), y ahí el cromo ya venía envuelto igual. A
+          1280×800 el cromo es un solo renglón de 65 px y los tres botones terminan en x=1256 de
+          1280: costo cero.
+
+          Las dos alternativas midieron peor. Montado sobre el filo de la caja choca con la placa
+          del hablante: con el nombre más ancho del reparto ("Capitán Dravos", borde derecho en
+          221 / 272 / 323 px según la escala) y el botón midiendo 73 / 90 / 108 px pegado al borde
+          derecho, se pisan 3 px a 125 % y 72 px a 150 %. Y al lado de "Saltar lo leído" costaba
+          un renglón fijo (29 px a escala 1, 43 a 150 %) de la columna de texto, que a 375×812
+          mide 174 px de alto con las opciones dibujadas —el espacio que menos sobra de la
+          pantalla— y encima habría tapado texto, porque sería `sticky` como su vecino. */}
       <div className={styles.acciones}>
         <button type="button" className={styles.ficha} onClick={onOpenFicha} title={S.barra.fichaTitulo}>
           {S.barra.ficha}
+        </button>
+        <button type="button" className={styles.historial} onClick={onOpenHistorial} title={S.barra.historialTitulo}>
+          {S.barra.historial}
         </button>
         <button
           type="button"
