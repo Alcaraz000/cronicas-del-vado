@@ -413,8 +413,6 @@ export const S = {
     faltanRasgos: (n: number): string => (n === 1 ? 'Falta un rasgo.' : `Faltan ${n} rasgos.`),
     elegido: 'Elegido',
     // Paso 4
-    resumenClase: 'Clase',
-    resumenNombre: 'Nombre',
     resumenRasgos: 'Rasgos de origen',
     resumenAtributos: 'Atributos',
     atributosAyuda: 'El reparto inicial es 2 / 1 / 1 / 0. Tu clase fija el 2; vos elegís dónde va el 0.',
@@ -422,6 +420,14 @@ export const S = {
     flojoBoton: (atributo: string): string => `Dejar ${atributo} en 0`,
     nivelInicial: 'Empezás en nivel 1, sin habilidades: se ganan subiendo de nivel.',
     errorAlCrear: (motivo: string): string => `No se pudo crear el personaje: ${motivo}`,
+    /* Textos nuevos del rediseño (una pregunta por pantalla). Van al final de la sección a
+       propósito: el orden de arriba sigue el de los cuatro pasos y no se reordena.
+       `resumenNombre` ('Nombre') y `resumenClase` ('Clase') salieron de acá: desde que el retrato
+       grande, el nombre y la clase viven juntos en la columna de la izquierda —la misma en el paso
+       3 y en el 4—, el resumen ya no vuelve a rotularlos, y dos claves sin usar son deuda. */
+    tuPersonaje: 'Tu personaje',
+    /** El cupo de rasgos, dicho UNA vez y donde el jugador está mirando. */
+    rasgosContador: (elegidos: number, total: number): string => `Elegiste ${elegidos} de ${total}`,
   },
   placeholder: {
     fondo: 'Fondo',

@@ -249,7 +249,13 @@ describe('la Fase C desbloquea el contenido por clase y por origen', () => {
     fireEvent.click(screen.getByTestId('siguiente'));
 
     // `hijo_de_molinero` es `social`, la Debilidad del Explorador: la pantalla lo bloquea con motivo.
-    expect(screen.getByTestId('rasgo-hijo_de_molinero')).toBeDisabled();
+    // El bloqueo es `aria-disabled` y no el `disabled` nativo —que lo sacaba del orden de
+    // tabulación y con él se llevaba la única explicación del bloqueo, ver
+    // `tests/ui/CreacionScreen.test.tsx`—, así que se exigen las dos cosas: que siga siendo
+    // enfocable y que esté marcado como bloqueado.
+    const bloqueado = screen.getByTestId('rasgo-hijo_de_molinero');
+    expect(bloqueado).not.toBeDisabled();
+    expect(bloqueado).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(screen.getByTestId('rasgo-hijo_de_la_frontera'));
     fireEvent.click(screen.getByTestId('rasgo-cazador_furtivo'));
     fireEvent.click(screen.getByTestId('siguiente'));

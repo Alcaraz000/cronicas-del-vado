@@ -140,10 +140,13 @@
      que es el síntoma que Gabriel reportó. Los 86 caracteres se pasan un 7,5 % de un criterio AAA;
      el scroll se lo come todo el mundo en cada escena. Se elige la lectura sin scroll y queda
      escrito el precio.
-     Es un token APARTE de `--ancho-columna-max`, que es px y lo consumen `Cajon`, `Dialogo`,
-     `OpcionesModal`, `CreacionScreen`, `FinScreen` (dos reglas) y `HubScreen`: tocar aquel mueve
-     seis ARCHIVOS —tres de ellos componentes, no pantallas— que no tienen nada que ver con la
-     prosa de la escena. */
+     Es un token APARTE de `--ancho-columna-max`, que es px y hoy lo consumen `Cajon`, `Dialogo`,
+     `OpcionesModal` y `FinScreen` (dos reglas): cinco reglas en CUATRO archivos, tres de ellos
+     componentes y no pantallas, que no tienen nada que ver con la prosa de la escena.
+     (Eran seis archivos: `HubScreen` pasó a `--ancho-hub` en la tarea 3 de esta fase y
+     `CreacionScreen` a `--ancho-creacion` en la tarea 4, y las dos por lo mismo —los 720 px
+     fijos dejaban 1199 px de margen muerto a 1919x905—. Verificado con grep al cerrar la
+     tarea 4.) */
   --ancho-prosa: 38em;
 }
 
