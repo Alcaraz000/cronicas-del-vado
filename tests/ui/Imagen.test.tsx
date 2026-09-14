@@ -1,6 +1,9 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cuerpoDe } from '../fixtures/css';
 import { Imagen } from '@/ui/components/Imagen';
 import { useStore } from '@/state/store';
 
@@ -71,6 +74,21 @@ describe('Imagen', () => {
     } finally {
       window.HTMLImageElement.prototype.decode = decodeOriginal;
     }
+  });
+
+  it('el encuadre del recorte no depende de la relación de aspecto de la ventana', () => {
+    // `object-fit: cover` con el `object-position` de fábrica (`50% 50%`) reparte el recorte
+    // entre arriba y abajo: a 1919x905 se come el 8,08 % de arriba Y el 8,08 % de abajo, y es
+    // la única de las cinco medidas donde pasa (1600x900 y 2560x1440 son 16:9 exacto y no
+    // pierden nada). O sea que la franja que el artista sacrificó no es la que se sacrifica.
+    // Fijándolo arriba, lo que se recorta es siempre lo de abajo, que la caja tapa igual.
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/Imagen.module.css'), 'utf8');
+    const imagen = cuerpoDe(css, '.imagen') ?? '';
+    expect(imagen, '.imagen no tiene regla propia').not.toBe('');
+    expect(imagen).toMatch(/object-fit\s*:\s*cover/);
+    expect(imagen, 'el recorte volvió a repartirse entre arriba y abajo').toMatch(
+      /object-position\s*:\s*center\s+top/,
+    );
   });
 
   it('con movimiento reducido, la imagen queda marcada para que el CSS corte seco (sin fundido)', async () => {

@@ -20,6 +20,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Con el `object-position` de fábrica (`50% 50%`) el recorte se reparte entre arriba y abajo,
+     así que QUÉ se pierde depende de la relación de aspecto de la ventana del jugador: a
+     1919x905 se come el 8,08 % de arriba y el 8,08 % de abajo, mientras que a 1600x900 y a
+     2560x1440 —16:9 exactos— no se pierde nada. O sea que la franja que el artista sacrificó
+     al componer no era la que se sacrificaba. Fijándolo arriba, lo que se recorta es siempre
+     lo de abajo, que en la escena la caja de texto tapa igual (arranca en el 56 % del alto).
+     Vale para los tres usos: el fondo 16:9 es el único que recorta de verdad, porque el sprite
+     3:4 y el retrato 3:4 van en marcos de su misma relación y `cover` no les saca nada. */
+  object-position: center top;
   /* Cada cambio de `id` monta un <img> nuevo (Imagen.tsx usa la URL como `key`), así que
      esta animación arranca sola en cada fundido: un fundido de opacidad, no una transición
      (que no dispara en el montaje de un nodo nuevo). */

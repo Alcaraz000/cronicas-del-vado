@@ -125,6 +125,21 @@
      de Ren'Py, a ~29em. Se deja en 38em porque es la medida de hoy pasada a `em` —el objetivo de
      esta tarea es que NO se mueva a 1280x800—; angostarla es una decisión de diseño aparte, y
      conviene volver a contar DESPUÉS del reparto en dos columnas, que la angosta solo.
+
+     **Recontado después del reparto (tarea 2), que es lo que quedaba pendiente, y el veredicto es
+     que se queda en 38em.** Medido a 1919x905 sobre `a1_taberna` con la caja ya repartida, donde
+     la prosa dispone de los 349 px enteros y entra en 10,15 líneas:
+
+       38em    -> prosa 816,75 px · 79-86 caracteres · 10 líneas · entra, 0 px de desborde
+       35,35em -> prosa 749,80 px · 71-79 caracteres · 11 líneas · 35 px de desborde
+       34,7em  -> prosa 735,83 px · 70-79 caracteres · 11 líneas · 35 px de desborde
+       29,6em  -> prosa 626,20 px · 59-65 caracteres · 12 líneas · 69 px de desborde
+
+     O sea: bajar a 35,35em CUMPLE el <= 80 de WCAG 1.4.8 (AAA) —la línea más larga pasa de 86 a
+     79— pero le agrega una línea al mismo bloque y devuelve el scroll que la tarea 2 vino a sacar,
+     que es el síntoma que Gabriel reportó. Los 86 caracteres se pasan un 7,5 % de un criterio AAA;
+     el scroll se lo come todo el mundo en cada escena. Se elige la lectura sin scroll y queda
+     escrito el precio.
      Es un token APARTE de `--ancho-columna-max`, que es px y lo consumen `Cajon`, `Dialogo`,
      `OpcionesModal`, `CreacionScreen`, `FinScreen` (dos reglas) y `HubScreen`: tocar aquel mueve
      seis ARCHIVOS —tres de ellos componentes, no pantallas— que no tienen nada que ver con la

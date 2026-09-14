@@ -621,6 +621,22 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(velo).toMatch(/linear-gradient\(\s*to bottom/);
   });
 
+  /**
+   * §0.5 del diseño: tres números se sostenían entre sí y no los vigilaba NINGÚN test. La caja
+   * en 44 %, la parada densa del velo en 62 % —que es 100 − 44 + 6— y el «47 % del sprite
+   * visible» del comentario, que sale de combinar el 44 % de la caja con el 80 % del sprite:
+   * (0,56 − 0,18)/0,80. Cambiar uno solo desacoplaba los otros dos en silencio. Este caso es la
+   * razón de ser del token: la caja y el velo ya no pueden divergir sin romper la suite.
+   */
+  it('el alto de la caja es UN token, y el velo cuelga de él', () => {
+    const pantalla = cuerpoDe(css, '.pantalla');
+    expect(pantalla, '.pantalla no declara --alto-caja').toMatch(/--alto-caja\s*:\s*44%/);
+    expect(cuerpoDe(css, '.caja'), 'la caja no consume el token').toMatch(/height\s*:\s*var\(--alto-caja\)/);
+    expect(cuerpoDe(css, '.velo'), 'la parada densa del velo volvió a ser un número suelto').toMatch(
+      /var\(--alto-caja\)/,
+    );
+  });
+
   it('la caja se apoya abajo, a todo el ancho, y scrollea por dentro en vez de crecer', () => {
     const caja = cuerpoDe(css, '.caja');
     expect(caja, '.caja no tiene regla propia').not.toBeNull();
@@ -628,7 +644,7 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(caja).toMatch(/bottom\s*:\s*0/);
     expect(caja).toMatch(/left\s*:\s*0/);
     expect(caja).toMatch(/right\s*:\s*0/);
-    expect(caja).toMatch(/height\s*:\s*44%/);
+    expect(caja).toMatch(/height\s*:\s*var\(--alto-caja\)/);
 
     // Lo que no entra scrollea DENTRO. Sin `min-height: 0` el ítem flex pide su alto por
     // contenido y estira la caja: la trampa de siempre con flex y texto largo.
@@ -660,13 +676,81 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(cuerpoDe(css, '.columna')).toMatch(/flex\s*:\s*1\s+1\s+0/);
   });
 
-  it('el sprite se ancla abajo y alto, y no lleva el marco gris del retrato', () => {
+  it('arriba de 1400 px la caja se reparte en dos columnas', () => {
+    // Apiladas, a 1919x905 sobre `a1_taberna` se ven 3 de 10 líneas de prosa y 3 de 7 opciones,
+    // y el scroll queda en el tope: las 3 que se ven son las ÚLTIMAS. Repartidas, la prosa se
+    // queda con los 349 px completos de la caja: 10,2 líneas.
+    // OJO: `bloqueDeMedia` LANZA si no encuentra la media query (tests/fixtures/css.ts:16), no
+    // devuelve null. Así que la ausencia del bloque se afirma con `not.toThrow()`, no con
+    // `not.toBeNull()`.
+    expect(() => bloqueDeMedia(css, '@media (min-width: 1400px)')).not.toThrow();
+    const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+    expect(cuerpoDe(ancha, '.caja')).toMatch(/flex-direction\s*:\s*row/);
+    expect(cuerpoDe(ancha, '.acciones')).toMatch(/max-height\s*:\s*100%/);
+
+    // El ancho base lo fija la PROSA y las acciones se quedan con el resto. Al revés —con las
+    // acciones en un ancho fijo— a 1919x905 la columna de texto mediría 1331 px mientras la
+    // prosa corta en `--ancho-prosa`: 514 px muertos ADENTRO de la columna de texto, que es el
+    // mismo problema que esta tarea vino a arreglar, más chico y un nivel más adentro.
+    expect(cuerpoDe(ancha, '.columna')).toMatch(/flex\s*:\s*0\s+0\s+min\(\s*calc\(var\(--ancho-prosa\)/);
+    // Y el `em` de `--ancho-prosa` tiene que resolverse contra el cuerpo de la PROSA: sin un
+    // `font-size` propio, `.columna` hereda el de la interfaz y los 38em dan 644,81 px en vez
+    // de 816,76 (medido a 1919x905). La columna quedaba 172 px más angosta que la medida que
+    // ella misma reserva y la prosa seguía scrolleando.
+    expect(cuerpoDe(ancha, '.columna'), 'el em de --ancho-prosa se resuelve contra el cuerpo equivocado').toMatch(
+      /font-size\s*:\s*calc\(var\(--tam-texto-juego\)\s*\*\s*var\(--escala-fuente\)\)/,
+    );
+
+    // Y el tope de la tirada tiene que subir CON él, o el bono no existe:
+    // `.acciones[data-tirada='true']` tiene especificidad (0,2,0) contra la (0,1,0) de
+    // `.acciones`, y una media query no suma especificidad — así que el 78 % de la regla base
+    // le ganaría a este 100 % y el panel seguiría sin entrar.
+    expect(
+      cuerpoDe(ancha, ".acciones[data-tirada='true']"),
+      'el tope de la tirada se queda en el 78 % de la regla base y le gana por especificidad',
+    ).toMatch(/max-height\s*:\s*100%/);
+  });
+
+  it('la regla base del reparto apilado NO se toca: es la que vale abajo de 1400', () => {
+    expect(cuerpoDe(css, '.acciones')).toMatch(/max-height\s*:\s*60%/);
+    expect(cuerpoDe(css, '.columna')).toMatch(/flex\s*:\s*1\s+1\s+0/);
+  });
+
+  it('la placa viaja con la prosa cuando el contenido se centra', () => {
+    // Si el contenido de la caja se centra y la placa se queda clavada en 48px, la placa nombra
+    // a un texto que arranca 190px más a la derecha. Es peor que el problema que vino a
+    // arreglar. Las dos llevan la MISMA expresión y por eso se mueven juntas.
+    const caja = cuerpoDe(css, '.caja') ?? '';
+    const placa = cuerpoDe(css, '.placa') ?? '';
+    const expresion = /max\(\s*var\(--esp-7\)/;
+    expect(caja, 'la caja no centra su contenido').toMatch(expresion);
+    expect(placa, 'la placa no acompaña al centrado de la caja').toMatch(expresion);
+
+    // Y lo mismo del otro lado del corte: el reparto apaga el centrado —ahí el ancho no sobra,
+    // se lo llevan las dos columnas— y si la placa se quedara con el `max()` de la regla base
+    // arrancaría en 367,5 px mientras la prosa arranca en 48. Medido a 1919x905.
+    const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+    const cajaAncha = cuerpoDe(ancha, '.caja') ?? '';
+    if (/padding-inline\s*:/.test(cajaAncha)) {
+      expect(cuerpoDe(ancha, '.placa'), 'la caja cambia su relleno en el reparto y la placa se queda atrás').toMatch(
+        /left\s*:\s*var\(--esp-7\)/,
+      );
+    }
+  });
+
+  it('el sprite se ancla ARRIBA y acotado, y no lleva el marco gris del retrato', () => {
     const sprite = cuerpoDe(css, '.sprite');
     expect(sprite, '.sprite no tiene regla propia').not.toBeNull();
     expect(sprite).toMatch(/position\s*:\s*absolute/);
-    // Alto de verdad: con la caja empezando al 56 %, es lo que deja la cara por encima del
-    // borde y hunde el resto detrás, como un sprite apoyado en el suelo de la escena.
-    expect(sprite).toMatch(/height\s*:\s*80%/);
+    // Alto de verdad, pero con techo: anclado abajo, cada píxel que crecía la ventana se lo
+    // comía la caja y la fracción visible quedaba clavada en 47,5 % mientras la cabeza se
+    // inflaba (283 px a 1919x905, el 31,3 % del alto de la ventana).
+    expect(sprite).toMatch(/height:\s*min\(80%/);
+    // Anclado por ARRIBA la fracción visible crece con la ventana en vez de quedarse quieta:
+    // 47,5 % a 1280x800 (idéntico a hoy), 50,6 % a 1919x905, 60,4 % a 1080. El 18 % es el
+    // mismo que hoy sale implícito de `2% + 80%`.
+    expect(sprite).toMatch(/top\s*:\s*18%/);
+    expect(sprite, 'el sprite volvió a anclarse abajo: la cabeza vuelve a inflarse').not.toMatch(/bottom\s*:/);
 
     // El recorte tiene canal alfa: el gris de fondo y el radio de `Imagen.module.css` le
     // dibujarían justo el rectángulo que la tarea 1 vino a sacar.
@@ -696,10 +780,13 @@ describe('EscenaScreen — las proporciones en móvil', () => {
   const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
 
   it('la caja se lleva más pantalla que en escritorio: en un teléfono el texto es casi todo', () => {
-    const caja = cuerpoDe(movil, '.caja');
-    expect(caja, '.caja no tiene una regla propia en el bloque de móvil').not.toBeNull();
-    const alto = /height\s*:\s*(\d+)%/.exec(caja ?? '')?.[1];
-    expect(alto, '.caja de móvil no declara una altura en %').toBeDefined();
+    // El alto ya no se escribe en `.caja` sino en `--alto-caja`, que el bloque de móvil
+    // redefine en `.pantalla`: así el velo lo sigue solo, en vez de quedarse con la parada
+    // densa de escritorio mientras la caja arranca 14 puntos más arriba.
+    const pantalla = cuerpoDe(movil, '.pantalla');
+    expect(pantalla, '.pantalla no redefine --alto-caja en el bloque de móvil').not.toBeNull();
+    const alto = /--alto-caja\s*:\s*(\d+)%/.exec(pantalla ?? '')?.[1];
+    expect(alto, 'el bloque de móvil no declara --alto-caja en %').toBeDefined();
     expect(Number(alto)).toBeGreaterThan(44);
   });
 
