@@ -46,8 +46,17 @@ que es, además, la estrategia que el juego premia.
 
 ### 0.3 El "a veces": acertar te deja adentro, fallar te salva
 
-Medido sobre 2000 partidas con el motor real: **452 no terminaron en 400 pasos, en 28 ciclos
-distintos**. El que explica el reporte es el del Clérigo en la taberna: le **sale bien** la tirada
+Medido sobre 2000 partidas con el motor real: **452 no terminaron en 400 pasos**.
+
+> **Corrección del 14 de septiembre, hecha al implementar la tarea 1.** Ese "452 de 2000" **no es una
+> tasa de cuelgue y no hay que citarlo como tal**. Eran 400 partidas de una política que siempre
+> elige la última opción más 52 de una que siempre elige la primera, sobre cinco políticas de 400
+> partidas cada una; las tres realistas (azar, evita-visitado, sin-repetir-opción) dieron **cero**.
+> Remedido con un recorredor propio: al azar da **0 de 2000**, evitando los dados **1 de 2000**, y
+> determinista **2000 de 2000** — pero el determinista **se cuelga 20 de 20 sobre `minimal`, que es
+> una campaña sana**, así que es una máquina de falsos positivos y no sirve de instrumento.
+> **Lo que el dato dice, bien contado: el jugador que insiste con la misma opción se cuelga; el que
+> varía, no.** Que es exactamente la conducta que Gabriel reportó. El que explica el reporte es el del Clérigo en la taberna: le **sale bien** la tirada
 `preguntar_por_tome` y el éxito lo manda a la trastienda, que está dentro del bucle; al Guerrero, en
 cambio, **fallarla lo expulsa a la plaza**. La misma secuencia de clics traba a uno y libera al otro.
 
@@ -187,7 +196,11 @@ Tres herramientas miraron este bug y ninguna lo vio. Eso se arregla acá:
 1. **El bucle de Gabriel no se puede reproducir**: entrando a la casa de Berta y eligiendo lo mismo
    una y otra vez, el juego dice qué falta y el acto avanza cuando corresponde.
 2. **El objetivo activo se ve en pantalla** y cambia al avanzar.
-3. **Los 452 cuelgues de 2000 partidas bajan a cero** con el mismo recorredor que los encontró.
+3. **El bucle concreto no se puede caminar**: un test que arranque en `a1_alcaldesa` y elija
+   siempre la misma opción, como hizo Gabriel, tiene que llegar a la salida del acto en una cantidad
+   acotada de pasos. *(Reemplaza al criterio original —"los 452 bajan a cero"—, que **no es
+   verificable**: el recorredor que quedó mide cero hoy, antes de arreglar nada. Ver la corrección
+   del §0.3.)*
 4. **El simulador los detecta y los reporta por consola** si vuelven.
 5. **La regla 13 del validador falla** sobre el `main` de hoy y pasa sobre esta rama.
 6. **"Reclamar el adelanto" registra el cobro**, y las cuatro incoherencias del §4 están resueltas.
