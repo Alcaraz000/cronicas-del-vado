@@ -39,7 +39,7 @@ export const flags: Record<string, string> = {
   'run:cobro_el_adelanto':
     'Ya cobraste la tercera parte que promete la carta. Lo enciende `a1_alcaldesa.reclamar_el_adelanto`, que es la opción que lo narra, y es el `requires: { not: … }` de esa misma opción: el adelanto se cobra UNA vez por partida. El motor no tiene dinero y no se le agrega; lo que el flag registra es el cobro, no la plata.',
   'run:tapa_forzada':
-    'Viste que a la trampilla del molino le forzaron el herraje, y no del lado de adentro. Lo enciende `a1_molino.subir_por_la_rueda` [Explorador], que es la única que lo mira desde arriba. Es un hallazgo forense, hermano de `run:la_soga_cortada`.',
+    'Viste que a la trampilla del molino le forzaron el herraje, y no del lado de adentro. Lo enciende `a1_molino.subir_por_la_rueda` [Explorador], que es la única que lo mira desde arriba. Es un hallazgo forense, hermano de `run:la_soga_cortada`. TODAVÍA NO LO LEE NADIE: le falta su variante de narrador en `c1_cuerpo`. Medido en la tarea 5 de la fase «objetivos»: la variante hermana mide 28 palabras y el presupuesto de prosa quedó en el tope exacto (16.726 de 16.726), así que no entra hasta que se liberen 28.',
   'run:berta_miente':
     'Pescaste a la alcaldesa en una mentira. Dos fuentes en el acto 1 (Mausi en la celda última de la taberna; Berta con la capa puesta en la celda última de su casa) y una tercera, pagando, en `cl_halvar.leerle_lo_que_firmo_berta`. Lo lee el párrafo de Berta en `cl_desenlace` y los cuatro epílogos.',
   'run:ilse_confia':

@@ -451,6 +451,37 @@ describe('agregado e informe', () => {
     expect(md).toBe(informeMarkdown(minimal, config, agregado, porNumeroDePartida(carreras.flatMap((c) => c.partidas))));
     expect(md).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
+
+  /**
+   * La línea de combinaciones del encabezado decía «× 4 políticas» con el 4 escrito a mano, y se
+   * quedó vieja el día que la fase «objetivos» agregó la quinta (`insistente`): el informe afirmaba
+   * 4 políticas encima de 4.000 carreras que sólo salen de 5. Lo encontró la tarea 5 al regenerar
+   * `sim-report.md`, no un test — no había ninguno que mirara el encabezado.
+   *
+   * Por eso este caso mide con DOS agregados distintos y los tres números cambian entre uno y otro:
+   * clases, niveles y políticas. Con un solo agregado, un `4 clases` escrito a mano sobreviviría —
+   * probado: esa mutación pasa cuando las dos corridas tienen las cuatro clases.
+   */
+  it('el encabezado cuenta las combinaciones que hay, no un número escrito a mano', () => {
+    const conTodo = informeMarkdown(
+      minimal, config, agregar(minimal, carreras), porNumeroDePartida(carreras.flatMap((c) => c.partidas)),
+    );
+    expect(conTodo).toContain(`- Combinaciones: ${CLASES.length} clases × niveles {1, 3} × ${POLITICAS.length} políticas`);
+    expect(CLASES.length).toBe(4);
+    expect(POLITICAS.length).toBe(5);
+
+    const recorte = carreras.filter(
+      (c) =>
+        (c.clase === 'guerrero' || c.clase === 'mago') &&
+        c.nivel === 1 &&
+        (c.politica === 'aleatoria' || c.politica === 'insistente'),
+    );
+    expect(recorte.length).toBeGreaterThan(0);
+    const conMenos = informeMarkdown(
+      minimal, config, agregar(minimal, recorte), porNumeroDePartida(recorte.flatMap((c) => c.partidas)),
+    );
+    expect(conMenos).toContain('- Combinaciones: 2 clases × niveles {1} × 2 políticas');
+  });
 });
 
 describe('fusión con el mundo', () => {

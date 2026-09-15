@@ -277,19 +277,30 @@ export const a1_plaza = {
       // solas, con `AL_CUELLO_1`; acá, que es el hub, la puerta se ve y se elige. Con la puerta
       // cerrada el `lockedHint` dice lo mismo que el objetivo de la barra, y en el mismo tono.
       //
-      // VA SIN `outcome.text` A PROPÓSITO, y no es un olvido: el presupuesto de prosa de la campaña
-      // estaba a ONCE palabras del tope (diseño §6, "el presupuesto no se toca") y cualquier
-      // desenlace escrito acá lo pasa —medido: 24 palabras dejaban `lint:text` en 5,1 % contra un
-      // tope de 5 %—. Las otras cuatro opciones de este hub que van a una escena que nadie más
-      // toca tampoco llevan texto, y el salto lo cuenta `c1_cuerpo`, igual que cuando al jugador
-      // lo saca el redirect desde cualquiera de las otras once.
+      // EL DESENLACE MIDE CATORCE PALABRAS, Y ES EL MÁXIMO QUE ENTRA. Hasta la tarea 5 iba mudo,
+      // que es lo peor que le puede pasar a un quiebre de acto: `c1_cuerpo` empieza con el cuerpo
+      // ya a la vista y nadie narraba la bajada. La cuenta, medida con `npm run lint:text` y no
+      // estimada: la campaña escribe 16.712 palabras contra un presupuesto de 15.930, y el error
+      // del 5 % salta a partir de 16.727 — o sea que quedan CATORCE palabras y ni una más. Las 24
+      // que la tarea 3 había escrito dejaban el linter en 5,1 %.
+      //
+      // El precio, dicho para que se vea: la banda de la biblia §2.3 para un desenlace es 20-60
+      // palabras, así que estas catorce abren UN aviso nuevo (143 → 144) que dice exactamente eso.
+      // Se eligió el aviso antes que el error, y antes que seguir mudos. Para llegar a las 20 hay
+      // que liberar seis palabras en otra escena, y eso es decisión de autor, no de esta tarea.
       id: 'bajar_al_rio',
       label: 'Bajar al río con lo que averiguaste',
       requires: {
         all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
       },
       lockedHint: 'Todavía te falta preguntar en el pueblo.',
-      outcome: { next: 'c1_cuerpo' },
+      outcome: {
+        // Catorce palabras exactas. La primera versión decía «el barro se vuelve grava», que es la
+        // misma imagen que ya usa `a1_ronda` doscientas líneas más abajo: lo dijo el contador de
+        // ngramas del linter (217 → 218 repeticiones de 4+ palabras), no el ojo.
+        text: ['Bajás sin farol, con la carta en el bolsillo. El río se oye entero.'],
+        next: 'c1_cuerpo',
+      },
     },
     {
       // Atajo [Recuerdo] n.º 2 de la biblia §9.3: el badge lo deriva el motor del `met`.

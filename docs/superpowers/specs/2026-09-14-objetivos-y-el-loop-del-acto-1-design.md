@@ -183,6 +183,18 @@ declara, el motor calcula, la interfaz muestra.
 > eligiendo volver— el acto se cierra **eligiendo**. Va sin `outcome.text`: el §6 dice que el
 > presupuesto de prosa no se toca y estaba a once palabras del tope; 24 palabras lo pasaban.
 
+> **Corrección del 15 de septiembre, hecha al cerrar la fase (tarea 5).** `bajar_al_rio` **ya no es
+> muda**: lleva un desenlace de **catorce palabras**, que es lo máximo que entraba. El ledger había
+> anotado que con 14 de margen «entra», y eso **no daba**: la frase de 24 palabras seguía diez
+> palabras arriba del tope (16.712 + 24 = 16.736 contra un tope de 16.726). Lo que sí entra son
+> catorce, y con eso el presupuesto queda en **16.726 de 16.726: cero de margen**.
+>
+> El precio está medido y se paga a ojos vista: la banda de la biblia §2.3 para un desenlace es
+> 20-60 palabras, así que catorce abren **un aviso nuevo** —de 143 a 144— que dice exactamente eso.
+> Se eligió el aviso antes que el error del 5 %, y las dos cosas antes que dejar el quiebre de acto
+> en silencio. Para llegar a las 20 hay que liberar seis palabras en otra escena, que es decisión de
+> autor.
+
 ---
 
 ## 4. Que lo que el texto dice que pasó, quede registrado
@@ -225,6 +237,12 @@ Tres herramientas miraron este bug y ninguna lo vio. Eso se arregla acá:
 - **Las etiquetas de las opciones.**
 - **El presupuesto de prosa**, que está a once palabras del tope. Los objetivos son texto de
   interfaz, no de campaña: van en `strings` de contenido, no en el presupuesto de escenas.
+
+> **Corrección del 15 de septiembre (tarea 5).** Las once pasaron a catorce cuando la tarea 4
+> reescribió dos frases, y las catorce se gastaron enteras en el desenlace de `bajar_al_rio` (ver la
+> nota del §3). **El presupuesto quedó en el tope exacto: 16.726 escritas de 16.726 permitidas, cero
+> de margen.** De acá en adelante, cualquier palabra nueva de prosa de campaña en `vado` tiene que
+> venir con otra liberada, o `npm run lint:text` pasa a dar error.
 - **`src/engine/` más allá de derivar el objetivo activo**, que es una función pura más.
 - Las fases anteriores: escalado, reparto, historial, revelado, teclado, foco, preferencias.
 
@@ -246,3 +264,40 @@ Tres herramientas miraron este bug y ninguna lo vio. Eso se arregla acá:
 7. Todo lo de las fases anteriores sigue funcionando.
 8. `npm test`, `npx tsc --noEmit`, `npm run validate`, `npm run build` y `npm run captura`, los cinco
    en verde, y verificado jugando.
+
+> **Corrección del 15 de septiembre, medida al cerrar la fase (tarea 5). El punto 3 tiene dos
+> mitades y sólo una se cumple.**
+>
+> **La primera —«el bucle concreto no se puede caminar»— se cumple, y hay test.** El bucle que
+> Gabriel reportó era «Reclamar el adelanto» + «Revisar el escritorio». La primera de las dos se
+> apaga después de usarla (`requires: { not: run:cobro_el_adelanto }`, tarea 4): en la segunda vuelta
+> se ve, no se puede elegir, y dice por qué. Verificado con el motor y a mano en el navegador.
+>
+> **La segunda —«llegar a la salida del acto en una cantidad acotada de pasos»— NO se cumple, y no
+> puede cumplirse sin tocar el §3.** Medido con el motor real, respetando lo que `render()` habilita
+> —que es lo único que un jugador puede tocar—, con las **siete** opciones de `a1_alcaldesa` como
+> preferida × las **tres** bandas de la tirada, 400 pasos cada corrida: **sólo una de las veintiuna
+> combinaciones sale del racimo**; las otras veinte dan vueltas para siempre entre `a1_alcaldesa`,
+> `a1_berta_despacho` y `a1_ilse_patio`.
+>
+> **El porqué es de una línea, y es el §0.3 otra vez:** insistir ahí adentro **llena el reloj de
+> `sospecha` hasta el tope** (llega a 4 en doce pasos con la banda de fallo) **y la puerta que lee ese
+> reloj vive sólo en `a1_plaza`**, que ese bucle no pisa: una puerta abierta y congelada, igual que el
+> ciclo `a1_molino_trampilla ↔ a1_molino_rueda` del diagnóstico. En cuanto el jugador vuelve al hub,
+> el juego lo levanta —cae en `a1_ronda`— y el cartel pasa al objetivo del acto 2.
+>
+> **La regla 13 no lo ve, y no es un bug de la regla:** ella pregunta si del racimo sale *alguna*
+> arista de opción, y desde la tarea 3 sale una (`bajar_al_rio`). «Que el jugador que insiste salga»
+> es una pregunta distinta y más fuerte.
+>
+> **El arreglo de una línea existe y la tarea de cierre no lo hizo:** poner el `redirect` de
+> `sospecha >= 4` en las once escenas del racimo, igual que se hizo con el de las tres pistas. El §3
+> dice, textual, que ese `redirect` **«se queda como está»**, así que es decisión de autor. Queda
+> fijado por un test (`tests/content/vado.test.ts`, «insistiendo en la casa de Berta el reloj se
+> llena, y la puerta que lo lee está en el hub»): si algún día se muda, ese test se cae y manda a
+> leer esta nota.
+>
+> **Y un hallazgo del camino, que vale para todo el repo:** `choose()` **no mira `requires`** —lo
+> mira `render()`, que es quien dibuja—. El caso que la tarea 3 dejó como prueba estrella de la fase
+> elegía `reclamar_el_adelanto` veinte veces con `choose()` directo y pasaba contento, **caminando
+> una secuencia que el jugador no puede hacer**. Reescrito: ahora cada vuelta pasa por `render`.

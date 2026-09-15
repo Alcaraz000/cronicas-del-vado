@@ -1398,32 +1398,65 @@ describe('vado: el objetivo en pantalla (diseño §2)', () => {
     expect(objetivoDe(enLaRonda)).toBe('Averiguá quién lo tiró al agua');
   });
 
+  /** Las opciones que la pantalla deja tocar: es lo único que un jugador puede elegir. */
+  function habilitadas(state: GameState): string[] {
+    return render(vado, state)
+      .choices.filter((c) => c.visible && c.enabled)
+      .map((c) => c.id);
+  }
+
   /**
-   * EL BUG DE GABRIEL, caminado: la casa de Berta, «Reclamar el adelanto» y «Revisar el escritorio»
-   * una y otra vez. El bucle sigue siendo caminable —ninguna de las dos opciones enciende una
-   * pista, y el acto sigue pidiendo los tres lugares, que es decisión de Gabriel—, pero la pantalla
-   * ya no es idéntica: el objetivo dice, en cada una de las vueltas, qué falta.
+   * EL BUG DE GABRIEL, caminado como lo camina un jugador: la casa de Berta, «Reclamar el adelanto»
+   * y «Revisar el escritorio», una y otra vez. Criterio §7.3 del diseño, primera mitad: **el bucle
+   * concreto no se puede caminar**.
+   *
+   * OJO, Y ES LO QUE ESTE CASO ARREGLA: `choose()` NO mira `requires` (lo hace `render`, que es lo
+   * que dibuja la pantalla). La versión anterior de este caso elegía `reclamar_el_adelanto` veinte
+   * veces con `choose()` directo y pasaba contenta, aunque desde la tarea 4 la opción se apaga
+   * después de la primera: estaba caminando una secuencia que el jugador no puede hacer. Por eso
+   * acá cada vuelta pasa por `render` y por `habilitadas`.
    */
-  it('el bucle de la casa de Berta: veinte vueltas, y el objetivo dice qué falta en todas', () => {
+  it('el bucle de la casa de Berta: la segunda vuelta ya no se puede elegir', () => {
     let state = jugar('guerrero', [
       'seguir_hasta_el_puente',
       'entregarle_la_carta_para_cruzar',
       'golpear_la_puerta_de_berta', // a1_plaza → a1_alcaldesa (run:pista_alcaldesa)
     ]);
-    const objetivos = new Set<string>();
-    for (let vuelta = 0; vuelta < 20; vuelta += 1) {
-      expect(state.run.sceneId, `vuelta ${vuelta}`).toBe('a1_alcaldesa');
-      objetivos.add(objetivoDe(state) as string);
-      state = choose(vado, state, 'reclamar_el_adelanto'); // → a1_berta_despacho
-      expect(state.run.sceneId, `vuelta ${vuelta}`).toBe('a1_berta_despacho');
-      objetivos.add(objetivoDe(state) as string);
-      const pending = beginRoll(vado, state, 'revisar_el_escritorio');
-      state = commitRoll(vado, state, { ...pending, band: 'success' }); // → a1_alcaldesa
-    }
-    // Veinte vueltas sin salir del acto: eso sigue siendo así, y es la decisión de diseño.
-    expect(state.run.visited['a1_alcaldesa']).toBe(20);
-    // Lo que cambió: la pantalla dice a dónde ir, y nombra uno de los dos lugares que faltan.
-    expect([...objetivos]).toEqual(['Todavía no viste el molino']);
+    expect(state.run.sceneId).toBe('a1_alcaldesa');
+
+    // VUELTA 1 — la opción está, con su etiqueta, y se puede elegir.
+    const primeraVuelta = habilitadas(state);
+    expect(primeraVuelta).toContain('reclamar_el_adelanto');
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+
+    state = choose(vado, state, 'reclamar_el_adelanto'); // → a1_berta_despacho
+    expect(state.run.sceneId).toBe('a1_berta_despacho');
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+    const pending = beginRoll(vado, state, 'revisar_el_escritorio');
+    state = commitRoll(vado, state, { ...pending, band: 'success' }); // → a1_alcaldesa
+    expect(state.run.sceneId).toBe('a1_alcaldesa');
+
+    // VUELTA 2 — la misma pantalla, y ya NO es la misma: la opción se ve y no se puede elegir.
+    const reclamar = render(vado, state).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(reclamar?.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(reclamar?.visible).toBe(true);
+    expect(reclamar?.enabled).toBe(false);
+    expect(reclamar?.lockedHint).toBe('El adelanto ya lo cobraste');
+
+    // La lista de lo elegible CAMBIÓ entre una vuelta y la otra: ése era el síntoma que Gabriel
+    // reportó («la pantalla es idéntica»), y es el que se fue.
+    const segundaVuelta = habilitadas(state);
+    expect(segundaVuelta).not.toContain('reclamar_el_adelanto');
+    expect(segundaVuelta).not.toEqual(primeraVuelta);
+    // Y lo que queda no es un pozo: las otras cuatro siguen ahí.
+    expect(segundaVuelta).toEqual([
+      'preguntar_por_tome',
+      'ayudar_a_ilse_con_los_sacos',
+      'salir_al_patio',
+      'despedirte_hasta_manana',
+    ]);
+    // El cartel sigue nombrando el lugar que falta, en las dos vueltas y en las dos escenas.
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
 
     // Y en cuanto el jugador hace lo que el objetivo le pide, el acto avanza.
     state = choose(vado, state, 'despedirte_hasta_manana'); // → a1_plaza
@@ -1440,6 +1473,74 @@ describe('vado: el objetivo en pantalla (diseño §2)', () => {
     expect(objetivoDe(state)).toBe('Hay algo que no cierra');
     state = choose(vado, state, 'bajar_al_rio');
     expect(state.run.sceneId).toBe('c1_cuerpo');
+  });
+
+  /**
+   * LA SEGUNDA MITAD DEL §7.3 —«llegar a la salida del acto en una cantidad acotada de pasos»— NO
+   * SE CUMPLE, y este caso fija por qué, medido con el motor y respetando lo que la pantalla
+   * habilita: el jugador que se queda insistiendo adentro de la casa de Berta llena el reloj de
+   * `sospecha` hasta el tope, y la puerta que lee ese reloj vive **sólo en el hub**, que ese bucle
+   * no pisa. Las tres bandas dan lo mismo y a 400 pasos no sale (informe de la tarea 5).
+   *
+   * No está acá para bendecir el encierro sino para que se vea de una: si algún día el floodgate de
+   * `sospecha` se muda a las once escenas —que es el arreglo de una línea que este caso propone—,
+   * este test se cae y hay que venir a leer esto.
+   */
+  it('insistiendo en la casa de Berta el reloj se llena, y la puerta que lo lee está en el hub', () => {
+    // La mitad estructural: de las doce escenas del racimo, la única que mira `sospecha` es el hub.
+    const leenElReloj = RACIMO_DEL_ACTO_1.filter((id) =>
+      JSON.stringify(campaign.scenes[id]?.redirect ?? []).includes('sospecha'),
+    );
+    expect(leenElReloj).toEqual(['a1_plaza']);
+
+    // La mitad jugada: doce pasos insistiendo, siempre lo primero que la pantalla habilita.
+    let state = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    for (let paso = 0; paso < 12; paso += 1) {
+      const elegible = habilitadas(state);
+      expect(elegible.length, `paso ${paso} en ${state.run.sceneId}`).toBeGreaterThan(0);
+      const id = elegible[0] as string;
+      const choice = vado.scenes[state.run.sceneId]?.choices.find((c) => c.id === id) as Choice;
+      if (choice.roll !== undefined) {
+        const pendiente = beginRoll(vado, state, id);
+        state = commitRoll(vado, state, { ...pendiente, band: 'failure' });
+      } else {
+        state = choose(vado, state, id);
+      }
+      expect(state.run.outcome, `paso ${paso}`).toBeUndefined();
+      expect(RACIMO_DEL_ACTO_1, `paso ${paso}`).toContain(state.run.sceneId);
+    }
+    expect(state.run.clocks['sospecha']).toBeGreaterThanOrEqual(4);
+    expect(state.run.sceneId).toBe('a1_alcaldesa');
+    // El cartel, mientras tanto, sigue diciendo a dónde ir: eso es lo que sí cambió.
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+
+    // Y lo que lo levanta es volver al hub, que es donde vive la puerta.
+    state = choose(vado, state, 'despedirte_hasta_manana');
+    expect(state.run.sceneId).toBe('a1_ronda');
+    expect(objetivoDe(state)).toBe('Averiguá quién lo tiró al agua');
+  });
+
+  /**
+   * El quiebre de acto dejó de ser mudo (tarea 5). Van las dos aserciones juntas a propósito: la
+   * de lo que TIENE que decir —un `toContain` sobre la prosa— y la de que se loguea al elegir. Un
+   * `not.toMatch` solo pasaría igual de contento con el texto vacío, que es la trampa que esta
+   * fase encontró tres veces.
+   */
+  it('`bajar_al_rio` narra la bajada: el quiebre de acto ya no es una transición muda', () => {
+    const salida = campaign.scenes['a1_plaza']?.choices.find((c) => c.id === 'bajar_al_rio');
+    const prosa = prosaDe(salida?.outcome as Outcome);
+    expect(prosa).toContain('Bajás sin farol');
+    expect(prosa).toContain('El río se oye entero');
+
+    const enElHub = enter(vado, partidaEn('a1_plaza', TRES_PISTAS_PUESTAS), 'a1_plaza');
+    const despues = choose(vado, enElHub, 'bajar_al_rio');
+    expect(despues.run.sceneId).toBe('c1_cuerpo');
+    const desenlace = despues.run.log.filter((e) => e.kind === 'outcome').at(-1);
+    expect(JSON.stringify(desenlace)).toContain('Bajás sin farol');
   });
 });
 

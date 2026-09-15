@@ -177,6 +177,12 @@ Lo que decía acá —dos `redirect` en el hub, el segundo con `{ visited: 'a1_p
 2. **El `redirect` de las tres pistas vive en las ONCE escenas del racimo que no son el hub**, con la condición `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }`. Como `enter()` resuelve los `redirect` al entrar, la tercera pista te deja parado donde estás y **la elección siguiente** te saca, elijas la que elijas.
 3. **El hub no lo lleva: ahí la salida es la opción `bajar_al_rio`**, con `requires` de las tres pistas. Es la novena opción del hub y la que hace que el acto tenga una salida *por decisión*. **Sin ella `npm run validate` queda rojo** aunque las doce escenas tengan el `redirect`: la regla 13 (`r13_progreso`, tarea 1 de esta fase) cuenta para los racimos **sólo las aristas que nacen de una opción**, y un `redirect` no es una. Medido: con los doce `redirect` y sin la opción, r13 sigue denunciando el mismo racimo de doce, ahora «por los 13 redirect».
 
+#### 1.2.2 Corrección del 15 de septiembre de 2026 — el quiebre de acto deja de ser mudo (tarea 5)
+
+`bajar_al_rio` nació **sin `outcome.text`** porque el presupuesto de prosa no daba, así que el quiebre de acto era una transición en silencio: se elegía «Bajar al río con lo que averiguaste» y la pantalla siguiente empezaba con el cuerpo ya a la vista. Ahora lleva **catorce palabras** —«Bajás sin farol, con la carta en el bolsillo. El río se oye entero.»—, que es **exactamente lo que entraba**: la campaña escribe 16.726 palabras contra un tope de 16.726, o sea que **el presupuesto quedó sin margen**. Las 24 palabras que la tarea 3 había escrito seguían diez arriba del tope.
+
+El precio, anotado para que se vea: la banda de la biblia §2.3 para un desenlace es 20-60 palabras, así que estas catorce abren **un aviso** de `lint:text` (143 → 144) que dice eso mismo. Para llegar a las veinte hay que liberar seis palabras en otra escena.
+
 ### 1.3 Cuello 1, transición y acto 2
 
 ```mermaid
