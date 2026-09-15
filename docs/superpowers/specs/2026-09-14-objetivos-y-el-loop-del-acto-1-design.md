@@ -136,8 +136,23 @@ declara, el motor calcula, la interfaz muestra.
 
 ## 3. Que el acto no dependa de pisar una baldosa
 
-- **El `redirect` de las tres pistas se evalúa en las doce escenas del racimo**, no sólo en la
-  plaza. Apenas cumplís, avanzás desde donde estés.
+- **El `redirect` de las tres pistas se evalúa en las once escenas del racimo que no son el hub**,
+  no sólo en la plaza. Apenas cumplís, avanzás desde donde estés.
+- **Y la plaza gana una opción de verdad**, `bajar_al_rio`, que aparece cuando tenés las tres
+  pistas: una decisión visible que saca del acto.
+
+> **Corrección del 14 de septiembre, hecha al implementar la tarea 3.** Este párrafo decía "las doce
+> escenas" y **así escrito no cumplía el §5 de este mismo diseño**: la regla 13 descarta las aristas
+> de `redirect` a propósito al calcular los racimos, justamente porque el jugador no las ve. Medido
+> tres veces: `main` da un error ("los **2** redirect"), el plan literal —doce redirect y ninguna
+> opción nueva— da **el mismo error** ("los **13** redirect"), y sólo agregar una **opción** lo pone
+> en verde. El hub tiene que **perder** su redirect y **ganar** la opción, porque `enter()` resuelve
+> los redirect antes de dibujar y si no la opción sería contenido muerto. Verificado por mutación:
+> con redirect en el hub, `validate` queda verde pero **33 tests se caen**; sin la opción, `validate`
+> queda **rojo**. Hacen falta las dos cosas.
+>
+> Y el resultado es mejor que lo que yo había planeado: ahora **una decisión saca del acto**, que es
+> literalmente lo que el autor echaba en falta.
 - **Se saca la condición `visited(a1_plaza) >= 3`.** Con un objetivo que te lleva a los tres
   lugares, el contador de visitas no agrega nada: es fricción invisible. (Decisión de Gabriel.)
 - **Los tres lugares se mantienen.** El acto sigue pidiendo la taberna, la casa de Berta y el
