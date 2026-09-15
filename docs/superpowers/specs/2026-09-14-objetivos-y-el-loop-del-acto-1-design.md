@@ -56,16 +56,18 @@ Medido sobre 2000 partidas con el motor real: **452 no terminaron en 400 pasos**
 > determinista **2000 de 2000** — pero el determinista **se cuelga 20 de 20 sobre `minimal`, que es
 > una campaña sana**, así que es una máquina de falsos positivos y no sirve de instrumento.
 > **Lo que el dato dice, bien contado: el jugador que insiste con la misma opción se cuelga; el que
-> varía, no.** Que es exactamente la conducta que Gabriel reportó. El que explica el reporte es el del Clérigo en la taberna: le **sale bien** la tirada
+> varía, no.** Que es exactamente la conducta que Gabriel reportó.
+
+**El caso que explica el "a veces" es el del Clérigo en la taberna:** le **sale bien** la tirada
 `preguntar_por_tome` y el éxito lo manda a la trastienda, que está dentro del bucle; al Guerrero, en
 cambio, **fallarla lo expulsa a la plaza**. La misma secuencia de clics traba a uno y libera al otro.
+Acertar te deja adentro; fallar te salva.
 
-El peor ciclo es `a1_molino_trampilla ↔ a1_molino_rueda`: 400 pasos con `sospecha = 0` **y**
-`visited(a1_plaza) = 0`, o sea con las dos puertas del acto congeladas a la vez. El más frecuente es
-`a1_plaza ↔ a1_molino_trampilla`, por el atajo de Pell (252 de las 452).
+El ciclo más duro es `a1_molino_trampilla ↔ a1_molino_rueda`: 400 pasos con `sospecha = 0` **y**
+`visited(a1_plaza) = 0`, o sea con las dos puertas del acto congeladas a la vez.
 
-**Ninguno de los 452 es una cárcel:** a cada partida trabada se le corrieron 400 continuaciones al
-azar y **las 452 encontraron salida**. El sufrimiento no es "no hay salida" sino *"ninguna de las
+**Ninguna de las partidas trabadas es una cárcel:** a cada una se le corrieron 400 continuaciones al
+azar y **todas encontraron salida**. El sufrimiento no es "no hay salida" sino *"ninguna de las
 opciones que elijo cambia nada y la pantalla es idéntica"*.
 
 ### 0.4 El caso concreto de Gabriel: la prosa cobra y el estado no
