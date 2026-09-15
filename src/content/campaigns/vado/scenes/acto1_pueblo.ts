@@ -1,4 +1,51 @@
-import type { Scene } from '@/content/schema';
+import type { Redirect, Scene } from '@/content/schema';
+
+/**
+ * LA SALIDA DEL ACTO 1, en las ONCE escenas del racimo que no son el hub.
+ *
+ * Es el mismo objeto en `acto1_pueblo.ts` y en `acto1_pistas.ts` (no se puede compartir por
+ * `export`: `campaign.ts` junta las escenas con un spread del espacio de nombres y cualquier otra
+ * exportación se colaría en `scenes`). Si se toca acá, se toca allá.
+ *
+ * Tres cosas que hay que saber antes de moverlo:
+ * - **No lleva `visited`.** El viejo `visited: a1_plaza >= 3` se fue por decisión de Gabriel
+ *   (diseño §3): con un objetivo que te lleva a los tres lugares, el contador es fricción invisible.
+ * - **`enter()` resuelve los redirect AL ENTRAR**, antes de dibujar. La tercera pista se enciende en
+ *   el `onEnter` de la escena donde el jugador queda parado, así que el redirect de esa escena ya
+ *   pasó: lo que lo saca es la elección SIGUIENTE. Por eso tiene que estar en las once y no en una.
+ * - **El hub NO lo lleva.** Ahí la salida es una opción que se ve, `a1_plaza.bajar_al_rio`: si el
+ *   hub también redirigiera, esa opción no se podría elegir nunca (r13 y diseño §5 piden que del
+ *   racimo salga una arista de OPCIÓN, no sólo un redirect).
+ */
+const AL_CUELLO_1 = {
+  when: {
+    all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+  },
+  to: 'c1_cuerpo',
+} satisfies Redirect;
+
+/**
+ * EL FLOODGATE DEL RELOJ, en las DOCE escenas del racimo. Hasta la tarea 5 de la fase «objetivos»
+ * vivía **sólo en el hub**, y eso era la misma falla que el resto de la fase: *una puerta que
+ * depende de pisar una baldosa no es una puerta*. El reloj se llena adentro de la casa de Berta —
+ * doce pasos insistiendo bastan para ponerlo en 4— y la puerta que lo leía estaba en la plaza, que
+ * ese bucle no pisa: abierta y congelada, igual que el ciclo `a1_molino_trampilla ↔ a1_molino_rueda`
+ * del diagnóstico (diseño §0.3 y §3, con su nota de corrección del 15 de septiembre).
+ *
+ * Dos cosas que hay que saber antes de moverlo:
+ * - **Va PRIMERO, antes de `AL_CUELLO_1`**, y el orden importa: con el reloj lleno y las tres pistas
+ *   puestas, la ronda te levanta **antes** de que puedas usar lo que averiguaste, que es el sentido
+ *   entero de ese reloj (outline §1.2). Al revés, el reloj no cobraría nunca.
+ * - **Acá el hub SÍ lo lleva**, al revés que `AL_CUELLO_1`, y no es una inconsistencia: el hub perdió
+ *   el de las pistas porque si no `bajar_al_rio` sería contenido muerto, y **este floodgate no tiene
+ *   ninguna opción que dejar muerta** — nadie elige que lo arresten. Medido, no asumido: con el
+ *   floodgate en las doce, `npm run validate` sigue en 0 errores y los tests siguen en verde.
+ * - `a1_ronda` **no** lo lleva, obviamente: se redirigiría a sí misma.
+ */
+const SOSPECHA_AL_TOPE = {
+  when: { clock: 'sospecha', gte: 4 },
+  to: 'a1_ronda',
+} satisfies Redirect;
 
 /**
  * LOTE 3 (bloque del pueblo) — Acto 1 de "El vado de Aldamar": el hub de la plaza, el Ancla Seca con
@@ -9,11 +56,14 @@ import type { Scene } from '@/content/schema';
  * un `redirect`, ni un `onEnter`, ni un `npcs`, ni un `place`. Lo único que entró acá es texto.
  *
  * Contratos que este archivo sostiene (outline §8), verificados y sin cambios:
- * - **`a1_plaza.redirect` va en este orden y el orden importa:** `[0]` el floodgate de `sospecha`
- *   → `a1_ronda`, `[1]` las tres pistas + `visited >= 3` → `c1_cuerpo`. Con las dos condiciones
- *   ciertas gana la primera, y tiene que ganar el castigo: si no, llenar `sospecha` no se cobra.
- * - **`a1_plaza` está en 8 opciones / 6 libres: queda margen de UNA sola** antes del techo de 9 de
- *   `LIMITS.maxChoices`. Las dos opciones que vuelven al propio hub (`mirar_el_pozo`,
+ * - **`a1_plaza.redirect` quedó en uno solo: el floodgate de `sospecha` → `a1_ronda`.** El segundo,
+ *   el de las tres pistas + `visited >= 3` → `c1_cuerpo`, se fue de acá en la fase «objetivos» y
+ *   volvió convertido en la opción `bajar_al_rio`, que el jugador ve. El floodgate se queda acá —y
+ *   además se COPIÓ a las otras once en la tarea 5 de esa misma fase, porque vivir sólo en el hub lo
+ *   volvía una puerta que dependía de pisar una baldosa (diseño §3, corrección del 15 de septiembre).
+ * - **`a1_plaza` está en 9 opciones / 6 libres: toca justo el techo** de `LIMITS.maxChoices`. El
+ *   margen de una que quedaba se lo llevó `bajar_al_rio`. Las dos opciones que vuelven al propio
+ *   hub (`mirar_el_pozo`,
  *   `leer_el_poste_de_bandos`) son la única excepción declarada a "ninguna opción vuelve a su
  *   escena" (biblia §6.3) y las dos llevan `outcome.text`, como manda esa excepción.
  * - **`a1_posada` no cobra `sospecha` y no cura Heridas** (biblia §7.1): limpia condiciones y hace
@@ -137,22 +187,10 @@ export const a1_plaza = {
   kind: 'hub',
   place: 'aldamar_plaza',
   onEnter: [{ milestone: 'llegar_a_aldamar' }],
-  redirect: [
-    // [0] Floodgate de sospecha. Va PRIMERO: con las dos ciertas tiene que ganar el castigo.
-    { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
-    // [1] Cierre del acto. El `visited >= 3` le deja al jugador una vuelta más de aviso.
-    {
-      when: {
-        all: [
-          { flag: 'run:pista_taberna' },
-          { flag: 'run:pista_alcaldesa' },
-          { flag: 'run:pista_molino' },
-          { visited: 'a1_plaza', min: 3 },
-        ],
-      },
-      to: 'c1_cuerpo',
-    },
-  ],
+  // Floodgate de sospecha, y nada más. El cierre del acto ya no se dispara acá: es la opción
+  // `bajar_al_rio`, que se ve y se elige. El hub es la única escena del racimo sin `AL_CUELLO_1`
+  // —y la única que tiene SOLO el floodgate, porque las otras once llevan los dos.
+  redirect: [SOSPECHA_AL_TOPE],
   text: [
     'Sesenta y cuatro casas y tres ventanas con luz. La plaza es barro pisado, con un pozo en el medio y un poste de bandos torcido. Huele a leña mojada y el humo no sube: se queda a la altura de la cara. Falta el olor del pan.',
     {
@@ -260,6 +298,36 @@ export const a1_plaza = {
       },
     },
     {
+      // LA SALIDA DEL ACTO 1 POR DECISIÓN. Las otras once escenas del racimo sacan al jugador
+      // solas, con `AL_CUELLO_1`; acá, que es el hub, la puerta se ve y se elige. Con la puerta
+      // cerrada el `lockedHint` dice lo mismo que el objetivo de la barra, y en el mismo tono.
+      //
+      // EL DESENLACE MIDE CATORCE PALABRAS, Y ES EL MÁXIMO QUE ENTRA. Hasta la tarea 5 iba mudo,
+      // que es lo peor que le puede pasar a un quiebre de acto: `c1_cuerpo` empieza con el cuerpo
+      // ya a la vista y nadie narraba la bajada. La cuenta, medida con `npm run lint:text` y no
+      // estimada: la campaña escribe 16.712 palabras contra un presupuesto de 15.930, y el error
+      // del 5 % salta a partir de 16.727 — o sea que quedan CATORCE palabras y ni una más. Las 24
+      // que la tarea 3 había escrito dejaban el linter en 5,1 %.
+      //
+      // El precio, dicho para que se vea: la banda de la biblia §2.3 para un desenlace es 20-60
+      // palabras, así que estas catorce abren UN aviso nuevo (143 → 144) que dice exactamente eso.
+      // Se eligió el aviso antes que el error, y antes que seguir mudos. Para llegar a las 20 hay
+      // que liberar seis palabras en otra escena, y eso es decisión de autor, no de esta tarea.
+      id: 'bajar_al_rio',
+      label: 'Bajar al río con lo que averiguaste',
+      requires: {
+        all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+      },
+      lockedHint: 'Todavía te falta preguntar en el pueblo.',
+      outcome: {
+        // Catorce palabras exactas. La primera versión decía «el barro se vuelve grava», que es la
+        // misma imagen que ya usa `a1_ronda` doscientas líneas más abajo: lo dijo el contador de
+        // ngramas del linter (217 → 218 repeticiones de 4+ palabras), no el ojo.
+        text: ['Bajás sin farol, con la carta en el bolsillo. El río se oye entero.'],
+        next: 'c1_cuerpo',
+      },
+    },
+    {
       // Atajo [Recuerdo] n.º 2 de la biblia §9.3: el badge lo deriva el motor del `met`.
       // Nunca mudo (guía §4.4): el recuerdo se cuenta como memoria del cuerpo, no como dato.
       id: 'entrar_al_molino_por_atras',
@@ -291,6 +359,7 @@ export const a1_taberna = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi', 'orell'],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_taberna' }],
   text: [
     'Bajo la viga maestra cuelga un ancla comida de óxido. Nadie levanta la cabeza. El humo del hogar baja y te deja en la boca un gusto a grasa de cordero y cerveza agria.',
@@ -499,6 +568,7 @@ export const a1_taberna_trastienda = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Barricas vacías puestas de canto, una pila de leña que no se secó nunca y una puerta de tablas que da al patio. El piso es de tierra apisonada y cede bajo el pie, como si abajo hubiera agua.',
     {
@@ -568,6 +638,7 @@ export const a1_orell_mesa = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['orell'],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Orell no levanta la vista cuando te parás al lado de la mesa. Junto a la jarra está el gancho de la ballesta: lo abre y lo cierra con el pulgar mientras mira la puerta. Hace un ruido chico por debajo de todo.',
     {
@@ -656,8 +727,8 @@ export const a1_orell_mesa = {
 /**
  * La `rest` del acto 1. 5 opciones, las cinco libres, cero tiradas.
  * **No cura Heridas y no cobra `sospecha`** (biblia §7.1): limpia condiciones y hace pasar la noche.
- * Es alcanzable solo antes de la tercera pista, porque después el hub redirige a más tardar dos
- * elecciones más tarde.
+ * Es alcanzable solo antes de la tercera pista: con las tres puestas, `AL_CUELLO_1` la saltea al
+ * entrar y el jugador cae en el cuello 1.
  *
  * El tercer párrafo es la ficción del `removeCondition: 'all'`: se seca lo mojado y se pasa el susto.
  * `dormir_hasta_que_afloje_la_lluvia` y `revisar_tus_cosas_antes_de_acostarte` comparten `next` y no
@@ -668,6 +739,7 @@ export const a1_posada = {
   kind: 'rest',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ removeCondition: 'all' }],
   text: [
     'Arriba hay tres cuartos y dos con la puerta abierta, que es como decir vacíos. El tuyo tiene un jergón, una palangana y una vela corta. La manta pesa y del lado de la pared está fría, y esa frialdad tarda en irse.',

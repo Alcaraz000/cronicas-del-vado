@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CLASSES } from '@/content/catalog';
 import type { Campaign, Scene } from '@/content/schema';
+import { objetivoActivo } from '@/engine/objetivos';
 import { fortuneMax } from '@/engine/progression';
 import { render as renderScene } from '@/engine/resolve';
 import type { LogEntry, RenderedScene, SeenMap } from '@/engine/types';
@@ -270,6 +271,10 @@ export function EscenaScreen() {
   if (campaign === null || gs === null || rendered === null) return <CargandoScreen />;
 
   const placeName = campaign.places[rendered.place]?.name ?? rendered.place;
+  // El objetivo lo deriva el motor, igual que todo lo demás de esta pantalla: la campaña declara
+  // la lista ordenada y `objetivoActivo` dice cuál está en juego. Se le pasa a la barra sólo el
+  // TEXTO; las banderas que lo mueven son estado interno y el jugador no las ve nunca.
+  const objetivo = objetivoActivo(campaign, gs);
   const fondoId = fondoIdDe(campaign, rendered);
   const enEscena = rendered.portraitNpc !== undefined ? (nombres[rendered.portraitNpc] ?? rendered.portraitNpc) : null;
   const hablante = hablanteVisible(gs.run.log, revelado.parrafosVisibles, revelado.caracteresVisibles);
@@ -286,6 +291,7 @@ export function EscenaScreen() {
       <div className={styles.cromo}>
         <StatusBar
           placeName={placeName}
+          objetivo={objetivo?.texto ?? null}
           wounds={gs.run.wounds}
           fortune={gs.run.fortune}
           fortuneMax={fortuneMax(gs.character.level)}

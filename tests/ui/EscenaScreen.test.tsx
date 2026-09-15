@@ -1338,3 +1338,49 @@ describe('EscenaScreen — la placa del hablante', () => {
     }
   });
 });
+
+/**
+ * El objetivo en la barra. La pantalla no decide nada: le pregunta al motor cuál es el objetivo
+ * activo y le pasa el TEXTO a `StatusBar`. Lo que se fija acá es ese cable —que la pantalla mire
+ * la campaña y el estado de verdad, y que el objetivo cambie cuando el estado cambia—, porque el
+ * dibujo ya lo fijan los casos de `StatusBar`.
+ */
+describe('EscenaScreen — el objetivo', () => {
+  /** `conArte` con dos objetivos: el primero se cumple al prender `run:hablado`. */
+  const conObjetivos: Campaign = {
+    ...conArte,
+    objetivos: [
+      { id: 'o_hablar', texto: 'Hablá con el mensajero', hecho: { flag: 'run:hablado' } },
+      { id: 'o_irse', texto: 'Salí de la plaza antes del amanecer', when: { flag: 'run:hablado' } },
+    ],
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('muestra el objetivo activo de la campaña', () => {
+    montarEscena(conObjetivos);
+    render(<EscenaScreen />);
+    expect(screen.getByTestId('objetivo')).toHaveTextContent(/Hablá con el mensajero/);
+  });
+
+  it('cuando el estado cumple el primero, la barra pasa al que sigue', () => {
+    montarEscena(conObjetivos, { flags: ['run:hablado'] });
+    render(<EscenaScreen />);
+    expect(screen.getByTestId('objetivo')).toHaveTextContent(/Salí de la plaza antes del amanecer/);
+    expect(screen.getByTestId('objetivo')).not.toHaveTextContent(/Hablá con el mensajero/);
+  });
+
+  it('una campaña sin objetivos no dibuja la línea (es el caso de hoy: la campaña real todavía no los declara)', () => {
+    montarEscena(conArte);
+    render(<EscenaScreen />);
+    expect(screen.queryByTestId('objetivo')).not.toBeInTheDocument();
+    // Y el lugar sigue estando: lo que falta es el objetivo, no la barra.
+    expect(screen.getByText('La plaza vieja')).toBeInTheDocument();
+  });
+});

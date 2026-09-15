@@ -147,7 +147,10 @@ export function informeMarkdown(
       `- Campaña \`${campaign.id}\`, contentVersion ${campaign.contentVersion}`,
       `- Semilla ${config.semilla} · carreras por combinación ${config.n} · partidas por carrera ${config.k}`,
       `- ${agregado.carreras} carreras, ${agregado.partidas} partidas simuladas con el motor real`,
-      `- Combinaciones: 4 clases × niveles {${[...new Set(agregado.filas.map((f) => f.nivel))].join(', ')}} × 4 políticas`,
+      // Las tres cuentas salen de las filas y ninguna va a mano: el «4 políticas» estaba escrito
+      // como número fijo y se quedó viejo el día que la fase «objetivos» agregó la `insistente`
+      // (decía 4 sobre 4.000 carreras que sólo salen de 5). Lo encontró la tarea 5 al regenerar.
+      `- Combinaciones: ${new Set(agregado.filas.map((f) => f.clase)).size} clases × niveles {${[...new Set(agregado.filas.map((f) => f.nivel))].join(', ')}} × ${new Set(agregado.filas.map((f) => f.politica)).size} políticas`,
     ].join('\n'),
   );
 
@@ -240,6 +243,12 @@ export function resumenConsola(campaign: Campaign, config: ConfigSim, agregado: 
     `Finales: ${Object.entries(agregado.finales)
       .map(([id, n]) => `${id} ${n}`)
       .join(' · ')}`,
+  );
+  // Sale SIEMPRE, también en cero. El "Partidas colgadas 0" sobre 12.492 partidas vivía sólo en el
+  // .md y nadie lo leyó nunca; un cero que no se imprime no es una medición, es un dato que no se
+  // tomó. El aviso de abajo agrega el detalle de dónde cuelgan, pero sólo cuando hay cuelgues.
+  lineas.push(
+    `Partidas colgadas ${g.colgadas} · escenas sin salida ${g.sinSalida} · logs recortados ${agregado.partidasConLogRecortado}`,
   );
   if (agregado.escenasNuncaVisitadas.length > 0) {
     lineas.push(`Escenas muertas: ${agregado.escenasNuncaVisitadas.join(', ')}`);

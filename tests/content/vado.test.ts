@@ -6,6 +6,7 @@ import { meta } from '@/content/campaigns/vado/meta';
 import { WORLD } from '@/content/world';
 import { conMundo } from '@/state/store';
 import { beginRoll, choose, commitRoll, endRun, enter, render } from '@/engine/resolve';
+import { objetivoActivo } from '@/engine/objetivos';
 import { fortuneMax } from '@/engine/progression';
 import type { Band, GameState } from '@/engine/types';
 import { makeState } from '../fixtures/state';
@@ -85,11 +86,17 @@ const OPCIONES_DEL_OUTLINE: Record<string, readonly [number, number]> = {
   p_puente_rechazo: [6, 4],
   p_vado_oculto: [6, 5],
   p_puente_amanecer: [5, 5],
-  a1_plaza: [8, 6],
+  // 9 y no 8: la fase «objetivos» le agregó a la plaza la salida POR DECISIÓN del acto 1
+  // (`bajar_al_rio`, con `requires`), que es la que hace que el racimo tenga una arista de
+  // opción hacia afuera. Sigue en 6 libres y toca justo el techo de `LIMITS.maxChoices`.
+  a1_plaza: [9, 6],
   a1_taberna: [7, 5],
   a1_taberna_trastienda: [4, 4],
   a1_orell_mesa: [4, 4],
-  a1_alcaldesa: [7, 5],
+  // 4 libres y no 5: la fase «objetivos» le puso `requires: { not: run:cobro_el_adelanto }` a
+  // `reclamar_el_adelanto`, que narraba un cobro sin registrarlo (outline §2.2). Toca justo el
+  // piso de `LIMITS.minChoices`.
+  a1_alcaldesa: [7, 4],
   a1_berta_despacho: [5, 4],
   a1_ilse_patio: [6, 4],
   a1_molino: [8, 5],
@@ -130,6 +137,31 @@ const OPCIONES_DEL_OUTLINE: Record<string, readonly [number, number]> = {
 
 /** Los cinco espacios de flags que deriva el motor: se leen, nunca se escriben (§8.10 y r07). */
 const PREFIJOS_PROHIBIDOS = ['char:met.', 'char:place.', 'char:origen.', 'char:leyenda', 'world:caido.'];
+
+/**
+ * Las DOCE escenas que el diseño §0.1 midió como una componente fuertemente conexa sin una sola
+ * arista de salida. `a1_ronda` no está en la lista y nunca estuvo: no entra ninguna opción en ella
+ * (se llega sólo por el `redirect` de sospecha) y sus cinco opciones salen todas a `c1_cuerpo`.
+ */
+const RACIMO_DEL_ACTO_1 = [
+  'a1_plaza',
+  'a1_taberna',
+  'a1_taberna_trastienda',
+  'a1_orell_mesa',
+  'a1_alcaldesa',
+  'a1_berta_despacho',
+  'a1_ilse_patio',
+  'a1_molino',
+  'a1_molino_pell',
+  'a1_molino_rueda',
+  'a1_molino_trampilla',
+  'a1_posada',
+] as const;
+
+/** La condición de la salida del acto 1: las tres pistas, y NADA de `visited` (diseño §3). */
+const LAS_TRES_PISTAS = {
+  all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+} as const;
 
 const escenas: Scene[] = Object.values(campaign.scenes);
 
@@ -271,7 +303,7 @@ describe('vado: las 46 escenas de la tabla §2', () => {
     }
   });
 
-  it('suma 252 opciones, 179 libres y 41 tiradas, como los totales del outline', () => {
+  it('suma 253 opciones, 178 libres y 41 tiradas, como los totales del outline', () => {
     const totales = escenas.reduce(
       (acc, s) => ({
         opciones: acc.opciones + s.choices.length,
@@ -280,7 +312,7 @@ describe('vado: las 46 escenas de la tabla §2', () => {
       }),
       { opciones: 0, libres: 0, tiradas: 0 },
     );
-    expect(totales).toEqual({ opciones: 252, libres: 179, tiradas: 41 });
+    expect(totales).toEqual({ opciones: 253, libres: 178, tiradas: 41 });
   });
 
   it('los ids de opción no se repiten dentro de una escena', () => {
@@ -346,33 +378,32 @@ describe('vado: las 46 escenas de la tabla §2', () => {
     }
   });
 
-  it('el hub redirige primero por sospecha y después por las tres pistas (§8.7)', () => {
+  it('el hub se queda SOLO con el floodgate de sospecha (§8.7, corregido por la fase «objetivos»)', () => {
+    // Antes eran dos: el de sospecha y el de las tres pistas + `visited: a1_plaza >= 3`. El
+    // segundo se fue de acá y volvió convertido en la opción `bajar_al_rio`, que se ve; el
+    // `visited` lo sacó Gabriel («fricción invisible», diseño §3).
     expect(campaign.scenes['a1_plaza']?.redirect).toEqual([
       { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
-      {
-        when: {
-          all: [
-            { flag: 'run:pista_taberna' },
-            { flag: 'run:pista_alcaldesa' },
-            { flag: 'run:pista_molino' },
-            { visited: 'a1_plaza', min: 3 },
-          ],
-        },
-        to: 'c1_cuerpo',
-      },
     ]);
   });
 
-  it('los seis redirect de la campaña viven en cinco escenas y ninguno apunta a una escena con redirect (r01)', () => {
+  // 27 y no 16: la tarea 5 de la fase «objetivos» le agregó a las ONCE el floodgate de `sospecha`,
+  // que hasta entonces vivía sólo en el hub y por eso dependía de que el jugador pisara la plaza
+  // (diseño §3, corrección del 15 de septiembre). 16 + 11 = 27, en las mismas dieciséis escenas.
+  it('los veintisiete redirect de la campaña viven en dieciséis escenas y ninguno apunta a una escena con redirect (r01)', () => {
     const conRedirect = escenas.filter((s) => (s.redirect ?? []).length > 0);
-    expect(conRedirect.map((s) => s.id).sort()).toEqual([
-      'a1_plaza',
-      'a2_fuera_refugio',
-      'a2_ley_guardia',
-      'c1_refriega',
-      'cl_dravos',
-    ]);
-    expect(conRedirect.reduce((n, s) => n + (s.redirect ?? []).length, 0)).toBe(6);
+    expect(conRedirect.map((s) => s.id).sort()).toEqual(
+      [
+        'a1_plaza',
+        ...RACIMO_DEL_ACTO_1.filter((id) => id !== 'a1_plaza'),
+        'a2_fuera_refugio',
+        'a2_ley_guardia',
+        'c1_refriega',
+        'cl_dravos',
+      ].sort(),
+    );
+    expect(conRedirect).toHaveLength(16);
+    expect(conRedirect.reduce((n, s) => n + (s.redirect ?? []).length, 0)).toBe(27);
     for (const scene of conRedirect) {
       for (const r of scene.redirect ?? []) {
         expect(campaign.scenes[r.to]?.redirect, `${scene.id} -> ${r.to}`).toBeUndefined();
@@ -540,8 +571,9 @@ function jugar(classId: ClassId, pasos: readonly Paso[]): GameState {
 }
 
 /**
- * Tramo común a las cuatro partidas: prólogo por el puente, las tres puertas del acto 1 y la vuelta
- * al hub que dispara el `redirect` de las tres pistas (`visited: a1_plaza >= 3`) hacia el cuello 1.
+ * Tramo común a las cuatro partidas: prólogo por el puente, las tres puertas del acto 1 y la
+ * vuelta al hub, donde el acto se cierra **eligiendo** `bajar_al_rio`. El `visited: a1_plaza >= 3`
+ * que antes hacía falta ya no existe (diseño §3): las tres pistas alcanzan.
  */
 const HASTA_EL_CUELLO_1: readonly Paso[] = [
   'seguir_hasta_el_puente', // p_camino  → p_puente
@@ -550,8 +582,9 @@ const HASTA_EL_CUELLO_1: readonly Paso[] = [
   'pagar_una_ronda', // a1_taberna → a1_plaza
   'golpear_la_puerta_de_berta', // a1_plaza   → a1_alcaldesa   (run:pista_alcaldesa)
   'despedirte_hasta_manana', // a1_alcaldesa → a1_plaza
-  'cruzar_al_molino', // a1_plaza   → a1_molino      (run:pista_molino)
-  'volver_a_la_plaza', // a1_molino  → REDIRECT a c1_cuerpo
+  'cruzar_al_molino', // a1_plaza   → a1_molino      (run:pista_molino, y van tres)
+  'volver_a_la_plaza', // a1_molino  → a1_plaza (el hub NO redirige: ofrece la puerta)
+  'bajar_al_rio', // a1_plaza   → c1_cuerpo, por decisión
 ];
 
 /** Las cuatro partidas completas, una por final. Todas arrancan en `p_camino` y ninguna usa una opción de clase. */
@@ -665,8 +698,8 @@ describe('vado: se juega de punta a punta hasta los cuatro finales (§8.14)', ()
     });
   }
 
-  it('el redirect del hub cierra el acto 1 recién con las tres pistas y la tercera vuelta', () => {
-    // Una vuelta antes: dos pistas y dos visitas completas, el hub todavía se puede jugar.
+  it('el acto 1 se cierra con las tres pistas y ya NO pide pisar el hub tres veces', () => {
+    // Una pista antes: dos pistas y el hub todavía se puede jugar.
     const dosPistas = jugar('guerrero', HASTA_EL_CUELLO_1.slice(0, 6));
     expect(dosPistas.run.sceneId).toBe('a1_plaza');
     expect(dosPistas.run.flags).toContain('run:pista_taberna');
@@ -675,7 +708,22 @@ describe('vado: se juega de punta a punta hasta los cuatro finales (§8.14)', ()
 
     const enElCuello = jugar('guerrero', HASTA_EL_CUELLO_1);
     expect(enElCuello.run.sceneId).toBe('c1_cuerpo');
-    expect(enElCuello.run.visited['a1_plaza']).toBe(3);
+
+    // Y una ruta que junta las tres pistas pisando el hub DOS veces llega igual: ésa es la
+    // condición que se sacó. Con el `visited: a1_plaza >= 3` puesto, esta partida se quedaba
+    // dando vueltas en el acto 1.
+    const porDosVueltas = jugar('guerrero', [
+      'seguir_hasta_el_puente', // p_camino → p_puente
+      'entregarle_la_carta_para_cruzar', // p_puente → a1_plaza
+      'entrar_al_ancla_seca', // a1_plaza → a1_taberna    (pista 1)
+      'pedirle_a_mausi_la_trastienda', // a1_taberna → a1_taberna_trastienda
+      'salir_por_la_puerta_de_atras', // trastienda → a1_molino    (pista 2)
+      'volver_a_la_plaza', // a1_molino → a1_plaza
+      'golpear_la_puerta_de_berta', // a1_plaza → a1_alcaldesa  (pista 3)
+      'ayudar_a_ilse_con_los_sacos', // → a1_ilse_patio, que REDIRIGE al cuello 1
+    ]);
+    expect(porDosVueltas.run.sceneId).toBe('c1_cuerpo');
+    expect(porDosVueltas.run.visited['a1_plaza']).toBe(2);
   });
 
   it('la escena mortal mata a un personaje malherido y no lo deja avanzar', () => {
@@ -1126,5 +1174,578 @@ describe('vado: el sello es invisible, no inaccesible (Fase H §3)', () => {
     const opcion = campaign.scenes['cl_halvar']?.choices.find((c) => c.id === 'leerle_lo_que_firmo_berta');
     expect(opcion?.requires).toEqual({ item: 'carta_de_halvar' });
     expect(opcion?.lockedHint).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fase «objetivos» — el acto 1 tiene salida y el juego dice qué estás haciendo
+// ---------------------------------------------------------------------------
+
+/** Una partida parada en `sceneId` con los flags que pida el caso, sin haber jugado hasta ahí. */
+function partidaEn(sceneId: string, flags: readonly string[]): GameState {
+  const base = nivel1('guerrero');
+  return { ...base, run: { ...base.run, sceneId, flags: [...flags] } };
+}
+
+const TRES_PISTAS_PUESTAS = ['run:pista_taberna', 'run:pista_alcaldesa', 'run:pista_molino'] as const;
+
+/** El texto del objetivo activo, que es lo único que llega a la pantalla. */
+function objetivoDe(state: GameState): string | null {
+  return objetivoActivo(vado, state)?.texto ?? null;
+}
+
+describe('vado: el acto 1 tiene salida (diseño §3)', () => {
+  const ONCE = RACIMO_DEL_ACTO_1.filter((id) => id !== 'a1_plaza');
+
+  it('las once escenas del racimo que no son el hub declaran el redirect de las tres pistas', () => {
+    for (const id of ONCE) {
+      // Desde la tarea 5 llevan DOS: el floodgate del reloj primero y la salida del acto después.
+      // Lo que este caso fija es la segunda; el orden y el floodgate los fija su propio caso.
+      expect(campaign.scenes[id]?.redirect, id).toContainEqual({ when: LAS_TRES_PISTAS, to: 'c1_cuerpo' });
+      expect(campaign.scenes[id]?.redirect?.at(-1), id).toEqual({ when: LAS_TRES_PISTAS, to: 'c1_cuerpo' });
+    }
+  });
+
+  it('ninguna condición de redirect del acto 1 mira `visited`', () => {
+    for (const id of RACIMO_DEL_ACTO_1) {
+      const json = JSON.stringify(campaign.scenes[id]?.redirect ?? []);
+      expect(json, id).not.toContain('visited');
+    }
+  });
+
+  it('el hub gana la salida POR DECISIÓN: una opción que se ve, pide las tres pistas y baja al cuello 1', () => {
+    const salida = campaign.scenes['a1_plaza']?.choices.find((c) => c.id === 'bajar_al_rio');
+    expect(salida).toBeDefined();
+    expect(salida?.requires).toEqual(LAS_TRES_PISTAS);
+    expect(salida?.lockedHint).toBeTruthy();
+    expect(salida?.outcome?.next).toBe('c1_cuerpo');
+  });
+
+  /**
+   * Es la mitad que la regla 13 mira y la que el diseño §5 pide: del racimo tiene que salir una
+   * ARISTA DE OPCIÓN, no sólo un `redirect`. Sin esta opción `npm run validate` sigue rojo aunque
+   * las doce escenas tengan el redirect puesto (informe de la tarea 3, §2).
+   */
+  it('del racimo sale exactamente una arista que nace de una opción', () => {
+    const adentro = new Set<string>(RACIMO_DEL_ACTO_1);
+    const salidas: string[] = [];
+    for (const id of RACIMO_DEL_ACTO_1) {
+      const scene = campaign.scenes[id] as Scene;
+      for (const choice of scene.choices) {
+        for (const o of desenlaces(choice)) {
+          if (!adentro.has(o.next)) salidas.push(`${id}/${choice.id} -> ${o.next}`);
+        }
+      }
+    }
+    expect(salidas).toEqual(['a1_plaza/bajar_al_rio -> c1_cuerpo']);
+  });
+
+  it('entrar a cualquiera de las once con las tres pistas cae en el cuello 1, y al hub no', () => {
+    for (const id of ONCE) {
+      const state = enter(vado, partidaEn(id, TRES_PISTAS_PUESTAS), id);
+      expect(state.run.sceneId, id).toBe('c1_cuerpo');
+    }
+    // El hub no redirige: ofrece la puerta y deja elegir.
+    const enElHub = enter(vado, partidaEn('a1_plaza', TRES_PISTAS_PUESTAS), 'a1_plaza');
+    expect(enElHub.run.sceneId).toBe('a1_plaza');
+    const salida = render(vado, enElHub).choices.find((c) => c.id === 'bajar_al_rio');
+    expect(salida?.visible).toBe(true);
+    expect(salida?.enabled).toBe(true);
+    expect(choose(vado, enElHub, 'bajar_al_rio').run.sceneId).toBe('c1_cuerpo');
+  });
+
+  it('sin las tres pistas ninguna de las doce redirige, y la puerta del hub está cerrada', () => {
+    for (const id of RACIMO_DEL_ACTO_1) {
+      const state = enter(vado, partidaEn(id, ['run:pista_taberna', 'run:pista_alcaldesa']), id);
+      expect(state.run.sceneId, id).toBe(id);
+    }
+    const enElHub = enter(vado, partidaEn('a1_plaza', ['run:pista_taberna']), 'a1_plaza');
+    const salida = render(vado, enElHub).choices.find((c) => c.id === 'bajar_al_rio');
+    expect(salida?.visible).toBe(true);
+    expect(salida?.enabled).toBe(false);
+    expect(salida?.lockedHint).toBeTruthy();
+  });
+
+  /**
+   * El aviso del motor: `enter()` resuelve los `redirect` AL ENTRAR. La pista que faltaba se
+   * enciende en el `onEnter` de la escena donde el jugador queda parado, así que el redirect de esa
+   * escena ya pasó: lo que lo saca es la elección SIGUIENTE, y por eso el redirect tiene que estar
+   * en las once y no en una sola.
+   */
+  it('jugando: la tercera pista te deja adentro, y la elección siguiente te saca', () => {
+    const conLasTres = jugar('guerrero', HASTA_EL_CUELLO_1.slice(0, 7));
+    expect(conLasTres.run.sceneId).toBe('a1_molino');
+    for (const flag of TRES_PISTAS_PUESTAS) expect(conLasTres.run.flags).toContain(flag);
+
+    // Cualquier elección que no sea volver al hub cae en el cuello 1 en un paso.
+    expect(choose(vado, conLasTres, 'entrar_por_el_caz').run.sceneId).toBe('c1_cuerpo');
+    expect(choose(vado, conLasTres, 'descolgar_el_farol').run.sceneId).toBe('c1_cuerpo');
+    // Y la que vuelve al hub te deja elegir la puerta.
+    const enElHub = choose(vado, conLasTres, 'volver_a_la_plaza');
+    expect(enElHub.run.sceneId).toBe('a1_plaza');
+    expect(choose(vado, enElHub, 'bajar_al_rio').run.sceneId).toBe('c1_cuerpo');
+  });
+});
+
+describe('vado: el objetivo en pantalla (diseño §2)', () => {
+  it('declara los siete objetivos, en el orden de prioridad', () => {
+    expect(campaign.objetivos?.map((o) => o.id)).toEqual([
+      'obj_acto2',
+      'obj_llegar',
+      'obj_preguntar',
+      'obj_molino',
+      'obj_taberna',
+      'obj_berta',
+      'obj_cierra',
+    ]);
+  });
+
+  /**
+   * La restricción MEDIDA en el navegador por la tarea 2: en 375×812, si el título pasa de
+   * ~190 px las marcas de Heridas y Fortuna se van a un renglón propio y el cromo le come 32 px
+   * más al arte. 29 caracteres miden 171 px; 54 miden 325.
+   */
+  it('ningún texto pasa de los 32 caracteres que entran en el cartel del teléfono', () => {
+    for (const objetivo of campaign.objetivos ?? []) {
+      expect(objetivo.texto.length, `${objetivo.id}: ${objetivo.texto}`).toBeLessThanOrEqual(32);
+      expect(objetivo.texto.trim(), objetivo.id).not.toBe('');
+    }
+  });
+
+  it('en el prólogo el objetivo es el de la campaña entera', () => {
+    const arranque = enter(vado, nivel1('guerrero'), vado.start);
+    expect(objetivoDe(arranque)).toBe('Averiguá qué pasó con Tomé');
+    expect(objetivoDe(jugar('guerrero', ['seguir_hasta_el_puente']))).toBe('Averiguá qué pasó con Tomé');
+  });
+
+  it('en el pueblo y sin ninguna pista, manda a preguntar', () => {
+    const enLaPlaza = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'mirar_el_pozo', // vuelve al hub sin encender ninguna pista
+    ]);
+    expect(enLaPlaza.run.sceneId).toBe('a1_plaza');
+    expect(enLaPlaza.run.flags).not.toContain('run:pista_taberna');
+    expect(objetivoDe(enLaPlaza)).toBe('Preguntá en el pueblo');
+  });
+
+  /**
+   * El PEOR ciclo del diagnóstico (§0.3): se entra al acto 1 por el vado oculto, directo a la
+   * trampilla del molino, y se da vueltas entre la trampilla y la rueda sin pisar la plaza y sin
+   * encender una sola pista. Ahí las dos puertas del acto estaban congeladas a la vez y la pantalla
+   * no decía nada. Ahora dice a dónde ir.
+   */
+  it('entrando por el vado oculto, el bucle trampilla ↔ rueda también tiene objetivo', () => {
+    let state = jugar('guerrero', [
+      ['rodear_por_la_orilla', 'success'], // p_camino → p_vado_oculto
+      'subir_por_el_caz', // p_vado_oculto → a1_molino_trampilla, sin ninguna pista
+    ]);
+    expect(state.run.sceneId).toBe('a1_molino_trampilla');
+    expect(state.run.visited['a1_plaza']).toBeUndefined();
+    expect(state.run.flags.filter((f) => f.startsWith('run:pista_'))).toEqual([]);
+    // La primera pantalla de Aldamar todavía muestra el objetivo de la campaña entera.
+    expect(objetivoDe(state)).toBe('Averiguá qué pasó con Tomé');
+
+    for (let vuelta = 0; vuelta < 5; vuelta += 1) {
+      state = choose(vado, state, 'leer_las_marcas'); // trampilla → rueda
+      expect(state.run.sceneId, `vuelta ${vuelta}`).toBe('a1_molino_rueda');
+      expect(objetivoDe(state), `vuelta ${vuelta}`).toBe('Preguntá en el pueblo');
+      state = choose(vado, state, 'entrar_por_el_hueco_del_caz'); // rueda → trampilla
+      expect(state.run.sceneId, `vuelta ${vuelta}`).toBe('a1_molino_trampilla');
+      expect(objetivoDe(state), `vuelta ${vuelta}`).toBe('Preguntá en el pueblo');
+    }
+  });
+
+  it('entrando por la puerta del molino, el objetivo nombra los otros dos lugares', () => {
+    const enElMolino = jugar('guerrero', [
+      ['rodear_por_la_orilla', 'success'], // p_camino → p_vado_oculto
+      'rodear_hasta_la_puerta_del_molino', // → a1_molino (run:pista_molino)
+      'agarrar_la_palanca', // → a1_molino_trampilla
+    ]);
+    expect(enElMolino.run.sceneId).toBe('a1_molino_trampilla');
+    expect(enElMolino.run.visited['a1_plaza']).toBeUndefined();
+    expect(objetivoDe(enElMolino)).toBe('No pasaste por el Ancla Seca');
+  });
+
+  it('con una o dos pistas, nombra un lugar que todavía no viste', () => {
+    const casos: { flags: string[]; texto: string }[] = [
+      { flags: ['run:pista_taberna'], texto: 'Todavía no viste el molino' },
+      { flags: ['run:pista_alcaldesa'], texto: 'Todavía no viste el molino' },
+      { flags: ['run:pista_molino'], texto: 'No pasaste por el Ancla Seca' },
+      { flags: ['run:pista_taberna', 'run:pista_molino'], texto: 'No hablaste con Berta' },
+      { flags: ['run:pista_alcaldesa', 'run:pista_molino'], texto: 'No pasaste por el Ancla Seca' },
+      { flags: ['run:pista_taberna', 'run:pista_alcaldesa'], texto: 'Todavía no viste el molino' },
+    ];
+    for (const { flags, texto } of casos) {
+      const base = partidaEn('a1_plaza', flags);
+      const enElPueblo: GameState = { ...base, run: { ...base.run, visited: { a1_plaza: 1 } } };
+      expect(objetivoDe(enElPueblo), flags.join('+')).toBe(texto);
+    }
+  });
+
+  it('con las tres pistas, deja de nombrar lugares', () => {
+    const conLasTres = jugar('guerrero', HASTA_EL_CUELLO_1.slice(0, 8));
+    expect(conLasTres.run.sceneId).toBe('a1_plaza');
+    expect(objetivoDe(conLasTres)).toBe('Hay algo que no cierra');
+  });
+
+  it('pasado el cuello 1 el objetivo es el del acto 2, aunque falten pistas', () => {
+    const enElCuerpo = jugar('guerrero', HASTA_EL_CUELLO_1);
+    expect(enElCuerpo.run.sceneId).toBe('c1_cuerpo');
+    expect(objetivoDe(choose(vado, enElCuerpo, 'taparlo_y_volver_al_pueblo'))).toBe(
+      'Averiguá quién lo tiró al agua',
+    );
+
+    // Por la ronda de Dravos se llega al acto 2 con una sola pista: ninguno de los objetivos del
+    // acto 1 puede asomar ahí.
+    const base = partidaEn('a1_plaza', ['run:pista_taberna']);
+    const temerario: GameState = { ...base, run: { ...base.run, clocks: { sospecha: 4 } } };
+    const enLaRonda = enter(vado, temerario, 'a1_plaza');
+    expect(enLaRonda.run.sceneId).toBe('a1_ronda');
+    expect(objetivoDe(enLaRonda)).toBe('Averiguá quién lo tiró al agua');
+  });
+
+  /** Las opciones que la pantalla deja tocar: es lo único que un jugador puede elegir. */
+  function habilitadas(state: GameState): string[] {
+    return render(vado, state)
+      .choices.filter((c) => c.visible && c.enabled)
+      .map((c) => c.id);
+  }
+
+  /**
+   * EL BUG DE GABRIEL, caminado como lo camina un jugador: la casa de Berta, «Reclamar el adelanto»
+   * y «Revisar el escritorio», una y otra vez. Criterio §7.3 del diseño, primera mitad: **el bucle
+   * concreto no se puede caminar**.
+   *
+   * OJO, Y ES LO QUE ESTE CASO ARREGLA: `choose()` NO mira `requires` (lo hace `render`, que es lo
+   * que dibuja la pantalla). La versión anterior de este caso elegía `reclamar_el_adelanto` veinte
+   * veces con `choose()` directo y pasaba contenta, aunque desde la tarea 4 la opción se apaga
+   * después de la primera: estaba caminando una secuencia que el jugador no puede hacer. Por eso
+   * acá cada vuelta pasa por `render` y por `habilitadas`.
+   */
+  it('el bucle de la casa de Berta: la segunda vuelta ya no se puede elegir', () => {
+    let state = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta', // a1_plaza → a1_alcaldesa (run:pista_alcaldesa)
+    ]);
+    expect(state.run.sceneId).toBe('a1_alcaldesa');
+
+    // VUELTA 1 — la opción está, con su etiqueta, y se puede elegir.
+    const primeraVuelta = habilitadas(state);
+    expect(primeraVuelta).toContain('reclamar_el_adelanto');
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+
+    state = choose(vado, state, 'reclamar_el_adelanto'); // → a1_berta_despacho
+    expect(state.run.sceneId).toBe('a1_berta_despacho');
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+    const pending = beginRoll(vado, state, 'revisar_el_escritorio');
+    state = commitRoll(vado, state, { ...pending, band: 'success' }); // → a1_alcaldesa
+    expect(state.run.sceneId).toBe('a1_alcaldesa');
+
+    // VUELTA 2 — la misma pantalla, y ya NO es la misma: la opción se ve y no se puede elegir.
+    const reclamar = render(vado, state).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(reclamar?.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(reclamar?.visible).toBe(true);
+    expect(reclamar?.enabled).toBe(false);
+    expect(reclamar?.lockedHint).toBe('El adelanto ya lo cobraste');
+
+    // La lista de lo elegible CAMBIÓ entre una vuelta y la otra: ése era el síntoma que Gabriel
+    // reportó («la pantalla es idéntica»), y es el que se fue.
+    const segundaVuelta = habilitadas(state);
+    expect(segundaVuelta).not.toContain('reclamar_el_adelanto');
+    expect(segundaVuelta).not.toEqual(primeraVuelta);
+    // Y lo que queda no es un pozo: las otras cuatro siguen ahí.
+    expect(segundaVuelta).toEqual([
+      'preguntar_por_tome',
+      'ayudar_a_ilse_con_los_sacos',
+      'salir_al_patio',
+      'despedirte_hasta_manana',
+    ]);
+    // El cartel sigue nombrando el lugar que falta, en las dos vueltas y en las dos escenas.
+    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
+
+    // Y en cuanto el jugador hace lo que el objetivo le pide, el acto avanza.
+    state = choose(vado, state, 'despedirte_hasta_manana'); // → a1_plaza
+    state = choose(vado, state, 'cruzar_al_molino'); // → a1_molino (run:pista_molino)
+    expect(objetivoDe(state)).toBe('No pasaste por el Ancla Seca');
+    state = choose(vado, state, 'volver_a_la_plaza'); // → a1_plaza
+    state = choose(vado, state, 'entrar_al_ancla_seca'); // → a1_taberna (la tercera pista)
+    expect(objetivoDe(state)).toBe('Hay algo que no cierra');
+    // La elección siguiente lo saca: la que se queda en el Ancla Seca, por el redirect…
+    expect(choose(vado, state, 'sentarte_en_la_mesa_de_orell').run.sceneId).toBe('c1_cuerpo');
+    // …y la que vuelve al hub, por la puerta que ahora se ve.
+    state = choose(vado, state, 'pagar_una_ronda');
+    expect(state.run.sceneId).toBe('a1_plaza');
+    expect(objetivoDe(state)).toBe('Hay algo que no cierra');
+    state = choose(vado, state, 'bajar_al_rio');
+    expect(state.run.sceneId).toBe('c1_cuerpo');
+  });
+
+  /**
+   * EL FLOODGATE DEL RELOJ VIVE EN LAS DOCE, no sólo en el hub (diseño §3, corrección del 15 de
+   * septiembre). Hasta la tarea 5 vivía sólo en `a1_plaza`, y eso lo volvía *una puerta que dependía
+   * de pisar una baldosa*: el reloj se llena adentro de la casa de Berta, que no pisa la plaza.
+   * Medido antes y después, con las siete opciones de `a1_alcaldesa` como preferida × las tres
+   * bandas: **de 1 de 21 caminatas que salían del racimo se pasó a 11**.
+   *
+   * Este caso fija las dos mitades del arreglo, y se cae si alguien devuelve el redirect a la plaza
+   * sola o si le cambia el orden.
+   */
+  it('las doce escenas del racimo leen el reloj, y el floodgate va antes que la salida del acto', () => {
+    // 1. Las DOCE lo leen. Antes era `['a1_plaza']` y esa lista corta es justamente el bug.
+    const leenElReloj = RACIMO_DEL_ACTO_1.filter((id) =>
+      JSON.stringify(campaign.scenes[id]?.redirect ?? []).includes('sospecha'),
+    );
+    expect([...leenElReloj].sort()).toEqual([...RACIMO_DEL_ACTO_1].sort());
+
+    // 2. `a1_ronda` NO lo lleva: se redirigiría a sí misma.
+    expect(JSON.stringify(campaign.scenes['a1_ronda']?.redirect ?? [])).not.toContain('sospecha');
+    expect(campaign.scenes['a1_ronda']?.redirect ?? []).toEqual([]);
+
+    // 3. El ORDEN importa: en las once, el floodgate va PRIMERO. Con el reloj lleno y las tres
+    //    pistas puestas, la ronda te levanta antes de que puedas usar lo que averiguaste; al revés,
+    //    el reloj no cobraría nunca.
+    for (const id of RACIMO_DEL_ACTO_1.filter((x) => x !== 'a1_plaza')) {
+      expect(campaign.scenes[id]?.redirect, id).toEqual([
+        { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
+        { when: LAS_TRES_PISTAS, to: 'c1_cuerpo' },
+      ]);
+    }
+    expect(campaign.scenes['a1_plaza']?.redirect).toEqual([
+      { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
+    ]);
+
+    // 4. Y la prueba de que el orden es el que se dice: con las dos condiciones puestas, gana la ronda.
+    const conAmbas = partidaEn('a1_taberna', TRES_PISTAS_PUESTAS);
+    const temerarioYCompleto: GameState = {
+      ...conAmbas,
+      run: { ...conAmbas.run, clocks: { sospecha: 4 } },
+    };
+    expect(enter(vado, temerarioYCompleto, 'a1_taberna').run.sceneId).toBe('a1_ronda');
+    // Sin el reloj, la misma entrada cae en el cuello 1: las dos puertas siguen existiendo.
+    expect(enter(vado, conAmbas, 'a1_taberna').run.sceneId).toBe('c1_cuerpo');
+  });
+
+  /**
+   * El §7.3 caminado: el jugador que insiste adentro de la casa de Berta **sale sin pisar la plaza**.
+   * Es lo que el floodgate viejo no podía hacer.
+   *
+   * Y el límite, medido y dicho acá porque es lo honesto: **sale el que falla, no el que acierta**.
+   * De las 21 caminatas, salen 11; las 10 que no, terminan con el reloj en **0**, porque ninguna
+   * tirada de su ciclo cobra `sospecha` en la banda que toman —`revisar_el_escritorio` la cobra en
+   * parcial y en fallo, y **no** en éxito—. O sea que lo que queda no es la puerta mal puesta: es el
+   * «acertar te deja adentro» del §0.3, que es decisión de contenido.
+   */
+  it('insistiendo en la casa de Berta el reloj llena la puerta, y sale sin pasar por la plaza', () => {
+    let state = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    const pisadas = new Set<string>();
+    let pasos = 0;
+    while (RACIMO_DEL_ACTO_1.includes(state.run.sceneId as (typeof RACIMO_DEL_ACTO_1)[number]) && pasos < 40) {
+      pisadas.add(state.run.sceneId);
+      const elegible = habilitadas(state);
+      expect(elegible.length, `paso ${pasos} en ${state.run.sceneId}`).toBeGreaterThan(0);
+      const id = elegible[0] as string;
+      const choice = vado.scenes[state.run.sceneId]?.choices.find((c) => c.id === id) as Choice;
+      if (choice.roll !== undefined) {
+        const pendiente = beginRoll(vado, state, id);
+        state = commitRoll(vado, state, { ...pendiente, band: 'failure' });
+      } else {
+        state = choose(vado, state, id);
+      }
+      expect(state.run.outcome, `paso ${pasos}`).toBeUndefined();
+      pasos += 1;
+    }
+    // Sale, y en pocos pasos: once, contra los 400 que no alcanzaban antes.
+    expect(pasos).toBeLessThanOrEqual(15);
+    expect(state.run.sceneId).toBe('a1_ronda');
+    expect(state.run.clocks['sospecha']).toBeGreaterThanOrEqual(4);
+    // Y LO QUE IMPORTA: salió sin pisar la plaza ni una vez. Con el floodgate sólo en el hub, este
+    // bucle daba 400 pasos sin salir.
+    expect([...pisadas].sort()).toEqual(['a1_alcaldesa', 'a1_berta_despacho', 'a1_ilse_patio']);
+    expect(pisadas.has('a1_plaza')).toBe(false);
+    // La plaza la pisó UNA vez, al llegar del puente, y el bucle no volvió nunca. Con el floodgate
+    // sólo en el hub esa única visita era toda la puerta que el jugador iba a tener.
+    expect(state.run.visited['a1_plaza']).toBe(1);
+    // El cartel acompaña el salto.
+    expect(objetivoDe(state)).toBe('Averiguá quién lo tiró al agua');
+
+    // EL LÍMITE, fijado: el mismo bucle con la banda de ÉXITO no mueve el reloj y no sale. No es la
+    // puerta: es que nada la empuja. Si algún día el éxito del escritorio cobrara sospecha, este
+    // caso se cae y hay que venir a leer esto.
+    const exito = campaign.scenes['a1_berta_despacho']?.choices.find((c) => c.id === 'revisar_el_escritorio')
+      ?.roll?.outcomes.success;
+    expect(JSON.stringify(exito?.effects ?? [])).not.toContain('sospecha');
+    expect(exito?.effects).toEqual([{ set: 'run:berta_miente' }]);
+
+    let acertando = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    for (let i = 0; i < 20; i += 1) {
+      const id = habilitadas(acertando)[0] as string;
+      const choice = vado.scenes[acertando.run.sceneId]?.choices.find((c) => c.id === id) as Choice;
+      if (choice.roll !== undefined) {
+        const pendiente = beginRoll(vado, acertando, id);
+        acertando = commitRoll(vado, acertando, { ...pendiente, band: 'success' });
+      } else {
+        acertando = choose(vado, acertando, id);
+      }
+    }
+    expect(acertando.run.clocks['sospecha'] ?? 0).toBe(0);
+    expect(RACIMO_DEL_ACTO_1).toContain(acertando.run.sceneId);
+  });
+
+  /**
+   * El quiebre de acto dejó de ser mudo (tarea 5). Van las dos aserciones juntas a propósito: la
+   * de lo que TIENE que decir —un `toContain` sobre la prosa— y la de que se loguea al elegir. Un
+   * `not.toMatch` solo pasaría igual de contento con el texto vacío, que es la trampa que esta
+   * fase encontró tres veces.
+   */
+  it('`bajar_al_rio` narra la bajada: el quiebre de acto ya no es una transición muda', () => {
+    const salida = campaign.scenes['a1_plaza']?.choices.find((c) => c.id === 'bajar_al_rio');
+    const prosa = prosaDe(salida?.outcome as Outcome);
+    expect(prosa).toContain('Bajás sin farol');
+    expect(prosa).toContain('El río se oye entero');
+
+    const enElHub = enter(vado, partidaEn('a1_plaza', TRES_PISTAS_PUESTAS), 'a1_plaza');
+    const despues = choose(vado, enElHub, 'bajar_al_rio');
+    expect(despues.run.sceneId).toBe('c1_cuerpo');
+    const desenlace = despues.run.log.filter((e) => e.kind === 'outcome').at(-1);
+    expect(JSON.stringify(desenlace)).toContain('Bajás sin farol');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fase «objetivos», tarea 4 — lo que la prosa promete, el estado lo registra
+// ---------------------------------------------------------------------------
+
+/** Toda la prosa escrita de un desenlace, variantes incluidas, en un solo string. */
+function prosaDe(outcome: Outcome): string {
+  return (outcome.text ?? [])
+    .map((p) => (typeof p === 'string' ? p : p.variants.map((v) => v.text).join(' ')))
+    .join(' ');
+}
+
+function opcionDe(sceneId: string, choiceId: string): Choice {
+  const choice = campaign.scenes[sceneId]?.choices.find((c) => c.id === choiceId);
+  expect(choice, `${sceneId}.${choiceId}`).toBeDefined();
+  return choice as Choice;
+}
+
+describe('vado: lo que la prosa dice que pasó, el estado lo registra (diseño §4)', () => {
+  /**
+   * Caso 1, el de Gabriel. «te adelanta la tercera parte» y la opción no tenía un solo efecto,
+   * así que volvía a prometer lo mismo cada vez que la mirabas.
+   */
+  it('«Reclamar el adelanto» cobra una vez, queda registrado y no vuelve a prometerlo', () => {
+    const reclamar = opcionDe('a1_alcaldesa', 'reclamar_el_adelanto');
+    // La etiqueta NO se toca: el problema nunca fue cómo se llama la opción (decisión de Gabriel).
+    expect(reclamar.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(campaign.flags['run:cobro_el_adelanto']).toBeTruthy();
+    expect(prosaDe(reclamar.outcome as Outcome)).toContain('te adelanta la tercera parte');
+    expect(reclamar.outcome?.effects).toEqual([{ set: 'run:cobro_el_adelanto' }]);
+
+    // Jugando: se entra a la casa de Berta y se cobra.
+    const enLaCasa = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    expect(enLaCasa.run.sceneId).toBe('a1_alcaldesa');
+    const primera = render(vado, enLaCasa).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(primera?.visible).toBe(true);
+    expect(primera?.enabled).toBe(true);
+
+    const cobrado = choose(vado, enLaCasa, 'reclamar_el_adelanto');
+    expect(cobrado.run.sceneId).toBe('a1_berta_despacho');
+    expect(cobrado.run.flags).toContain('run:cobro_el_adelanto');
+    // La prosa que afirma el pago es la que se leyó, y ahora tiene estado atrás.
+    const leido = cobrado.run.log.filter((e) => e.kind === 'outcome').at(-1);
+    expect(JSON.stringify(leido)).toContain('te adelanta la tercera parte');
+
+    // La segunda vez la opción sigue ahí, con su etiqueta, y ya no promete nada.
+    const deVuelta = choose(vado, cobrado, 'preguntarle_por_la_carta');
+    expect(deVuelta.run.sceneId).toBe('a1_alcaldesa');
+    const segunda = render(vado, deVuelta).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(segunda?.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(segunda?.visible).toBe(true);
+    expect(segunda?.enabled).toBe(false);
+    expect(segunda?.lockedHint).toBe(reclamar.lockedHint);
+    expect(reclamar.lockedHint).toBeTruthy();
+  });
+
+  /** Caso 2: «La tapa tiene el herraje forzado, y no de este lado» es un hallazgo, no ambiente. */
+  it('subir por la rueda registra el herraje forzado de la trampilla', () => {
+    const subir = opcionDe('a1_molino', 'subir_por_la_rueda');
+    expect(subir.label).toBe('Subir por la rueda hasta el desván');
+    expect(campaign.flags['run:tapa_forzada']).toBeTruthy();
+    expect(prosaDe(subir.outcome as Outcome)).toContain('el herraje forzado, y no de este lado');
+    expect(subir.outcome?.effects).toEqual([{ set: 'run:tapa_forzada' }]);
+
+    const state = jugar('explorador', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'cruzar_al_molino',
+      'subir_por_la_rueda',
+    ]);
+    expect(state.run.sceneId).toBe('a1_molino_trampilla');
+    expect(state.run.flags).toContain('run:tapa_forzada');
+  });
+
+  /** Caso 3: Halvar dice que el peaje del medio es suyo, que es lo que significa el flag. */
+  it('escuchar a Halvar en el clímax registra que sabés del mercader, y sólo en el éxito', () => {
+    const escuchar = opcionDe('cl_molino', 'escuchar');
+    const bandas = escuchar.roll?.outcomes;
+    expect(prosaDe(bandas?.success as Outcome)).toContain('el del medio es suyo');
+    expect(bandas?.success.effects).toEqual([{ set: 'run:sabe_de_halvar' }]);
+    // La banda parcial escucha la mitad y no se entera: no enciende nada.
+    expect(bandas?.partial.effects).toBeUndefined();
+    // El fallo sigue cobrando lo suyo, y nada más.
+    expect(bandas?.failure.effects).toEqual([{ set: 'run:dravos_sabe' }]);
+
+    const pasos = PARTIDAS.find((p) => p.final === 'fin_hundido')?.pasos as readonly Paso[];
+    const hasta = pasos.slice(0, pasos.findIndex((p) => Array.isArray(p) && p[0] === 'escuchar') + 1);
+    const state = jugar('guerrero', hasta);
+    expect(state.run.sceneId).toBe('cl_halvar');
+    expect(state.run.flags).toContain('run:sabe_de_halvar');
+  });
+
+  /**
+   * Casos 4 y 5: o el efecto existe en el vocabulario del motor, o la frase no puede afirmar que
+   * pasó. `Effect` no tiene comida ni calzado y no se le agregan por una línea cada uno.
+   */
+  it('cerrar los postigos no narra comida, porque el motor no tiene comida', () => {
+    const postigos = opcionDe('c2_anochece', 'cerrar_los_postigos');
+    expect(postigos.label).toBe('Cerrar los postigos con los vecinos');
+    expect(postigos.outcome?.effects).toBeUndefined();
+    // La guarda contra el falso verde: borrar la prosa entera también haría pasar el `not.toMatch`.
+    expect(prosaDe(postigos.outcome as Outcome)).toContain('Aguantás el postigo contra el viento');
+    expect(prosaDe(postigos.outcome as Outcome)).not.toMatch(/\bpan(es)?\b/iu);
+  });
+
+  it('colarse por el terraplén no narra calzado perdido, y sí lo que el estado registra', () => {
+    const colarte = opcionDe('p_puente_rechazo', 'colarte_por_el_terraplen');
+    expect(colarte.label).toBe('Colarte por el terraplén');
+    const parcial = colarte.roll?.outcomes.partial as Outcome;
+    expect(parcial.effects).toEqual([{ addCondition: 'empapado' }]);
+    // Misma guarda: la banda sigue narrando la caída al agua, que es lo que el `empapado` registra.
+    expect(prosaDe(parcial)).toContain('el río te recibe de costado');
+    expect(prosaDe(parcial)).not.toMatch(/\bbotas?\b/iu);
+
+    // Jugando: la banda parcial deja lo único que la banda afirma, el agua encima.
+    const state = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'mirar_las_runas_del_pilar',
+      ['colarte_por_el_terraplen', 'partial'],
+    ]);
+    expect(state.run.sceneId).toBe('a1_plaza');
+    expect(state.run.conditions).toContain('empapado');
+    expect(JSON.stringify(state.run.log.filter((e) => e.kind === 'outcome'))).not.toMatch(/bota/iu);
   });
 });

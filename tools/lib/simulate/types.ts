@@ -8,15 +8,21 @@ import type { ClassId } from '@/content/catalog';
  * - `temeraria`: la de mayor probabilidad de fallo; ante empate, la primera.
  * - `prudente`: cede siempre que haya una opción sin tirada. Es el jugador que no quiere
  *   arriesgar, y el instrumento con el que se mide si ceder cuesta algo.
+ * - `insistente`: al azar uniforme como la aleatoria, pero es la ÚNICA que puede repetir una
+ *   opción que ya eligió en esa escena (ver `candidatas` en politicas.ts). Es el jugador que
+ *   vuelve a clickear lo mismo esperando que cambie algo, y es la única que puede caer en un
+ *   bucle: a las otras cuatro el filtro de `candidatas` se lo prohíbe por construcción, que es
+ *   por lo que el simulador informó "Partidas colgadas: 0" sobre 12.492 partidas mientras el
+ *   acto 1 era un racimo de doce escenas sin salida.
  *
  * Una opción SIN tirada no puede fallar: vale éxito 1 y fallo 0 para `probExito`/`probFallo`, que
  * es lo que usan la temeraria y la prudente (el informe no: trabaja sobre las tiradas
  * observadas). La codiciosa puntúa distinto (ver `puntajeCodicioso` en politicas.ts) para no
  * confundir "no puede fallar" con "conviene".
  */
-export type PoliticaId = 'aleatoria' | 'codiciosa' | 'temeraria' | 'prudente';
+export type PoliticaId = 'aleatoria' | 'codiciosa' | 'temeraria' | 'prudente' | 'insistente';
 
-export const POLITICAS: readonly PoliticaId[] = ['aleatoria', 'codiciosa', 'temeraria', 'prudente'];
+export const POLITICAS: readonly PoliticaId[] = ['aleatoria', 'codiciosa', 'temeraria', 'prudente', 'insistente'];
 
 /** Niveles de partida que se simulan (spec §10). */
 export const NIVELES: readonly number[] = [1, 3];

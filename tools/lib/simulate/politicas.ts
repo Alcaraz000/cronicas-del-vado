@@ -67,7 +67,9 @@ export function elegirOpcion(
   if (opciones.length === 0) {
     throw new Error('No hay opciones para elegir');
   }
-  if (politica === 'aleatoria') {
+  if (politica === 'aleatoria' || politica === 'insistente') {
+    // La insistente elige igual que la aleatoria: lo que la distingue no es cómo elige sino sobre
+    // qué lista elige (ver `candidatas`).
     const indice = Math.min(opciones.length - 1, Math.floor(azar() * opciones.length));
     return opciones[indice] as RenderedChoice;
   }
@@ -86,16 +88,24 @@ export function elegirOpcion(
 
 /**
  * Candidatas de una escena: las habilitadas que la partida todavía no eligió en ESA escena.
- * Es la regla que hace que las cuatro políticas terminen: sin ella, la codiciosa elige siempre la
- * misma primera opción del hub y nunca junta las tres pistas, y las excepciones que vuelven al hub
- * («mirar el pozo») se convierten en un bucle infinito. Un jugador tampoco lee dos veces el mismo
- * poste de bandos. Si ya se eligieron todas, se vuelven a habilitar todas.
+ * Es la regla que hace que las cuatro primeras políticas terminen: sin ella, la codiciosa elige
+ * siempre la misma primera opción del hub y nunca junta las tres pistas, y las excepciones que
+ * vuelven al hub («mirar el pozo») se convierten en un bucle infinito. Un jugador tampoco lee dos
+ * veces el mismo poste de bandos. Si ya se eligieron todas, se vuelven a habilitar todas.
+ *
+ * Y es, exactamente, lo que hacía ciego al simulador: el filtro le PROHÍBE la conducta que produce
+ * el bucle —repetir en la misma escena—, así que un racimo de doce escenas sin salida se recorría
+ * igual, agotando opciones nuevas hasta que alguna movía el reloj o el contador de visitas que
+ * abre el `redirect`. Por eso `insistente` no filtra: es el jugador que vuelve a elegir lo mismo, y
+ * es el único recorredor capaz de ver un cuelgue.
  */
 export function candidatas(
+  politica: PoliticaId,
   sceneId: string,
   habilitadas: readonly RenderedChoice[],
   yaElegidas: ReadonlySet<string>,
 ): RenderedChoice[] {
+  if (politica === 'insistente') return [...habilitadas];
   const frescas = habilitadas.filter((o) => !yaElegidas.has(`${sceneId}#${o.id}`));
   return frescas.length > 0 ? frescas : [...habilitadas];
 }

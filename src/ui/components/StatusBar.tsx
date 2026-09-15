@@ -7,6 +7,14 @@ import styles from './StatusBar.module.css';
 
 export interface StatusBarProps {
   placeName: string;
+  /**
+   * La línea del objetivo activo, ya derivada por el motor (`objetivoActivo`), o `null` si no hay
+   * ninguno. Llega el TEXTO y no el `Objetivo` entero a propósito: la barra no evalúa condiciones
+   * ni conoce el vocabulario del contenido, solo dibuja una frase.
+   *
+   * Con `null` —o sin la prop— no se dibuja NADA: ni la línea ni el hueco donde iría.
+   */
+  objetivo?: string | null;
   wounds: 0 | 1 | 2 | 3;
   fortune: number;
   fortuneMax: number;
@@ -33,6 +41,7 @@ function marcas(llenas: number, total: number, lleno: string, vacio: string): st
 
 export function StatusBar({
   placeName,
+  objetivo = null,
   wounds,
   fortune,
   fortuneMax,
@@ -48,7 +57,46 @@ export function StatusBar({
 
   return (
     <header className={styles.barra}>
-      <span className={styles.lugar}>{placeName}</span>
+      {/* El lugar y el objetivo son el título de la pantalla: dónde estás y qué estás tratando de
+          hacer. Van juntos en una columna para que el objetivo quede DEBAJO del lugar y no se
+          mezcle con las marcas en la fila de la barra — no es un dato más, es la línea que
+          reemplaza a "recorré el mapa hasta acertar".
+
+          ── LO QUE CUESTA EL CARTEL, MEDIDO ──
+          En el navegador, jugando `p_camino` con el objetivo declarado en la campaña. Alto del
+          `<header>`, que es lo que el cromo le come al arte:
+
+            1919×905   sin objetivo 68,86 px · con objetivo 87,31 px   (+18,45, una línea)
+            375×812    sin objetivo 91,95 px · con uno corto 111,73 px (+19,78, una línea)
+                                              con uno largo 143,52 px (+51,57, DOS renglones)
+
+          **Sin objetivo activo no se dibuja nada: ni el `span` ni un hueco.** `.titulo` no tiene
+          alto mínimo, así que con un solo hijo mide exactamente lo que mide el lugar (29,27 px en
+          escritorio, 26,27 en el teléfono) y el `<header>` queda igual que antes de esta tarea —
+          los 91,95 px del teléfono son los mismos «91 px» que midió la Fase H y que están anotados
+          más abajo, en el bloque del botón del historial.
+
+          **En el teléfono el LARGO de la línea decide si cuesta uno o dos renglones.** La barra es
+          un flex que envuelve: si `.titulo` pasa de ~190 px de ancho, las marcas ya no entran a su
+          lado y se van a un renglón propio. Medido a 375 px: «Hablá con Berta, la alcaldesa»
+          (29 caracteres) mide 171,36 px y las marcas se quedan al lado; «Cruzá el vado y llegá a
+          Aldamar antes de que oscurezca» (54) mide 324,89 px y las empuja abajo, o sea 32 px más
+          de cromo. La cuenta del tope: 351 px de renglón − 73,86 (Heridas) − 63,25 (Fortuna) − dos
+          huecos de 12 = 189,89. **Los objetivos de la tarea 3 conviene escribirlos cortos.** */}
+      <div className={styles.titulo}>
+        <span className={styles.lugar}>{placeName}</span>
+        {objetivo !== null && (
+          <span className={styles.objetivo} data-testid="objetivo">
+            {/* La palabra sola, escondida de la VISTA pero no del árbol de accesibilidad (mismo
+                patrón que `.etiqueta` en móvil y que el prefijo del hablante en `TextColumn`).
+                Sin ella, un lector de pantalla anuncia "Hablá con Berta, la alcaldesa" suelto
+                entre el lugar y las Heridas, sin nada que diga qué es esa frase. A la vista
+                sobra: el jugador ve una línea en la serif del juego debajo del lugar. */}
+            <span className={styles.objetivoEtiqueta}>{S.barra.objetivo}: </span>
+            {objetivo}
+          </span>
+        )}
+      </div>
       {/* La palabra ("Heridas", "Fortuna") va en su propio `span` para poder sacarla de la
           VISTA en el teléfono: ahí el cromo flota sobre el arte, y con las dos etiquetas
           enteras se va a tres renglones que se comen la mitad del fondo. Lo que NO se toca es

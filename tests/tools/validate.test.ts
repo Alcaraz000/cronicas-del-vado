@@ -17,6 +17,7 @@ import { rotaR09Extrema } from '../fixtures/campaigns/broken/r09';
 import { rotaR10Todo } from '../fixtures/campaigns/broken/r10';
 import { conReward, rewardValido, rotaR11RewardEfectoSinSemantica, rotaR11RewardFlagRun, rotaR11RewardLethal, rotaR11RewardObjetoNormal } from '../fixtures/campaigns/broken/r11';
 import { rotaR12FaltaLinea, rotaR12FaltaLineaDeMundo, rotaR12LineaCompartida, rotaR12LineaDeRun, rotaR12LineaHuerfana } from '../fixtures/campaigns/broken/r12';
+import { rotaR13Autobucle, rotaR13Racimo, rotaR13SinFinalLibre, rotaR13SoloTirada } from '../fixtures/campaigns/broken/r13';
 
 export const ctx = (profile: 'smoke' | 'release' = 'release'): ValidateContext => ({ world: mundoDePrueba, profile });
 export const reglas = (issues: ValidationIssue[]): string[] => [...new Set(issues.filter((i) => i.level === 'error').map((i) => i.rule))].sort();
@@ -38,8 +39,8 @@ describe('validateCampaign: esquema y campaña base', () => {
     expect(issues[0]?.level).toBe('error');
     expect(issues[0]?.message).toContain('levelRange');
   });
-  it('RULES expone las doce reglas en orden', () => {
-    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo', 'r11_reward', 'r12_memories']);
+  it('RULES expone las trece reglas en orden', () => {
+    expect(Object.keys(RULES)).toEqual(['r01_targets', 'r02_reach', 'r03_choices', 'r04_choice_shape', 'r05_lethal', 'r06_encounter', 'r07_ids', 'r08_memory_frame', 'r09_extreme', 'r10_todo', 'r11_reward', 'r12_memories', 'r13_progreso']);
   });
   it('no muta la campaña', () => {
     const antes = JSON.stringify(campanaBase);
@@ -380,5 +381,40 @@ describe('r12_memories', () => {
     const issues = soloRegla(rotaR12LineaCompartida, 'r12_memories');
     expect(issues).toHaveLength(1);
     expect(issues[0]?.message).toContain('char:met.b_guia');
+  });
+});
+
+describe('r13_progreso', () => {
+  it('una escena de la que no se llega a ningún final con opciones libres', () => {
+    const issues = soloRegla(rotaR13SinFinalLibre, 'r13_progreso');
+    // La ronda 2 se salva por su redirect de clock; las otras cuatro no tienen cómo terminar
+    // la partida sin tirar un dado ni tener el flag.
+    expect(issues.map((i) => i.sceneId).sort()).toEqual(['b_cripta', 'b_descanso', 'b_inicio', 'b_ronda1']);
+    expect(issues[0]?.message).toContain('opciones libres');
+  });
+
+  it('un racimo de escenas cuya única salida es un redirect', () => {
+    const issues = soloRegla(rotaR13Racimo, 'r13_progreso');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain('b_pozo1');
+    expect(issues[0]?.message).toContain('b_pozo2');
+    expect(issues[0]?.message).toContain('redirect');
+    expect(issues[0]?.sceneId).toBe('b_pozo1');
+  });
+
+  it('una sola escena que sólo vuelve a sí misma también es un racimo', () => {
+    const issues = soloRegla(rotaR13Autobucle, 'r13_progreso');
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.sceneId).toBe('b_noria');
+  });
+
+  it('una tirada no es salida libre, pero sí es arista de choice', () => {
+    // Las dos mitades miran conjuntos de aristas distintos y confundirlos apagaría una de las
+    // dos: si la tirada contara como libre, la primera mitad no vería nunca una escena que sólo
+    // se termina tirando dados; si no contara como arista de choice, la segunda denunciaría como
+    // racimo a cualquier grupo del que se sale tirando. Este pozo es las dos cosas a la vez.
+    const issues = soloRegla(rotaR13SoloTirada, 'r13_progreso');
+    expect(issues.map((i) => i.sceneId).sort()).toEqual(['b_pozo1', 'b_pozo2']);
+    for (const issue of issues) expect(issue.message).toContain('opciones libres');
   });
 });

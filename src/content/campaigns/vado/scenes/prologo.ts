@@ -454,9 +454,14 @@ export const p_puente_rechazo = {
             ],
             next: 'a1_plaza',
           },
+          // FASE «objetivos» · tarea 4, caso 5: decía «con una bota menos» y el motor NO TIENE
+          // CALZADO, así que la banda afirmaba una pérdida que nada registraba y que a los dos
+          // pasos ya no existía. Mismo criterio que `c2_anochece.cerrar_los_postigos` (diseño §4):
+          // cambia la frase, no el vocabulario. Ahora la banda narra exactamente lo que sí cobra,
+          // que es el `empapado`.
           partial: {
             text: [
-              'Pisás mal en la cornisa y el río te recibe de costado. Salís veinte pasos más abajo, con una bota menos. Arriba nadie gritó.',
+              'Pisás mal en la cornisa y el río te recibe de costado. Salís veinte pasos más abajo, chorreando. Arriba nadie gritó.',
             ],
             effects: [{ addCondition: 'empapado' }],
             next: 'a1_plaza',

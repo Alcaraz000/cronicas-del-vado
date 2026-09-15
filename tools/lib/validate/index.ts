@@ -12,6 +12,7 @@ import { r09_extreme } from './rules/r09_extreme';
 import { r10_todo } from './rules/r10_todo';
 import { r11_reward } from './rules/r11_reward';
 import { r12_memories } from './rules/r12_memories';
+import { r13_progreso } from './rules/r13_progreso';
 import type { Rule, ValidateContext, ValidationIssue } from './types';
 
 export type { Rule, ValidateContext, ValidationIssue } from './types';
@@ -29,6 +30,7 @@ export const RULES: Record<string, Rule> = {
   r10_todo,
   r11_reward,
   r12_memories,
+  r13_progreso,
 };
 
 export function validateCampaign(campaign: Campaign, ctx: ValidateContext): ValidationIssue[] {

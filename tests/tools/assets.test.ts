@@ -119,12 +119,17 @@ describe('validate --assets (proceso)', () => {
     expect(stdout).not.toContain('assets');
   }, 60000);
 
-  it('con --assets informa el cruce y sale con 0', async () => {
+  it('con --assets informa el cruce y no cambia el veredicto', async () => {
     const { code, stdout } = await correrCli(['--campaign', 'vado', '--assets']);
     expect(stdout).toContain('assets');
     // El Vado ya tiene su arte generado: no falta nada y tampoco sobra.
     expect(stdout).toMatch(/vado: assets, faltan 0 de \d+/);
-    expect(code).toBe(0);
+    // El cruce de arte es INFORMATIVO: sin --assets-strict no puede tocar el código de salida, que
+    // lo fijan las reglas. Se compara contra la misma corrida sin la bandera en vez de exigir 0,
+    // que era atar este test a que la campaña estuviera limpia: mientras la regla 13 denuncie el
+    // racimo del acto 1, `vado` sale con 1 y el cruce de arte sigue sin faltantes.
+    const sinLaBandera = await correrCli(['--campaign', 'vado']);
+    expect(code).toBe(sinLaBandera.code);
   }, 60000);
 
   it('informa lo que falta en una campaña sin arte, y --assets-strict la hace fallar', async () => {

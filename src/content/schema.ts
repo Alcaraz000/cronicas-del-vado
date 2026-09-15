@@ -118,6 +118,28 @@ export interface Scene {
   ending?: { id: string; epilogue: Text };
 }
 
+/**
+ * Un objetivo del jugador: la línea que la barra dibuja cuando este objetivo está activo.
+ *
+ * Es lo que reemplaza a "recorré el mapa hasta acertar". La campaña declara una lista ORDENADA y
+ * el motor deriva cuál está en juego (`objetivoActivo`, en `src/engine/objetivos.ts`); el orden
+ * de la lista es la prioridad y lo decide el autor. Las banderas que lo mueven —las "pistas"—
+ * siguen siendo estado interno y el jugador no las ve nunca: lo único que llega a la pantalla es
+ * `texto`.
+ *
+ * Las condiciones son `Condition`, el mismo vocabulario que ya evalúa el motor: cero palabras
+ * nuevas que mantener.
+ */
+export interface Objetivo {
+  id: string;
+  /** La línea que lee el jugador. En la voz de la campaña. */
+  texto: string;
+  /** Cuándo este objetivo pasa a estar en juego. Sin `when`, desde el principio. */
+  when?: Condition;
+  /** Cuándo se considera cumplido y deja de mostrarse. */
+  hecho?: Condition;
+}
+
 export interface Npc {
   id: string;
   name: string;
@@ -173,6 +195,11 @@ export interface Campaign extends CampaignMeta {
   milestones: Record<string, { label: string }>;
   clocks: Record<string, { max: number; label: string }>;
   endings: Record<string, { title: string; hidden?: true; reward?: Effect[] }>;
+  /**
+   * Los objetivos del jugador, EN ORDEN DE PRIORIDAD. Opcional: una campaña sin objetivos es
+   * válida y no dibuja nada en la barra (es el caso de las fixtures y de la campaña de humo).
+   */
+  objetivos?: Objetivo[];
 }
 
 export interface WorldContent {
@@ -317,6 +344,13 @@ export const SceneSchema = z
     path: ['choices'],
   });
 
+export const ObjetivoSchema = z.object({
+  id: idSchema,
+  texto: z.string().min(1),
+  when: ConditionSchema.optional(),
+  hecho: ConditionSchema.optional(),
+});
+
 export const NpcSchema = z.object({
   id: idSchema,
   name: z.string().min(1),
@@ -373,6 +407,7 @@ export const CampaignSchema = CampaignMetaSchema.extend({
       reward: z.array(EffectSchema).optional(),
     }),
   ),
+  objetivos: z.array(ObjetivoSchema).optional(),
 });
 
 export const WorldContentSchema = z.object({

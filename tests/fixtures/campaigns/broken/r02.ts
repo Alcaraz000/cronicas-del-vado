@@ -20,10 +20,21 @@ const criptaSinFinB: Scene = conOpcion(
   { ...opcion(b_cripta, 'conjurar'), roll: { attr: 'saber', difficulty: 'dificil', tags: ['magia'], outcomes: {
     success: { effects: [{ set: 'char:base.recuerdo' }], next: 'b_fin_a' }, partial: { effects: [{ addCondition: 'agotado' }], next: 'b_fin_a' }, failure: { effects: [{ lethal: true }], next: 'b_descanso' } } } },
 );
-export const rotaR02SoloMago: Campaign = conEscena(
-  conEscena(campanaBase, criptaSinFinB),
-  conOpcion(b_descanso, { ...opcion(b_descanso, 'irse'), requires: { class: 'mago' }, lockedHint: 'Solo un mago conoce el camino' }),
-);
+// `rendirse` no tiene nada que ver con r02: está para que la campaña siga teniendo un final al que
+// se llega con opciones libres después de poner `irse` detrás de la clase. Sin ella la fixture
+// rompe además r13_progreso —quedarían cuatro escenas sin ningún final libre— y `soloRegla` dejaría
+// de aislar lo que esta fixture quiere mostrar.
+const conIrseDeMago: Scene = conOpcion(b_descanso, {
+  ...opcion(b_descanso, 'irse'),
+  requires: { class: 'mago' },
+  lockedHint: 'Solo un mago conoce el camino',
+});
+const descansoSoloMago: Scene = {
+  ...conIrseDeMago,
+  choices: [...conIrseDeMago.choices, { id: 'rendirse', label: 'Quedarse en el pueblo para siempre', outcome: { next: 'b_fin_a' } }],
+};
+
+export const rotaR02SoloMago: Campaign = conEscena(conEscena(campanaBase, criptaSinFinB), descansoSoloMago);
 
 // Un id de campaign.endings que ninguna escena produce (ni siquiera una inalcanzable): el final queda colgado.
 export const rotaR02FinalNoProducido: Campaign = { ...campanaBase, endings: { ...campanaBase.endings, fin_c: { title: 'Final C' } } };

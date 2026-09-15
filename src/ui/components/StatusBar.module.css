@@ -25,15 +25,72 @@
   text-shadow: 0 1px 3px var(--color-fondo);
 }
 
-/* El lugar es el título de la escena, no un dato más de la barra: serif del juego, en el
-   acento y con aire. `margin-right: auto` es lo que manda todo lo demás —marcas, condiciones y
-   botones— contra el borde derecho, sin envolver nada en un contenedor extra. */
-.lugar {
+/* Dónde estás y qué estás tratando de hacer, uno debajo del otro. La barra es un flex en FILA,
+   así que sin esta columna el objetivo caería al lado del lugar, en el mismo renglón que las
+   marcas, y se leería como un dato más.
+
+   `margin-right: auto` vive acá (antes estaba en `.lugar`, que era el primer hijo directo de la
+   barra): es lo que manda todo lo demás —marcas, condiciones y botones— contra el borde derecho.
+
+   **Sin `min-height` a propósito.** Cuando no hay objetivo activo el `span` no se dibuja, y con un
+   solo hijo la columna tiene que medir exactamente lo que mide el lugar: reservar alto para una
+   línea que no está es justo el hueco que la barra no debe tener. */
+.titulo {
+  display: flex;
+  flex-direction: column;
   margin-right: auto;
+}
+
+/* El lugar es el título de la escena, no un dato más de la barra: serif del juego, en el
+   acento y con aire. */
+.lugar {
   font-family: var(--fuente-juego);
   font-size: calc(var(--tam-ui) * 1.15 * var(--escala-fuente));
   color: var(--color-acento);
   letter-spacing: 0.02em;
+}
+
+/* El objetivo actual: la línea que dice qué estás tratando de hacer, en palabras de la campaña.
+   Se lee como el lugar —misma serif, mismo oro— pero un escalón más abajo: más chico y atenuado.
+   Esa es toda la jerarquía que necesita, porque lo que la distingue del lugar es dónde está.
+
+   ── EL PORQUÉ DE `opacity: 0.9` Y NO MENOS ──
+   La barra vive sobre el arte y esta fase pide 4,5:1. El acento `#c9a24a` sobre `--color-fondo`
+   da 7,79:1 de sobra, pero el fondo real no es el token: es el degradado del cromo sobre la
+   pintura. El peor fondo conocido está en el comentario de `.barra` —ahí `--color-texto-suave`
+   da 5:1 sobre la franja de arte más clara de la campaña—, y de esa igualdad se despeja su
+   luminancia: 0,0301. El oro atenuado contra ÉL, compuesto y medido con la fórmula de WCAG 2.x:
+
+     opacity 1,00 → 5,46:1     opacity 0,90 → 4,73:1
+     opacity 0,95 → 5,08:1     opacity 0,88 → 4,59:1
+                               opacity 0,85 → 4,39:1  ← por debajo del mínimo
+
+   O sea que el margen entero son dos escalones: 0,9 atenúa lo que se puede atenuar y todavía
+   deja 0,23 de sobra sobre el mínimo. Por eso está escrito así y no "un poquito más suave". La
+   línea hereda además el halo (`text-shadow`) de `.barra`, que es lo que sostiene los brillos
+   sueltos que la media del fondo no cubre. */
+.objetivo {
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-acento);
+  opacity: 0.9;
+  letter-spacing: 0.01em;
+}
+
+/* La palabra "Objetivo: ", que la línea lleva SOLO para el lector de pantalla: sola, la frase de
+   la campaña ("Hablá con Berta, la alcaldesa") no dice qué es. Mismo patrón que `.etiqueta` usa
+   en móvil y que `TextColumn.module.css` usa para el prefijo del hablante —`position: absolute` +
+   `clip-path`—, que saca de la VISTA sin sacar del árbol de accesibilidad. `display: none` no
+   sirve: se lleva la palabra de los dos lados. */
+.objetivoEtiqueta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .dato {

@@ -238,10 +238,17 @@ export const cl_molino = {
         difficulty: 'normal',
         tags: ['sigilo', 'percepcion'],
         outcomes: {
+          // FASE «objetivos» · tarea 4, caso 3: lo que Halvar dice en voz alta ES la definición de
+          // `run:sabe_de_halvar` («hay un mercader del otro lado metido en esto»), y el flag ya
+          // existía sin que esta banda lo encendiera. Es la TERCERA fuente, y la biblia §7.2 sólo
+          // la admite en el clímax y pagando: ésta se paga con una tirada. No es un cobro
+          // decorativo: `cl_halvar` —a donde va esta banda— lo lee en el `advantageIf` de
+          // `leerle_el_libro_de_rutas`.
           success: {
             text: [
               'Te metés entre los sacos y aguantás la respiración. Halvar cuenta en voz alta: entre su casa y el vado hay tres peajes y el del medio es suyo.',
             ],
+            effects: [{ set: 'run:sabe_de_halvar' }],
             next: 'cl_halvar',
           },
           partial: {

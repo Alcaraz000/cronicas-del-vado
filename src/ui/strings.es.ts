@@ -150,6 +150,12 @@ export const S = {
     recargar: 'Recargar la página',
   },
   barra: {
+    /**
+     * La palabra sola: el objetivo la lleva adelante SOLO para el lector de pantalla (ver
+     * `.objetivoEtiqueta` en `StatusBar.module.css`). A la vista, la línea es la frase de la
+     * campaña y nada más.
+     */
+    objetivo: 'Objetivo',
     heridas: 'Heridas',
     fortuna: 'Fortuna',
     condiciones: 'Condiciones',
