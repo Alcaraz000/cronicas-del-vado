@@ -158,7 +158,17 @@ declara, el motor calcula, la interfaz muestra.
 - **Los tres lugares se mantienen.** El acto sigue pidiendo la taberna, la casa de Berta y el
   molino; lo que cambia es que ahora el juego te dice a cuál ir. Deja de ser "recorré hasta acertar"
   y pasa a ser una investigación guiada. (Decisión de Gabriel.)
-- **El `redirect` de `sospecha >= 4` se queda como está.** Es la puerta del jugador temerario y
+- **El `redirect` de `sospecha >= 4` va también en las once escenas.**
+
+> **Corrección del 15 de septiembre, hecha al verificar la tarea 5.** Este punto decía que ese
+> redirect *"se queda como está"*, porque *"es la puerta del jugador temerario y ya funciona"*.
+> **Está mal, por la misma razón que todo lo demás en esta fase: una puerta que depende de pisar una
+> baldosa no es una puerta.** Medido: de 21 combinaciones de insistir en `a1_alcaldesa` —las siete
+> opciones como preferida × las tres bandas, 400 pasos, respetando lo que `render()` habilita—
+> **sólo 1 sale del racimo**. Insistir llena `sospecha` hasta 4 en doce pasos, pero la puerta que lo
+> lee vive sólo en `a1_plaza`, que ese bucle no pisa. El ruling viejo dejaba el §7.3 a medias.
+> (El texto que sigue es el argumento viejo, conservado para que se vea qué cambió:)
+> Es la puerta del jugador temerario y
   funciona; el §0.2 no es un bug de esa puerta sino la razón por la que no alcanza sola.
 
 > **Corrección del 14 de septiembre, hecha al implementar la tarea 3.** Este §3, tal como está
