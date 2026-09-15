@@ -190,7 +190,9 @@ export function TextColumn({ log, revelado }: TextColumnProps) {
           conPlaca={revelado !== undefined && i === visibles.length - 1}
         />
       ))}
-      <div ref={fin} />
+      {/* El ancla del autoscroll. La clase no es cosmética: la exceptúa de la separación entre
+          entradas, que si no le sumaría 8 px fantasma al alto de la columna (ver el CSS). */}
+      <div ref={fin} className={styles.ancla} />
     </div>
   );
 }

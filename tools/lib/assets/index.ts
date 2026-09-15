@@ -66,7 +66,11 @@ export function claveDe(ruta: string): string {
  */
 export function referencias(campaign: Campaign, world: WorldContent): AssetRef[] {
   const completa = conMundo(campaign, world);
-  const refs: AssetRef[] = [{ kind: 'portada', name: `portada_${completa.id}`, origen: 'meta.cover' }];
+  // `origen` decía `meta.cover` y es falso: el `name` sale de `completa.id`, no de ese campo.
+  // `meta.cover` sí se lee, pero en otro lado y para otra cosa — es el FONDO que el hub pinta a
+  // sangre detrás del menú (ver `fondoDe()` en `HubScreen.tsx`), y ya lo cubre la referencia de
+  // `places.*.background` del lugar al que pertenece.
+  const refs: AssetRef[] = [{ kind: 'portada', name: `portada_${completa.id}`, origen: 'id de la campaña' }];
   for (const [id, npc] of Object.entries(completa.npcs)) {
     refs.push({ kind: 'retrato', name: npc.portrait, origen: `npcs.${id}.portrait` });
     // Todo PNJ que aparece en una escena necesita su silueta recortada además del cuadro:

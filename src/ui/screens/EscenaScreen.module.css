@@ -31,6 +31,28 @@
    cualquiera de los dos convertiría a `.pantalla` en su contenedor y el `overflow: hidden` de
    acá lo recortaría. */
 .pantalla {
+  /* El alto de la caja vive ACÁ y no adentro de `.caja` porque no es un número de la caja: es
+     el número del que cuelgan tres cosas que hasta esta tarea se sostenían por separado y que
+     no vigilaba ningún test (§0.5 del diseño). (1) la caja; (2) la parada densa del velo, que
+     es este valor más 6 puntos; (3) la cuenta de cuánto sprite queda a la vista, que sale de
+     combinarlo con el alto del sprite. Tocar uno solo desacoplaba a los otros dos en silencio
+     —el degradado dejaba de morir donde arranca el filo de oro— y el comentario del sprite
+     seguía afirmando un porcentaje que ya no era cierto. Declarado una vez, el bloque de
+     teléfono lo redefine una vez y los tres se mueven juntos.
+
+     Se queda en 44 % y no en el 25,7 % que es la norma del género (Ren'Py, 278 px de 1080,
+     constante en toda resolución) por una razón medida: con el reparto en dos columnas de más
+     abajo, a 1919x905 el 44 % deja un interior de 353,19 px, que a 34,39 de interlínea son
+     10,27 líneas, y la encrucijada peor de la campaña pide 10: medido, la columna de prosa mide
+     341,52 px de contenido y le sobran 11,67. Con el 35 % el interior sería 271,75 y darían
+     7,90 líneas: volvería a scrollear.
+
+     Y hay un segundo motivo, que apareció al pelear el §6.1: para que las 7 opciones de
+     `a1_taberna` entren también harían falta 57,49 % de caja, y ese 57,49 % **deshace el sprite
+     de más arriba** —la fracción visible cae de 50,58 % a 31,9 %, peor que el 47,5 % de antes de
+     esta fase—. Por eso las opciones se arreglaron por el otro lado, bajándoles el alto a las
+     filas (ver `OptionList.module.css`), y el 44 % se quedó donde estaba. */
+  --alto-caja: 44%;
   position: relative;
   height: 100vh;
   height: 100dvh;
@@ -63,8 +85,16 @@
 
 /* 2. El velo. No está para oscurecer la imagen: es lo único que hace legible el texto SIN
    taparla. Queda limpio en la franja donde el arte importa (22 %–38 %), pone una sombra arriba
-   para despegar el cromo, y se vuelve denso desde el 62 %, que es donde se apoya la caja.
-   `pointer-events: none` porque cubre la pantalla entera y si no se comería cada clic. */
+   para despegar el cromo, y se vuelve denso justo donde se apoya la caja.
+   `pointer-events: none` porque cubre la pantalla entera y si no se comería cada clic.
+
+   La parada densa era un `62%` suelto, que es el mismo número que `100 − 44 + 6`: el borde de
+   arriba de la caja más 6 puntos de solapamiento. Los 6 puntos son a propósito y van hacia
+   ABAJO, o sea que el degradado termina de oscurecer por DETRÁS de la caja: así llega al filo de
+   oro todavía subiendo, y el recorte del sprite —que se hunde justo ahí— se apaga contra un
+   fondo que ya casi no cambia, en vez de cortarse contra un escalón. Escrito con el token, esos
+   6 puntos son lo único que queda como decisión y el resto lo sigue solo.
+   A 44 % da exactamente 62 %, o sea que en escritorio no se mueve un píxel. */
 .velo {
   position: absolute;
   inset: 0;
@@ -75,7 +105,7 @@
     var(--capa-arte) 0%,
     transparent 22%,
     transparent 38%,
-    var(--capa-caja) 62%,
+    var(--capa-caja) calc(100% - var(--alto-caja) + 6%),
     var(--capa-densa) 100%
   );
 }
@@ -90,14 +120,31 @@
   z-index: 3;
 }
 
-/* 4. El sprite está EN la escena, apoyado en el suelo: alto, anclado abajo, con la cara por
-   encima del borde de la caja y el resto perdiéndose detrás. Eso último es lo que lo hace
-   parecer un personaje parado en el cuarto y no una figura pegada encima del fondo.
+/* 4. El sprite está EN la escena, apoyado en el suelo: alto, con la cara por encima del borde
+   de la caja y el resto perdiéndose detrás. Eso último es lo que lo hace parecer un personaje
+   parado en el cuarto y no una figura pegada encima del fondo.
 
-   Con `height: 80%` y `bottom: 2%` el recorte ocupa del 18 % al 98 % de la pantalla: la caja
-   tapa del 56 % para abajo, así que se ve el 47 % de arriba de la imagen —cabeza y hombros— y
-   el resto se hunde. De paso, eso deja el fragmento de silla del sprite de `halvar` (filas
-   919-1004 de 1024, o sea el 90 %–98 % de su propia imagen) muy por debajo del borde.
+   Anclado por ARRIBA y con techo, que es el cambio de esta tarea. El `18%` es el mismo que
+   antes salía implícito de `bottom: 2%` más `height: 80%`, así que a 1280x800 no se mueve un
+   píxel; lo que cambia es qué pasa cuando la ventana crece. Anclado abajo, el borde de la caja
+   subía a la misma velocidad que el sprite y la fracción visible quedaba CLAVADA en 47,5 %
+   mientras la cabeza se inflaba: 283 px a 1919x905, el 31,3 % del alto de la ventana y 14,9
+   veces el cuerpo de texto. Anclado arriba, la fracción visible CRECE con la ventana. La
+   cuenta es `(100% − var(--alto-caja) − 18%) / lo que mide el recorte`, o sea el borde de
+   arriba de la caja menos donde arranca el sprite, sobre su propio alto:
+
+     1280x800:   (56 − 18)/80        = 47,5 %  (idéntico a antes)
+     1919x905:   (506,8 − 162,9)/680 = 50,6 %
+     1920x1080:  (604,8 − 194,4)/680 = 60,4 %
+
+   Por eso el alto de la caja es un token: esta cuenta es la mitad de él. El techo de 680 px
+   empieza a morder arriba de 850 px de alto de ventana (680/0,8), que es justo donde antes el
+   recorte empezaba a crecer sin dejar ver más personaje. En pantalla grande se ve cabeza y
+   torso en vez de una cabeza flotando.
+
+   De paso, eso deja el fragmento de silla del sprite de `halvar` (filas 919-1004 de 1024, o
+   sea el 90 %–98 % de su propia imagen) muy por debajo del borde: la fracción visible más
+   grande de las tres es 60,4 %.
 
    `aspect-ratio: 3 / 4` en el contenedor y no en el marco de adentro: los ocho recortes son
    768×1024 exactos, y así el hueco mide lo mismo haya arte o no —`Placeholder` también es 3:4—
@@ -113,9 +160,9 @@
    problema que resolvía. */
 .sprite {
   position: absolute;
-  bottom: 2%;
+  top: 18%;
   left: var(--esp-6);
-  height: 80%;
+  height: min(80%, 680px);
   aspect-ratio: 3 / 4;
   pointer-events: none;
   animation: entra-sprite 320ms ease-out;
@@ -183,8 +230,25 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
-  height: 44%;
-  padding: var(--esp-6) var(--esp-7) var(--esp-4);
+  height: var(--alto-caja);
+  padding-block: var(--esp-6) var(--esp-4);
+  /* El fondo de la caja sigue a sangre —de borde a borde— y lo que se centra es lo que se LEE:
+     `padding-inline` y no `margin`, porque el filo de oro tiene que seguir cruzando la pantalla
+     entera. El género hace lo mismo: Ren'Py pone la columna de diálogo en 1116 px de 1920, con
+     márgenes simétricos del 20,9 % por lado.
+
+     **1184 px y no 1440**, y el número no es de gusto: 1184 es lo que el interior de la caja
+     mide a 1280 de ancho (1280 − 48 × 2), que es el ancho al que esta interfaz se compuso y se
+     verificó. O sea que la expresión da exactamente los 48 px de siempre a 1280 —esa medida no
+     se mueve un píxel, que es el requisito— y de ahí para arriba el interior deja de crecer:
+     lo que sobra se va a dos márgenes iguales hasta que, en 1400, el reparto en dos columnas
+     se hace cargo del ancho por su cuenta y devuelve el relleno a 48.
+
+     Con el 1440 que traía el contrato esta declaración no haría NADA NUNCA, y lo verifiqué:
+     `(100% − 1440px)/2` recién le gana a los 48 px arriba de 1536 px de ancho, y de 1400 para
+     arriba manda el bloque del reparto. La banda útil de un centrado que no puede tocar 1280
+     es 1280-1400, y 1184 es el único valor que la cubre entera. */
+  padding-inline: max(var(--esp-7), (100% - 1184px) / 2);
   border-top: 1px solid var(--filo-acento);
   background-color: var(--color-fondo);
   background-image: linear-gradient(to bottom, var(--capa-caja), var(--capa-densa));
@@ -196,11 +260,18 @@
 
    `top: 0` + `translateY(-58%)` en vez de un `top` negativo en píxeles: así el porcentaje se
    mide sobre la propia placa y el reparto entre "afuera" y "adentro" de la caja se mantiene
-   igual con `--escala-fuente` en 1, en 1,25 o en 1,5, donde un offset fijo la descuadraría. */
+   igual con `--escala-fuente` en 1, en 1,25 o en 1,5, donde un offset fijo la descuadraría.
+
+   El `left` es LA MISMA expresión que el `padding-inline` de la caja, y no un `var(--esp-7)`
+   suelto, porque si no la placa nombraría a un texto que arranca hasta 60 px más a la derecha:
+   es peor que el problema que el centrado vino a arreglar. Y da el mismo número por
+   construcción: la placa es `position: absolute` contra la caja, así que su `100%` se resuelve
+   contra el mismo ancho que el `padding-inline` de ella. Las dos expresiones tienen que
+   moverse juntas, acá y en el bloque del reparto (hay un test que lo fija). */
 .placa {
   position: absolute;
   top: 0;
-  left: var(--esp-7);
+  left: max(var(--esp-7), (100% - 1184px) / 2);
   transform: translateY(-58%);
   padding: 0.12em 0.7em;
   border: 1px solid var(--borde-acento);
@@ -249,9 +320,20 @@
 
 /* El tope: 60 % de lo que la caja deja adentro de su relleno. Por debajo de eso una escena de
    cuatro opciones entra entera y no scrollea nada; por encima, la lista scrollea sola y el
-   texto no se entera. Mientras el revelado no termina esta región está vacía y mide 0: el
-   texto se queda con la caja completa, que es lo que corresponde mientras lo único que hay
-   para hacer es leer. */
+   texto no se entera. Mientras el revelado no termina esta región está vacía y mide 0 de ALTO:
+   apilada, el texto se queda con la caja completa, que es lo que corresponde mientras lo único
+   que hay para hacer es leer.
+
+   **Repartida no**, y conviene tenerlo escrito: arriba de 1400 px `.acciones` es `flex: 1 1 0`
+   con `flex-grow: 1`, así que vacía mide 0 de alto pero **958,25 px de ancho** a 1919x905. O
+   sea que durante todo el revelado —que es justo cuando el jugador está leyendo— la mitad
+   derecha de la caja está vacía. Es deliberado: la alternativa sería que la prosa se estirara a
+   todo el ancho mientras se tipea y se encogiera de golpe cuando aparecen las opciones, o sea
+   un reflow del párrafo que se está leyendo, y eso es peor que un hueco. Lo que lo hace
+   soportable es que el hueco está a la DERECHA de una prosa que ya no está pegada al borde: la
+   caja arranca en 48 px y la prosa se lleva 816,75 de los 1823, contra los 720 pegados a la
+   izquierda de una caja de 1919 que eran la queja original. Y de 1920 para arriba el relleno
+   del bloque del reparto centra el interior entero, así que el hueco no crece más. */
 .acciones {
   flex: 0 0 auto;
   min-height: 0;
@@ -266,15 +348,150 @@
    salió, qué modificó qué—.
 
    Lo que el 78 % NO hace es garantizar que el panel entre, y hasta esta oleada el código se
-   portaba como si sí: medido en el navegador, el panel asentado mide 271 px a escala 1 y 311 a
-   150 %, contra los 236 que este tope da (los dados tienen un tamaño fijo en `rem` y el resto
-   crece con la escala, así que el panel no escala parejo). Subirlo más no alcanza: a 150 % no
-   entra ni en la caja entera. Lo que garantiza que la línea del objetivo se lea son otras dos
+   portaba como si sí: medido en el navegador a 1280x800 sobre `a1_taberna`/`robar_el_libro`, el
+   panel asentado mide **255,59 px a escala 1 y 346,88 a 150 %**, contra los 236 que este tope da.
+   Subirlo más no alcanza: a 150 % no entra ni en la caja entera.
+
+   (Esos dos números se volvieron a medir con el escalado de la tarea 1; antes decían 271 y 311.
+   Y el motivo escrito acá cambió: decía que el panel no escala parejo porque «los dados tienen un
+   tamaño fijo en `rem`», y los dados ya siguen a `--tam-ui` como todo lo demás. Lo que hoy hace
+   que no escale parejo son los espaciados, que son tokens en px fijos: por eso de 1 a 1,5 el panel
+   crece 1,36x y no 1,5x.)
+
+   **Arriba de 1400 px esto lo arregla el reparto, y solo a escala 1.** Medido a 1919x905 sobre
+   `a1_taberna`/`robar_el_libro`, con el panel asentado (resultado más Fortuna más Continuar),
+   contra el interior de 353 px que el reparto le da entero:
+
+     escala 1     apilado 279,53 px en 272 -> 20 px de más  ·  repartido 279,53 en 353 -> ENTRA
+     escala 1,25  apilado 331,19 en 272    -> 71            ·  repartido 363,02 en 353 -> 22
+     escala 1,5   apilado 382,78 en 272    -> 123           ·  repartido 494,56 en 353 -> 154
+
+   O sea: entra por primera vez a escala 1, mejora a 1,25 y EMPEORA a 1,5, y el motivo está a la
+   vista en los números — repartido, el panel no tiene 1823 px de ancho sino 697, y a 1,5 la
+   columna de prosa se lleva el tope del 60 %, así que el panel envuelve y crece de 382 a 494.
+   Lo que garantiza que la línea del objetivo se lea siguen siendo otras dos
    cosas, cada una contra un scroll distinto: `EscenaScreen` pone este `scrollTop` en cero al
    abrirse la tirada (el scroll heredado de la lista de opciones) y `RollPanel` deja su línea
    de objetivo pegada arriba (el scroll que provoca el foco a "Continuar", 700 ms después). */
 .acciones[data-tirada='true'] {
   max-height: 78%;
+}
+
+/* Arriba de 1400 px de ancho la caja se reparte por DENTRO: la prosa a la izquierda, las
+   acciones a la derecha. No es la grilla de la fase anterior con el arte al costado —el texto
+   sigue ENCIMA del arte, el fondo sigue a sangre y la caja sigue apoyada abajo a todo el
+   ancho—; lo único que se reparte es el interior de la caja. Es lo que hacen Roadwarden y
+   Citizen Sleeper, los dos híbridos que el diseño ya citaba.
+
+   Medido a 1919x905 sobre `a1_taberna`, la encrucijada peor de la campaña (10 líneas de prosa,
+   7 opciones): apiladas, a la prosa le quedan 140 px de los 350 que pide y se ven 3 de 10
+   líneas y 3 de 7 opciones — y como el autoscroll deja el scroll en el fondo, las 3 líneas que
+   se ven son las ÚLTIMAS: la apertura de la escena no está nunca en pantalla. Repartidas, la
+   prosa se queda con los 353 px completos de la caja, entra en sus 10 líneas (343,9 px a 21,49
+   de cuerpo y 34,39 de interlínea) y **deja de scrollear: 0 px de desborde**.
+
+   El ancho base lo fija la PROSA y las acciones se quedan con el resto, no al revés. Medido con
+   la alternativa puesta a mano en el navegador —`.acciones` en `flex: 0 0 clamp(320px, 32%,
+   460px)`— a 1919x905 la columna de texto mide 1331 px mientras la prosa corta igual en 816,75:
+   **498,25 px muertos ADENTRO de la columna de texto**, o sea el mismo problema que esta tarea
+   vino a arreglar, más chico y escondido un nivel más adentro. Con la prosa como base, el
+   sobrante se lo llevan las opciones, que lo usan de verdad porque los chips y las
+   probabilidades son anchos.
+
+   El corte va en 1400 y no en 1280, y también está medido forzando el reparto a 1280x800: ahí
+   el tope del 60 % le gana a la medida y la columna de prosa queda en 710 px (la prosa en 684),
+   así que **seguiría desbordando 37 px** — el reparto ni siquiera arreglaría lo que vino a
+   arreglar—; y las acciones quedarían en 442 px, donde las dos primeras opciones envuelven y
+   pasan de 76 a 96 px de alto. Abajo del corte no cambia nada: la regla base sigue siendo la
+   que manda y por eso no se toca.
+
+   **Y hay una banda, de 1400 a 1484, donde el reparto todavía no alcanza**, que conviene tener
+   escrita en vez de descubrirla dos fases más adelante. Ahí el tope del 60 % le sigue ganando
+   al `calc()` de la columna: medido a 1400x905, la columna de prosa queda en 782,39 px, la
+   prosa en 756,39, se parte en **11 líneas y desborda 23 px**. El punto en que la medida entera
+   entra en el 60 % es **1484 px de ancho** (832,76 / 0,60 + 96), y a 1484x905 la prosa vuelve a
+   sus 10 líneas con 0 de desborde, verificado. No se mueve el corte a 1484: entre 1400 y 1484
+   el reparto sigue siendo mejor que apilar —a 1399, apilada, la misma prosa desborda 202 px— y
+   la campaña no tiene ninguna medida estándar en esa banda. */
+@media (min-width: 1400px) {
+  .caja {
+    flex-direction: row;
+    gap: var(--esp-6);
+    /* El mismo centrado que la regla base, pero con OTRO tope: 1824 px, que es lo que el
+       interior de la caja mide en el monitor de 1920 donde esta interfaz se compone y se
+       verifica (1920 − 48 × 2 = 1824). O sea que de 1920 para abajo no cambia un píxel y de ahí
+       para arriba el interior deja de crecer y lo que sobra se va a dos márgenes iguales.
+
+       **Los tres topes posibles, medidos a 1919x905 sobre `a1_taberna` con las palancas de alto
+       de `OptionList` ya puestas** (es la medición que decide esta línea):
+
+         1184 (el de la regla base) -> prosa 710,39: el tope del 60 % le gana a la medida y la
+                                       prosa VUELVE A DESBORDAR 65 px. Deshace el arreglo.
+         1440 (el del contrato)     -> prosa bien (816,75, 0 de desborde) pero acciones 575,25:
+                                       los chips y los motivos se bajan a su renglón, la lista
+                                       pide 424 px contra 353 y se ven 5 de 7 opciones.
+         1824 (este)                -> interior 1823, prosa 816,75, acciones 958,25, **7 de 7
+                                       opciones y 10 de 10 líneas, las dos con 0 de desborde**.
+
+       Y el tope sirve igual para lo que el 1440 venía a arreglar, que es el ultrawide: medido a
+       3440x1440, sin tope una opción mide 2346 px contra 950 de prosa —2,47×, peor que el 2,17×
+       que el §0.1 del diseño diagnosticó como problema— y con el tope mide 826 (0,87×), con las
+       7 opciones a la vista igual. El centrado del §2 existe de 1920 para arriba; abajo de eso
+       el ancho no sobra, se lo llevan las dos columnas. */
+    padding-inline: max(var(--esp-7), (100% - 1824px) / 2);
+    /* El pie baja de 16 a 12 px, y esos 4 px son de las OPCIONES. En el reparto las dos columnas
+       llegan al pie de la caja, y de los dos lados el que anda corto es el de las acciones: la
+       prosa de `a1_taberna` pide 341,52 px y le sobran 11,67, mientras que `cl_dravos` —nueve
+       opciones, el tope de la campaña— pide 378 contra los 353,19 que hay. Cada píxel del pie
+       es un píxel de ese lado.
+
+       (Estos 4 px NACIERON tapando otra cosa: la columna de prosa desbordaba por 0,33 px y
+       disparaba una barra de scroll de 10 px que le comía el ancho y le partía las 10 líneas en
+       11. Eso ya no pasa, y no porque estén estos 4 px: la causa era un `gap` de 8 px que la
+       grilla de `TextColumn` ponía antes de su ancla de autoscroll, y se arregló allá. Acá
+       quedan por el motivo de arriba, que es el que vale.) */
+    padding-bottom: var(--esp-3);
+  }
+
+  /* Y la placa acompaña, con la MISMA expresión que el relleno de acá arriba y no con la de la
+     regla base: si se quedara con aquella, a 1919x905 arrancaría en 367,5 px mientras la prosa
+     arranca en 48. Hay un test que compara las dos expresiones carácter por carácter, en los
+     dos lados del corte. */
+  .placa {
+    left: max(var(--esp-7), (100% - 1824px) / 2);
+  }
+
+  .columna {
+    /* El `font-size` NO es decorativo acá y no se puede sacar: `--ancho-prosa` está en `em`, y
+       el `em` se resuelve contra el `font-size` del elemento donde se USA la variable, no
+       contra el de la prosa que hay adentro. `.columna` es un div sin cuerpo propio, así que
+       heredaba el de la interfaz (16,97 px a 905 de alto) y los 38em daban 644,81 px en vez de
+       816,76: la columna quedaba 172 px más angosta que la medida que ella misma tiene que
+       reservar, la prosa volvía a partirse en 12 líneas en vez de 10 y seguía scrolleando 69 px.
+       Medido. Con el mismo cuerpo que la prosa, el token significa lo mismo de los dos lados. */
+    font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+    /* La medida MÁS el canal del scroll (`padding-right: var(--esp-4)` de la regla base), o la
+       columna reserva 816,76 px y la prosa se queda con 800,76. Medido: con 16 px de menos, la
+       misma prosa de `a1_taberna` se parte en 11 líneas en vez de 10, no entra en los 349 px y
+       aparece la barra, que le come otros 10 px y la deja en 790,75. Un lazo: scrollea porque
+       es angosta y es angosta porque scrollea. Reservando el canal aparte, la prosa entra en
+       10 líneas, no scrollea y la barra no llega a existir. */
+    flex: 0 0 min(calc(var(--ancho-prosa) + var(--esp-4)), 60%);
+  }
+
+  .acciones {
+    flex: 1 1 0;
+    max-height: 100%;
+  }
+
+  /* El tope de la tirada tiene que subir CON el reparto, y esta línea no es redundante: la
+     regla base `.acciones[data-tirada='true']` tiene especificidad (0,2,0) contra la (0,1,0)
+     de `.acciones`, y una media query no suma especificidad — así que sin esto el 78 % de allá
+     arriba le ganaría a este 100 % y el panel de tirada seguiría sin entrar, que es justamente
+     el bono que el reparto vino a cobrar. */
+  .acciones[data-tirada='true'] {
+    max-height: 100%;
+  }
 }
 
 /* `position: sticky` y no un botón al pie de la columna.
@@ -327,28 +544,47 @@
 
    Mismo punto de corte que `StatusBar.module.css` (800px), para que los dos cambien juntos. */
 @media (max-width: 800px) {
+  /* El 58 % se declara donde vive el token y no adentro de `.caja`, y eso arregla de paso un
+     desfasaje que nadie había visto: la parada densa del velo era un 62 % suelto, calculado
+     para la caja de escritorio, mientras acá la caja arranca en el 42 %. O sea que en el
+     teléfono el degradado terminaba de oscurecer 20 puntos POR DEBAJO del filo de oro, detrás
+     de la caja, y el recorte del sprite llegaba al borde sin haberse apagado del todo — que es
+     justo lo que el velo está para evitar (ver el comentario de arriba de todo). Con el token,
+     la parada pasa a 48 %, o sea los mismos 6 puntos por debajo del filo de oro que en
+     escritorio, en vez de los 20 que tenía. */
+  .pantalla {
+    --alto-caja: 58%;
+  }
+
   .caja {
-    height: 58%;
-    padding: var(--esp-5) var(--esp-4) var(--esp-3);
+    padding-block: var(--esp-5) var(--esp-3);
+    /* El centrado de escritorio no tiene nada que hacer acá: a 375 px la expresión daría los
+       48 px del piso y se comería la cuarta parte del ancho de la pantalla. */
+    padding-inline: var(--esp-4);
   }
 
   /* La placa NO se achica en el teléfono: sigue en el 1,3× del diseño. Es la señal que más
      rápido dice "novela visual" y en una pantalla chica, donde hay menos de todo, se la necesita
      más, no menos. Lo único que cambia es de qué borde se corre.
 
-     Medido a 375×812 con el nombre más ancho del reparto ("Capitán Dravos", 14 caracteres en la
-     serif; "Sargento Orell" mide 11 px menos), contra los 375 px de ancho y contra la primera
-     línea de la caja, que es lo más cerca que la placa tiene algo:
+     Los siete números de abajo se volvieron a medir en la tarea 2: los de antes se habían tomado
+     con la placa en 24,7 px y desde el `clamp()` de la tarea 1 a 375×812 mide 25,07, un 1,5 %
+     más. Medido a 375×812 con el nombre más ancho del reparto ("Capitán Dravos", 14 caracteres
+     en la serif; "Sargento Orell" mide 11 px menos), contra los 375 px de ancho y contra la
+     primera línea de la caja, que es lo más cerca que la placa tiene algo. Dos holguras y no
+     una, porque la que importa no es la misma que la que se ve: contra la CAJA del primer
+     renglón y contra los GLIFOS, que empiezan media interlínea más abajo:
 
-       escala   1,3×: borde derecho 221 px · 6 px por encima del texto
-       escala   1,3× a 125 %: 272 px · 2 px
-       escala   1,3× a 150 %: 323 px · −2 px
+       escala   1,3×: borde derecho 224,13 px (sobran 150,88) · caja +6,95 · glifos +10,95
+       escala   1,3× a 125 %: 275,58 px (sobran 99,42) · caja +2,90 · glifos +7,90
+       escala   1,3× a 150 %: 327,13 px (sobran 47,88) · caja −1,15 · glifos +4,85
 
-     O sea: no se pasa de ancho en ninguna escala, ni cerca. Lo que se agota es el aire vertical,
-     y recién a 150 %, donde la placa cruza 2 px la caja del primer renglón — la mitad de la
-     media interlínea, así que ningún glifo se toca; si en ese renglón está "Saltar lo leído",
-     el botón tiene `z-index` y se dibuja por encima. Sale de que la placa escala y el relleno de
-     arriba de la caja (`--esp-5`) no. A 1,15× la holgura a 150 % es de 1 px: no compraba nada. */
+     O sea: no se pasa de ancho en ninguna escala, ni cerca — a 150 % todavía le sobran 47,88 px.
+     Lo que se agota es el aire vertical, y recién a 150 %, donde la placa cruza 1,15 px la caja
+     del primer renglón; los glifos siguen 4,85 px por debajo, así que ninguno se toca. Si en ese
+     renglón está "Saltar lo leído", el botón tiene `z-index` y se dibuja por encima. Sale de que
+     la placa escala y el relleno de arriba de la caja (`--esp-5`) no. A 1,15× en vez de 1,3× la
+     holgura contra la caja a 150 % es de 1,65 px: sigue sin comprar nada. */
   .placa {
     left: var(--esp-4);
   }
@@ -358,14 +594,23 @@
      izquierdo; con 375 px de ancho, un recorte a la izquierda les cae encima a los dos. Es el
      mismo motivo por el que el retrato de la Fase H ya se iba a la derecha en este corte.
 
-     `bottom: 46%` contra una caja que empieza al 58 %: el recorte se mete 12 puntos detrás del
-     borde de la hoja —que es el "anclado al borde de la hoja" del diseño— y deja la cara en la
-     franja de arte. Con `height: 30%` y el `aspect-ratio: 3 / 4` de la regla base, a 375×812 el
+     `bottom: 46%` contra una caja que se lleva el 58 % y por lo tanto arranca en el 42 %: el
+     recorte llega hasta el 54 % y se mete 12 puntos detrás del borde de la hoja —que es el
+     "anclado al borde de la hoja" del diseño— y deja la cara en la franja de arte. Medido a
+     375×812: el recorte va de 194,89 a 438,48 y la caja empieza en 341,05, o sea que se ve el
+     60 % de la imagen, igual que antes de esta tarea. Con `height: 30%` y el
+     `aspect-ratio: 3 / 4` de la regla base, a 375×812 el
      hueco mide 244 px de alto por 183 de ancho: **el 48,7 % del ancho de la pantalla**, un poco
      menos de la mitad. Más alto y el fondo desaparece detrás del personaje. */
   .sprite {
     left: auto;
     right: var(--esp-2);
+    /* `top: auto` es obligatorio y no decorativo: la regla base ahora ancla por arriba, y con
+       `top`, `bottom` y `height` los tres declarados el caso queda sobre-restringido y el
+       navegador descarta el `bottom`. Sin esta línea el recorte del teléfono se iría al 18 %
+       y subiría 6 puntos. Acá el anclaje de abajo SÍ corresponde: lo que lo ubica es el borde
+       de la hoja, no el suelo de la escena. */
+    top: auto;
     bottom: 46%;
     height: 30%;
   }

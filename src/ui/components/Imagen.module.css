@@ -20,6 +20,24 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Con el `object-position` de fábrica (`50% 50%`) el recorte se reparte entre arriba y abajo,
+     así que QUÉ se pierde depende de la relación de aspecto de la ventana del jugador: a
+     1919x905 se come el 8,08 % de arriba y el 8,08 % de abajo, mientras que a 1600x900 y a
+     2560x1440 —16:9 exactos— no se pierde nada. O sea que la franja que el artista sacrificó
+     al componer no era la que se sacrificaba. Fijándolo arriba, lo que se recorta es siempre
+     lo de abajo, que en la escena la caja de texto tapa igual (arranca en el 56 % del alto).
+
+     Ya no son tres usos sino CINCO, y la cuenta de arriba vale para todos menos para dos. El
+     sprite 3:4 y el retrato 3:4 van en marcos de su misma relación, así que `cover` no les saca
+     nada; el fondo 16:9 de la escena sí recorta, y es el caso que razona el párrafo de arriba.
+     Los dos nuevos son los fondos a sangre de los dos menús —el hub (tarea 3) y la creación de
+     personaje (tarea 4)—, que van en un marco con `aspect-ratio: auto` del tamaño de la ventana:
+     ahí `cover` recorta contra la forma de la VENTANA y no contra la del marco. A 1919x905 un
+     16:9 deja ver el 83,8 % de su alto y un 3:4, el 35,4 %. Por eso los dos menús usan un fondo
+     16:9 y la portada 3:4 quedó de respaldo: con `center top`, lo que se pierde de un 3:4 a
+     sangre es el cuerpo entero de la figura, y ahí abajo no hay ninguna caja de texto que lo
+     tape — la premisa de este párrafo es de la escena y no se traslada sola. */
+  object-position: center top;
   /* Cada cambio de `id` monta un <img> nuevo (Imagen.tsx usa la URL como `key`), así que
      esta animación arranca sola en cada fundido: un fundido de opacidad, no una transición
      (que no dispara en el montaje de un nodo nuevo). */

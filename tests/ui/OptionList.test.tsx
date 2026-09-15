@@ -1,6 +1,9 @@
 /** @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cuerpoDe } from '../fixtures/css';
 import { OptionList } from '@/ui/components/OptionList';
 import { marcarModalAbierto } from '@/ui/modales';
 import { S } from '@/ui/strings.es';
@@ -202,5 +205,87 @@ describe('OptionList', () => {
     render(<OptionList choices={opciones} showOdds={true} wounds={0} onPick={onPick} />);
     fireEvent.keyDown(window, { key: '1', shiftKey: true });
     expect(onPick).toHaveBeenCalledWith('leer');
+  });
+
+  /**
+   * El alto de cada fila es lo único que hace que una encrucijada entera entre en la caja, y no
+   * lo vigilaba nadie. Medido a 1919x905 sobre `a1_taberna`: las 7 opciones pedían 475,26 px
+   * contra los 353,19 de interior, o sea **122,07 px de déficit** — con el reparto y todo, la
+   * escena entera NO entraba. La salida no fue subir `--alto-caja` (que además hundiría el
+   * sprite de 50,6 % visible a 31,9 %, peor que antes de esta fase) sino que cada fila gaste
+   * menos alto. Las tres palancas están acá abajo y las tres son necesarias.
+   */
+  it('cada fila gasta el alto mínimo: es lo que hace entrar una encrucijada de siete', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/OptionList.module.css'), 'utf8');
+    const fila = cuerpoDe(css, '.fila') ?? '';
+    const detalle = cuerpoDe(css, '.detalle') ?? '';
+    expect(fila, '.fila no tiene regla propia').not.toBe('');
+
+    // Palanca 4 (−58,0 px): los chips y las probabilidades comparten renglón con el rótulo. A
+    // 1919x905 la fila tiene 877 px de texto y la etiqueta más larga mide 320: bajar los chips a
+    // su propio renglón con 550 px libres al lado es desperdicio, no diseño. `wrap` es lo que
+    // los devuelve a su renglón cuando de verdad no entran (el teléfono, y el reparto angosto).
+    expect(fila, 'la fila dejó de repartir en línea: los chips vuelven a su propio renglón').toMatch(
+      /display\s*:\s*flex/,
+    );
+    expect(fila, 'sin `wrap` los chips no pueden bajar cuando no entran').toMatch(/flex-wrap\s*:\s*wrap/);
+    expect(detalle, 'el detalle volvió a empujarse un renglón hacia abajo').not.toMatch(/margin-top\s*:/);
+    expect(detalle, 'el detalle volvió a sangrarse debajo del rótulo').not.toMatch(/padding-left\s*:/);
+    expect(cuerpoDe(css, '.boton'), 'el botón vuelve a ocupar el renglón entero y empuja los chips abajo').not.toMatch(
+      /width\s*:\s*100%/,
+    );
+    // `width: 100%` es la forma VIEJA de comerse el renglón y no la única: `flex: 1 1 100%` hace
+    // exactamente lo mismo y no contiene `width`. Está en su propio caso, acá abajo.
+
+    // Palanca 1 (−56,0 px): el relleno vertical a la mitad. Son 8 px por fila y hay siete.
+    expect(fila, 'la fila volvió al relleno vertical de 8 px').toMatch(/padding\s*:\s*var\(--esp-1\)\s+var\(--esp-3\)/);
+
+    // Palanca 2 (−38,9 px): las tres tipografías de la fila dejan de heredar el 1,5 del cuerpo,
+    // que es interlineado de párrafo y acá no hay párrafos: hay renglones sueltos.
+    for (const sel of ['.label', '.detalle', '.hint']) {
+      expect(cuerpoDe(css, sel), `${sel} volvió a heredar el interlineado de párrafo del cuerpo`).toMatch(
+        /line-height\s*:\s*1\.3/,
+      );
+    }
+  });
+
+  /**
+   * La línea de la que cuelga la palanca 4, y que **nadie vigilaba**: la base del botón. El caso
+   * de arriba dice cuidarla y busca `/width\s*:\s*100%/`, así que `flex: 1 1 100%` —que se come
+   * el renglón exactamente igual— pasaba en verde y devolvía los chips a su propio renglón, o
+   * sea deshacía el §6.1 entero con los 13 casos que este archivo tenía, sin enterarse. Lo mismo
+   * por el otro lado: agregarle `flex: 1 0 100%` a `.detalle` o volver `.hint` a `1 0 100%` baja
+   * los chips y el motivo a su renglón, que es lo que la palanca vino a sacar.
+   *
+   * Los números salen de la medición a 1919x905 sobre `a1_taberna` que está escrita en la hoja:
+   * con 14em o 16em el botón se queda con 264 px, la etiqueta más larga (320) se parte en dos y
+   * la fila mide 60,3 px igual que si los chips se hubieran bajado —o sea que apretar la base no
+   * compra alto, solo parte rótulos—; con 22em los chips se bajan de más y la lista crece 26 px.
+   */
+  it('la base del botón es una medida en `em`, no el renglón entero', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/ui/components/OptionList.module.css'), 'utf8');
+    const boton = cuerpoDe(css, '.boton') ?? '';
+    expect(boton, '.boton no tiene regla propia').not.toBe('');
+
+    const base = /flex\s*:\s*1\s+1\s+(\d+(?:\.\d+)?)em\b/.exec(boton)?.[1];
+    expect(base, 'la base del botón dejó de ser `flex: 1 1 <n>em`: se come el renglón').toBeDefined();
+    expect(Number(base), 'con menos de 17em la etiqueta más larga se parte en dos renglones').toBeGreaterThanOrEqual(
+      17,
+    );
+    expect(Number(base), 'con más de 21em los chips se bajan de más y la lista crece').toBeLessThanOrEqual(21);
+    // Y que pueda achicarse por debajo de su ancho mínimo automático, o la etiqueta no parte
+    // adentro del botón y se lleva el renglón igual (visto a 375x812).
+    expect(boton, 'sin `min-width: 0` la etiqueta no puede partir adentro del botón').toMatch(/min-width\s*:\s*0/);
+
+    // Ningún ítem del renglón puede pedir el renglón entero, que es la otra forma de deshacerlo.
+    const pideElRenglonEntero = /(?:^|[\s;])(?:flex|flex-basis|width|min-width)\s*:[^;]*\b100%/;
+    for (const sel of ['.boton', '.detalle', '.hint']) {
+      expect(cuerpoDe(css, sel) ?? '', `${sel} vuelve a pedir el renglón entero y baja los chips`).not.toMatch(
+        pideElRenglonEntero,
+      );
+    }
+    // El motivo pide lo que mide y se achica si hace falta: así el `wrap` de la fila lo baja solo
+    // donde de verdad no entra (el teléfono, la columna de acciones angosta).
+    expect(cuerpoDe(css, '.hint'), 'el motivo dejó de ser `flex: 0 1 auto`').toMatch(/flex\s*:\s*0\s+1\s+auto/);
   });
 });

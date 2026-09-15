@@ -4,9 +4,19 @@
   margin-bottom: var(--esp-2);
 }
 
+/* El dado se mide contra el cuerpo de la interfaz, no contra `rem`. En `rem` no escalaba:
+   `usePrefsCss` escribe --escala-fuente en <html> pero el `font-size` vive en `body`, así que
+   el `font-size` de <html> se queda en los 16 px de fábrica y `3.5rem` valía 56 px con escala
+   1, con 1,25 y con 1,5 — el barrido de `font-size` de tests/ui/prefs.test.tsx no lo agarraba
+   porque esto es `width`/`height`.
+   OJO con el 3,5: NO reproduce los 56 px de antes. `--tam-ui` es 15 px en el piso, no 16, así
+   que 3,5x da 52,5 px a 1280x800 (3,5 px menos por dado) y 59,4 px a 1919x905. Se elige el 3,5
+   igual porque es la proporción contra el cuerpo de texto que el dado tiene que mantener, y
+   porque el dado no sale en ninguna captura del README (la escena elegida no tiene tirada). El
+   factor que dejaría los 56 px clavados en el piso sería 3,7333 (56/15). */
 .dado {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: calc(3.5 * var(--tam-ui) * var(--escala-fuente));
+  height: calc(3.5 * var(--tam-ui) * var(--escala-fuente));
   overflow: visible;
 }
 

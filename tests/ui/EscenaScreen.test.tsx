@@ -621,6 +621,26 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(velo).toMatch(/linear-gradient\(\s*to bottom/);
   });
 
+  /**
+   * §0.5 del diseño: tres números se sostenían entre sí y no los vigilaba NINGÚN test. La caja
+   * en 44 %, la parada densa del velo en 62 % —que es 100 − 44 + 6— y el «47 % del sprite
+   * visible» del comentario, que sale de combinar el 44 % de la caja con el 80 % del sprite:
+   * (0,56 − 0,18)/0,80. Cambiar uno solo desacoplaba los otros dos en silencio. Este caso es la
+   * razón de ser del token: la caja y el velo ya no pueden divergir sin romper la suite.
+   */
+  it('el alto de la caja es UN token, y el velo cuelga de él', () => {
+    const pantalla = cuerpoDe(css, '.pantalla');
+    expect(pantalla, '.pantalla no declara --alto-caja').toMatch(/--alto-caja\s*:\s*44%/);
+    expect(cuerpoDe(css, '.caja'), 'la caja no consume el token').toMatch(/height\s*:\s*var\(--alto-caja\)/);
+    // El velo, con el desfase de 6 puntos escrito: la parada densa va 6 puntos POR DEBAJO del
+    // borde de arriba de la caja, para que el degradado ya esté denso cuando llega el filo de
+    // oro. Sin el `+ 6%` el degradado muere justo en el filo y el recorte del sprite se corta
+    // de golpe contra el borde, que es lo que el velo está para evitar.
+    expect(cuerpoDe(css, '.velo'), 'la parada densa del velo volvió a ser un número suelto').toMatch(
+      /calc\(\s*100%\s*-\s*var\(--alto-caja\)\s*\+\s*6%\s*\)/,
+    );
+  });
+
   it('la caja se apoya abajo, a todo el ancho, y scrollea por dentro en vez de crecer', () => {
     const caja = cuerpoDe(css, '.caja');
     expect(caja, '.caja no tiene regla propia').not.toBeNull();
@@ -628,7 +648,7 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(caja).toMatch(/bottom\s*:\s*0/);
     expect(caja).toMatch(/left\s*:\s*0/);
     expect(caja).toMatch(/right\s*:\s*0/);
-    expect(caja).toMatch(/height\s*:\s*44%/);
+    expect(caja).toMatch(/height\s*:\s*var\(--alto-caja\)/);
 
     // Lo que no entra scrollea DENTRO. Sin `min-height: 0` el ítem flex pide su alto por
     // contenido y estira la caja: la trampa de siempre con flex y texto largo.
@@ -660,13 +680,185 @@ describe('EscenaScreen — el arte a sangre y el texto encima', () => {
     expect(cuerpoDe(css, '.columna')).toMatch(/flex\s*:\s*1\s+1\s+0/);
   });
 
-  it('el sprite se ancla abajo y alto, y no lleva el marco gris del retrato', () => {
+  it('arriba de 1400 px la caja se reparte en dos columnas', () => {
+    // Apiladas, a 1919x905 sobre `a1_taberna` se ven 3 de 10 líneas de prosa y 3 de 7 opciones,
+    // y el scroll queda en el tope: las 3 que se ven son las ÚLTIMAS. Repartidas, la prosa se
+    // queda con los 349 px completos de la caja: 10,2 líneas.
+    // OJO: `bloqueDeMedia` LANZA si no encuentra la media query (tests/fixtures/css.ts:16), no
+    // devuelve null. Así que la ausencia del bloque se afirma con `not.toThrow()`, no con
+    // `not.toBeNull()`.
+    expect(() => bloqueDeMedia(css, '@media (min-width: 1400px)')).not.toThrow();
+    const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+    // El `;` no es decoración del patrón: sin él, `row-reverse` pasa en verde, y con las
+    // opciones a la izquierda y la prosa a la derecha la pantalla queda dada vuelta sin que
+    // nadie se entere. Es la misma familia que el `\brem\b` que no mordía en la tarea 1.
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto acepta row-reverse: la prosa se iría a la derecha').toMatch(
+      /flex-direction\s*:\s*row\s*;/,
+    );
+    // El aire entre las dos columnas: sin él la prosa y las opciones se tocan.
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto no separa las dos columnas').toMatch(/gap\s*:\s*var\(--esp-6\)/);
+    // Y el pie de la caja, que en el reparto es más corto a propósito: esos 4 px son de las
+    // opciones, y son parte de lo que cierra el §6.1 (ver el comentario de la regla).
+    expect(cuerpoDe(ancha, '.caja'), 'el reparto perdió el pie corto: son 4 px de las opciones').toMatch(
+      /padding-bottom\s*:\s*var\(--esp-3\)/,
+    );
+    expect(cuerpoDe(ancha, '.acciones')).toMatch(/max-height\s*:\s*100%/);
+
+    // El ancho base lo fija la PROSA y las acciones se quedan con el resto. Al revés —con las
+    // acciones en un ancho fijo— a 1919x905 la columna de texto mediría 1331 px mientras la
+    // prosa corta en `--ancho-prosa`: 514 px muertos ADENTRO de la columna de texto, que es el
+    // mismo problema que esta tarea vino a arreglar, más chico y un nivel más adentro.
+    expect(cuerpoDe(ancha, '.columna')).toMatch(/flex\s*:\s*0\s+0\s+min\(\s*calc\(var\(--ancho-prosa\)/);
+
+    // Y la expresión ENTERA, que hasta esta oleada estaba vigilada solo por el prefijo. Las dos
+    // mitades que faltaban son las dos que hacen que la prosa entre:
+    //
+    // - **el canal del scroll** (`+ var(--esp-4)`, los mismos 16 px del `padding-right` de la
+    //   regla base). Sin él la columna reserva 816,76 y la prosa se queda con 800,76: medido, la
+    //   misma prosa de `a1_taberna` se parte en 11 líneas, no entra en los 349 px y aparece la
+    //   barra, que le come otros 10 px. Un lazo: scrollea porque es angosta y es angosta porque
+    //   scrollea.
+    // - **el tope del 60 %**, que es lo que impide que la columna de prosa se lleve la caja
+    //   entera y deje a las acciones sin ancho.
+    expect(
+      cuerpoDe(ancha, '.columna'),
+      'la columna dejó de reservar el canal del scroll: la prosa se parte en 11 líneas y aparece la barra',
+    ).toMatch(/min\(\s*calc\(var\(--ancho-prosa\)\s*\+\s*var\(--esp-4\)\)\s*,\s*60%\s*\)/);
+    // Y el `em` de `--ancho-prosa` tiene que resolverse contra el cuerpo de la PROSA: sin un
+    // `font-size` propio, `.columna` hereda el de la interfaz y los 38em dan 644,81 px en vez
+    // de 816,76 (medido a 1919x905). La columna quedaba 172 px más angosta que la medida que
+    // ella misma reserva y la prosa seguía scrolleando.
+    expect(cuerpoDe(ancha, '.columna'), 'el em de --ancho-prosa se resuelve contra el cuerpo equivocado').toMatch(
+      /font-size\s*:\s*calc\(var\(--tam-texto-juego\)\s*\*\s*var\(--escala-fuente\)\)/,
+    );
+
+    // Y el tope de la tirada tiene que subir CON él, o el bono no existe:
+    // `.acciones[data-tirada='true']` tiene especificidad (0,2,0) contra la (0,1,0) de
+    // `.acciones`, y una media query no suma especificidad — así que el 78 % de la regla base
+    // le ganaría a este 100 % y el panel seguiría sin entrar.
+    expect(
+      cuerpoDe(ancha, ".acciones[data-tirada='true']"),
+      'el tope de la tirada se queda en el 78 % de la regla base y le gana por especificidad',
+    ).toMatch(/max-height\s*:\s*100%/);
+  });
+
+  it('la regla base del reparto apilado NO se toca: es la que vale abajo de 1400', () => {
+    expect(cuerpoDe(css, '.acciones')).toMatch(/max-height\s*:\s*60%/);
+    expect(cuerpoDe(css, '.columna')).toMatch(/flex\s*:\s*1\s+1\s+0/);
+  });
+
+  it('la placa viaja con la prosa cuando el contenido se centra', () => {
+    // Si el contenido de la caja se centra y la placa se queda clavada en 48 px, la placa nombra
+    // a un texto que arranca hasta 59,5 px más a la derecha (con el tope de 1184, entre 1280 y
+    // 1400 px de ancho, que es la única banda donde el centrado de la regla base actúa). Es peor
+    // que el problema que vino a arreglar. Las dos llevan la MISMA expresión.
+    const caja = cuerpoDe(css, '.caja') ?? '';
+    const placa = cuerpoDe(css, '.placa') ?? '';
+    const expresion = /max\(\s*var\(--esp-7\)/;
+    expect(caja, 'la caja no centra su contenido').toMatch(expresion);
+    expect(placa, 'la placa no acompaña al centrado de la caja').toMatch(expresion);
+
+    // Y "la misma" quiere decir IDÉNTICA, carácter por carácter. Que las dos tengan un `max()`
+    // no alcanza: con 1184 en la caja y 1440 en la placa los dos patrones de arriba pasan en
+    // verde y la placa queda desalineada igual. Esto compara las dos expresiones enteras.
+    const expresionDe = (cuerpo: string, prop: string): string | undefined =>
+      new RegExp(`${prop}\\s*:\\s*(max\\([^;]*)\\s*;`).exec(cuerpo)?.[1]?.replace(/\s+/g, ' ').trim();
+    expect(expresionDe(caja, 'padding-inline'), 'la caja no declara el centrado con max()').toBeDefined();
+    expect(
+      expresionDe(placa, 'left'),
+      'la placa y la caja usan topes distintos: la placa nombra a un texto que arranca en otro lado',
+    ).toBe(expresionDe(caja, 'padding-inline'));
+
+    // Y lo mismo del otro lado del corte: si el reparto cambia el relleno de la caja, la placa
+    // tiene que cambiarlo con ella. Medido a 1919x905: con la placa en el `max()` de la regla
+    // base y la caja en el relleno del reparto, la placa arrancaría en 367,5 y la prosa en 48.
+    const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+    const cajaAncha = cuerpoDe(ancha, '.caja') ?? '';
+    const placaAncha = cuerpoDe(ancha, '.placa') ?? '';
+    const rellenoAncho = /padding-inline\s*:\s*([^;]+);/.exec(cajaAncha)?.[1]?.trim();
+    if (rellenoAncho !== undefined) {
+      expect(
+        /left\s*:\s*([^;]+);/.exec(placaAncha)?.[1]?.trim(),
+        'la caja cambia su relleno en el reparto y la placa se queda atrás',
+      ).toBe(rellenoAncho);
+    }
+  });
+
+  /**
+   * El caso de arriba compara las dos expresiones ENTRE SÍ, así que **cambiar las dos juntas pasa
+   * en verde** — y con ellas se va el centrado, que es un entregable de la fase. Los dos topes
+   * están medidos y cada uno tiene un único valor defendible:
+   *
+   * - **1184 en la regla base** = 1280 − 48 × 2, o sea el interior de la caja en la ventana a la
+   *   que esta interfaz se compuso y se verificó. La expresión da exactamente los 48 px de
+   *   siempre a 1280 —esa medida no se mueve un píxel, que es el requisito— y de ahí para arriba
+   *   el interior deja de crecer. Con el 1440 del contrato la declaración NO HARÍA NADA NUNCA:
+   *   `(100% − 1440px)/2` recién le gana a los 48 px arriba de 1536, y de 1400 para arriba manda
+   *   el bloque del reparto, así que la banda útil (1280-1400) quedaría sin cubrir.
+   * - **1824 en el reparto** = 1920 − 48 × 2, el monitor donde la fase se verifica. Medido a
+   *   1919x905 sobre `a1_taberna` con las palancas de alto puestas: con 1184 la prosa cae a
+   *   710,39 y VUELVE A DESBORDAR 65 px; con 1440 la prosa entra pero las acciones quedan en
+   *   575,25 y se ven 5 de 7 opciones; con 1824 entran las 7 y las 10 líneas, las dos con 0 de
+   *   desborde. Y arregla el ultrawide: a 3440x1440 una opción medía 2346 px contra 950 de prosa
+   *   (2,47×) y con el tope mide 826 (0,87×).
+   */
+  it('los dos topes del centrado son los medidos, no dos números cualesquiera', () => {
+    /** El tope en px del `max(var(--esp-7), (100% - <tope>px) / 2)` de una declaración. */
+    const topeDe = (cuerpo: string, prop: string): number => {
+      const patron = new RegExp(
+        `${prop}\\s*:\\s*max\\(\\s*var\\(--esp-7\\)\\s*,\\s*\\(\\s*100%\\s*-\\s*(\\d+)px\\s*\\)\\s*/\\s*2\\s*\\)`,
+      );
+      return Number(patron.exec(cuerpo)?.[1]);
+    };
+
+    const base = cuerpoDe(css, '.caja') ?? '';
+    expect(topeDe(base, 'padding-inline'), 'el centrado de la regla base perdió su tope de 1184 px').toBe(1184);
+    expect(topeDe(cuerpoDe(css, '.placa') ?? '', 'left')).toBe(1184);
+
+    const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+    const reparto = cuerpoDe(ancha, '.caja') ?? '';
+    expect(topeDe(reparto, 'padding-inline'), 'el reparto perdió su tope de 1824 px').toBe(1824);
+    expect(topeDe(cuerpoDe(ancha, '.placa') ?? '', 'left')).toBe(1824);
+
+    // Y el del reparto tiene que ser MÁS ancho que el de la base, o el reparto estrecharía el
+    // interior justo donde la caja tiene más lugar: con 1184 en los dos, la prosa desborda 65 px.
+    expect(topeDe(reparto, 'padding-inline')).toBeGreaterThan(topeDe(base, 'padding-inline'));
+  });
+
+  it('el sprite se ancla ARRIBA y acotado, y no lleva el marco gris del retrato', () => {
     const sprite = cuerpoDe(css, '.sprite');
     expect(sprite, '.sprite no tiene regla propia').not.toBeNull();
     expect(sprite).toMatch(/position\s*:\s*absolute/);
-    // Alto de verdad: con la caja empezando al 56 %, es lo que deja la cara por encima del
-    // borde y hunde el resto detrás, como un sprite apoyado en el suelo de la escena.
-    expect(sprite).toMatch(/height\s*:\s*80%/);
+    // Alto de verdad, pero con techo: anclado abajo, cada píxel que crecía la ventana se lo
+    // comía la caja y la fracción visible quedaba clavada en 47,5 % mientras la cabeza se
+    // inflaba (283 px a 1919x905, el 31,3 % del alto de la ventana).
+    // Con el techo ESCRITO: `min(80%, ...)` a secas deja pasar `min(80%, 99999px)`, que es lo
+    // mismo que no tener techo, y el techo es la mitad del entregable — de él salen el 50,58 %
+    // visible a 1919x905 y el 80,47 % a 2560x1440 que dice el comentario de la regla.
+    expect(sprite).toMatch(/height\s*:\s*min\(\s*80%\s*,\s*680px\s*\)/);
+    // Anclado por ARRIBA la fracción visible crece con la ventana en vez de quedarse quieta:
+    // 47,5 % a 1280x800 (idéntico a hoy), 50,6 % a 1919x905, 60,4 % a 1080. El 18 % es el
+    // mismo que hoy sale implícito de `2% + 80%`.
+    expect(sprite).toMatch(/top\s*:\s*18%/);
+    expect(sprite, 'el sprite volvió a anclarse abajo: la cabeza vuelve a inflarse').not.toMatch(/bottom\s*:/);
+
+    // La otra mitad de la geometría, que hasta esta oleada no vigilaba nadie:
+    //
+    // - **el `aspect-ratio: 3 / 4`**, que va en el CONTENEDOR y no en el marco de adentro. Los
+    //   ocho recortes son 768×1024 exactos, así que con él el hueco mide lo mismo HAYA ARTE O NO
+    //   —`Placeholder` también es 3:4— y la campaña de humo no cambia de forma. Sin él el hueco
+    //   se queda sin ancho propio y el 48,7 % de pantalla del bloque de teléfono (183 px de 375,
+    //   medido) no sale de ninguna parte.
+    // - **el `left`**, que es lo que lo pone del lado del que se mide todo lo demás. En el bloque
+    //   de teléfono el sprite se va a la derecha con `left: auto`, y esa línea no significa nada
+    //   si acá no hay un `left`.
+    expect(sprite, 'el sprite perdió su relación de aspecto: el hueco deja de medir lo mismo sin arte').toMatch(
+      /aspect-ratio\s*:\s*3\s*\/\s*4/,
+    );
+    expect(sprite, 'el sprite no se ancla a ningún borde horizontal').toMatch(/left\s*:\s*var\(--esp-\d\)/);
+    // Y no se come los clics: cubre media pantalla por encima del fondo, y el clic en el arte es
+    // lo que completa el párrafo en curso del revelado.
+    expect(sprite, 'el sprite volvió a comerse los clics del arte').toMatch(/pointer-events\s*:\s*none/);
 
     // El recorte tiene canal alfa: el gris de fondo y el radio de `Imagen.module.css` le
     // dibujarían justo el rectángulo que la tarea 1 vino a sacar.
@@ -696,10 +888,13 @@ describe('EscenaScreen — las proporciones en móvil', () => {
   const movil = bloqueDeMedia(css, '@media (max-width: 800px)');
 
   it('la caja se lleva más pantalla que en escritorio: en un teléfono el texto es casi todo', () => {
-    const caja = cuerpoDe(movil, '.caja');
-    expect(caja, '.caja no tiene una regla propia en el bloque de móvil').not.toBeNull();
-    const alto = /height\s*:\s*(\d+)%/.exec(caja ?? '')?.[1];
-    expect(alto, '.caja de móvil no declara una altura en %').toBeDefined();
+    // El alto ya no se escribe en `.caja` sino en `--alto-caja`, que el bloque de móvil
+    // redefine en `.pantalla`: así el velo lo sigue solo, en vez de quedarse con la parada
+    // densa de escritorio mientras la caja arranca 14 puntos más arriba.
+    const pantalla = cuerpoDe(movil, '.pantalla');
+    expect(pantalla, '.pantalla no redefine --alto-caja en el bloque de móvil').not.toBeNull();
+    const alto = /--alto-caja\s*:\s*(\d+)%/.exec(pantalla ?? '')?.[1];
+    expect(alto, 'el bloque de móvil no declara --alto-caja en %').toBeDefined();
     expect(Number(alto)).toBeGreaterThan(44);
   });
 
@@ -715,6 +910,12 @@ describe('EscenaScreen — las proporciones en móvil', () => {
     expect(sprite, '.sprite no tiene una regla propia en el bloque de móvil').not.toBeNull();
     expect(sprite).toMatch(/right\s*:/);
     expect(sprite).toMatch(/left\s*:\s*auto/);
+    // Y el `top: auto`, que no es decorativo: la regla base ancla por ARRIBA, así que sin esto
+    // el caso queda sobre-restringido (`top` + `bottom` + `height`), el navegador descarta el
+    // `bottom` y el recorte del teléfono se va al 18 % — seis puntos más arriba de donde estaba.
+    expect(sprite, 'el sprite de móvil quedó sobre-restringido y se va seis puntos hacia arriba').toMatch(
+      /top\s*:\s*auto/,
+    );
   });
 });
 
@@ -1003,19 +1204,43 @@ describe('EscenaScreen — la placa del hablante', () => {
    * La otra mitad del arreglo: la hoja de estilos tiene que esconder SOLO el prefijo marcado
    * `placa`. Con `[data-hablante]` a secas volvería el bug entero sin que ningún test de DOM se
    * entere, porque jsdom no aplica módulos CSS — por eso esto se lee del archivo.
+   *
+   * **Los dos selectores de acá abajo llevan el espacio del descendiente, y no es cosmética.**
+   * `Parrafos` marca un `<strong>` ADENTRO del párrafo (`TextColumn.tsx` pone la clase en el
+   * contenedor), así que la regla que esconde es `.columna [data-hablante='placa']`; la
+   * compuesta `.columna[data-hablante='placa']` pediría que el contenedor llevara el atributo
+   * y **no alcanzaría a nada**. Hasta el cierre de la fase del escalado este caso pedía la
+   * compuesta y pasaba igual, porque `cuerpoDe` borraba TODO el espacio del selector y las
+   * confundía: escrita compuesta en la hoja, ningún prefijo se escondía y la suite seguía en
+   * verde. Por eso además de leer el archivo se comprueba contra el DOM que el selector
+   * alcance al nodo — que es lo único que un string no puede mentir.
    */
   it('la hoja esconde únicamente el prefijo que la placa repite, no todos', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8');
 
-    const soloLaPlaca = cuerpoDe(css, ".columna[data-hablante='placa']");
+    const soloLaPlaca = cuerpoDe(css, ".columna [data-hablante='placa']");
     expect(soloLaPlaca, 'la regla dejó de apuntar solo al prefijo de la placa').not.toBeNull();
     expect(soloLaPlaca).toMatch(/clip-path\s*:\s*inset\(50%\)/);
     // Y sigue siendo ocultamiento VISUAL: `display: none` se llevaría el nombre del árbol de
     // accesibilidad, que es de donde lo toma la región viva.
     expect(soloLaPlaca).not.toMatch(/display\s*:\s*none/);
 
-    // La regla vieja, que se llevaba puestos todos los prefijos, no puede volver.
-    expect(cuerpoDe(css, '.columna[data-hablante]'), 'volvió la regla que esconde TODOS los prefijos').toBeNull();
+    // La regla vieja, que se llevaba puestos todos los prefijos, no puede volver. También con el
+    // espacio: la que hacía daño era la descendiente.
+    expect(cuerpoDe(css, '.columna [data-hablante]'), 'volvió la regla que esconde TODOS los prefijos').toBeNull();
+
+    // Y el selector del archivo, corrido tal cual sobre lo renderizado: en el entorno de test los
+    // CSS Modules devuelven el nombre pelado de la clase. Un selector que pesa lo que tiene que
+    // pesar pero no le pega a nada es el agujero de la tarea 4, y acá no puede pasar.
+    montarEscena(conArte, {
+      log: [escenaLog([{ speaker: 'mensajero', text: '—Vengo de lejos y con prisa.' }])],
+    });
+    render(<EscenaScreen />);
+    expect(
+      document.querySelectorAll(".columna [data-hablante='placa']").length,
+      'el selector de la hoja no alcanza a ningún prefijo del DOM',
+    ).toBe(1);
+    expect(document.querySelectorAll(".columna[data-hablante='placa']").length).toBe(0);
   });
 
   /**

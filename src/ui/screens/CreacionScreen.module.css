@@ -1,33 +1,179 @@
+/* La creación de personaje, rehecha: una pregunta por pantalla, con el arte grande.
+
+   Se construye sobre el mismo vocabulario que `HubScreen.module.css` y `EscenaScreen.module.css`
+   —el arte a sangre detrás de todo, el velo que lo hace legible sin taparlo, los tokens de capa
+   (`--capa-arte`, `--capa-caja`, `--capa-opcion`), el filo de oro— para que las tres pantallas se
+   lean como el mismo juego. Las capas se apilan por `z-index`: fondo (0) → velo (1) → cabecera,
+   cuerpo y pie (2). Fondo y velo son `position: fixed` y no `absolute` por lo mismo que en el hub:
+   esta pantalla SÍ scrollea (el paso 2 con «ver todos» son doce retratos), y con `absolute` el
+   arte se iría con el scroll y dejaría fondo liso abajo.
+
+   Lo que había antes está medido, y por eso se tiró:
+
+   - **Las tarjetas se pisaban entre sí.** El `all: unset` de `.tarjeta` pisa el
+     `box-sizing: border-box` global de `tokens.css:180-185` y devuelve el botón a `content-box`.
+     Con `height: 100%`
+     más 12 px de relleno por lado y 1 px de borde, el botón medía 26,0 px más que su celda
+     (12+12+1+1) y con `gap: 12px` se metía 14,0 px DENTRO de la tarjeta de la fila siguiente.
+     Medido por DOM en los pasos 1 y 3 y en las cuatro medidas de ventana (1919×905, 1280×800,
+     2560×1440, 375×812): 26,0 px en todas. Era la causa mecánica de «parecen mal acomodadas».
+   - **El motivo de un bloqueo caía fuera de su celda**: 88,5 px de texto colgando a 1280×800 y
+     96,1 px a 1919×905 (crece porque la letra ahora sigue a la ventana). Ahora vive adentro de la
+     tarjeta que explica.
+   - **Era la única pantalla del juego sin una sola regla `@media`**: cuatro pasos en una columna
+     de 720 px centrada, igual en un teléfono que en un monitor de 2560. A 1919×905 eso dejaba
+     1199 px de margen muerto —el 62,5 % del ancho— y el 72 % del viewport sin pintar.
+   - **Los retratos salían a 160 px de ancho** (213,3 de alto) en el paso 1, 153 en el paso 2 y 140
+     en el resumen, desde archivos de 900×1200: el `max-width: 160px` que `Imagen.module.css:13-16`
+     le pone a todo `[data-aspect='3:4']`. Esa regla se escribió acá, para estas miniaturas.
+
+   NINGÚN `font-size` de este archivo mide en `rem`, por lo mismo que en el hub: `rem` vale 16 px
+   siempre (el `font-size` del documento vive en `body`, no en `<html>`), así que los `1.6rem` y
+   `1.2rem` que había acá no seguían ni a la ventana ni a la preferencia de letra grande. Todo se
+   mide contra `--tam-texto-juego` / `--tam-ui` / `--tam-ui-chico`, que son los `clamp()` de la
+   tarea 1. */
+
 .pantalla {
+  /* El ancho de la columna de contenido. En `em` y no en px por lo mismo que `--ancho-hub` y
+     `--ancho-prosa`: se resuelve contra el cuerpo de la interfaz, que ya escala con la ventana y
+     con la preferencia del jugador. Es más ancha que la del hub (64em) a propósito: el hub es una
+     lista y esta pantalla es una galería de retratos: el paso 1 son cuatro clases una al lado de
+     la otra, y a 64em cada una se quedaría con 262,5 px a 1919x905 (64em = 1086,0 px con el cuerpo
+     de interfaz en 16,969, menos tres separaciones de 12, dividido cuatro). El `font-size` de acá abajo no es
+     cosmético — es el que hace que este `em` mida contra el cuerpo correcto; es la trampa que la
+     tarea 2 encontró con `--ancho-prosa`, que se resolvía contra el cuerpo equivocado. */
+  --ancho-creacion: 92em;
+  /* Valor de respaldo: cada paso lo pisa con el suyo (ver `.tarjetas[data-paso='1']`, `.retratos`
+     y `.escenario`). Si faltara, el `calc()` que acota el retrato sería inválido y el cuadro
+     quedaría SIN tope —no vuelve a los 160 px de `Imagen.module.css`, porque una declaración
+     inválida en tiempo de cómputo cae al valor inicial, que para `max-width` es `none`—. */
+  --alto-retrato: clamp(150px, 36vh, 480px);
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: var(--esp-4);
   min-height: 100vh;
-  padding: var(--esp-5) var(--esp-4);
+  min-height: 100dvh;
+  /* Menos relleno arriba y abajo que a los costados: el recurso escaso de esta pantalla es el
+     ALTO. Con 24 px por lado, el paso 3 pedía 802 px en una ventana de 800 y aparecía una barra
+     de scroll por 2 px; con 16 px entra con 14 px de sobra (medido a 1280×800). */
+  padding: var(--esp-4) var(--esp-5);
+  background: var(--color-fondo);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
 }
 
+/* 1. El arte, a sangre: la plaza de Aldamar, un 16:9. Por qué un fondo de lugar y no el retrato
+   que el jugador está eligiendo —que es lo que había acá primero—, en `CreacionScreen.tsx`. */
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Se selecciona `[data-aspect]` sin valor, igual que `HubScreen.module.css:74`: de acá cuelga un
+   16:9, pero el selector no tiene por qué saberlo y así no se rompe en silencio si el archivo
+   cambia de forma.
+
+   Lo que anula es el `max-width: 160px` que `Imagen.module.css:13-16` le pone a todo
+   `[data-aspect='3:4']` —una regla escrita para las miniaturas de esta misma pantalla— más el
+   `aspect-ratio` y el radio de tarjeta que el marco trae. Los TRES selectores encadenados no son
+   adorno: `.marco[data-aspect='3:4']` pesa (0,2,0) y hay que ganarle sin depender del orden de
+   importación, que ningún CSS Module garantiza. (0,3,0) gana siempre.
+   `background: none` porque el marco pinta el gris del placeholder mientras la imagen decodifica,
+   y a sangre ese gris es una pantalla entera parpadeando. */
+.pantalla > .fondo > [data-aspect] {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: none;
+}
+
+/* 2. El velo. Mismo degradado que el del hub, y por el mismo motivo: no está para oscurecer la
+   imagen sino para que lo de encima se lea SIN taparla. Todo lo que se LEE en esta pantalla vive
+   adentro de un panel (`.tarjeta`, `.retrato`, `.escenario`, `.respuesta`, `.columna`, `.campo`),
+   que suma su `--capa-caja` encima del velo. Los que NO van adentro de un panel son CUATRO y no
+   dos —el título del paso, la pregunta, lo que falta para seguir y el error de creación; los dos
+   últimos viven en el pie, que no tiene fondo— y los cuatro llevan capa propia, igual que
+   `HubScreen.module.css:172-187`, donde está hecha la cuenta de contraste contra el peor caso.
+
+   La cuenta acá, con el mismo peor caso que el hub (arte **blanco**, porque la regla tiene que
+   valer para el archivo que venga) pero NO calculada: medida sobre el píxel ya compuesto de una
+   captura a 1919x905, con el arte del fondo reemplazado por blanco puro. El punto es el medio de
+   `.pendiente`, que cae en el 90,4 % del alto de la ventana (el párrafo va de 802,7 a 833,2):
+
+     arte blanco -> solo el velo ......................................... rgb(71 70 67)
+       --color-aviso #d19a3a sobre eso ................................... 3,77:1  ✘
+       --color-peligro-texto #e96b60 sobre eso ........................... 3,03:1  ✘
+     + capa propia (--capa-cromo) ........................................ rgb(35 34 31)
+       --color-aviso ..................................................... 6,36:1  ✔ AA
+       --color-peligro-texto ............................................. 5,10:1  ✔ AA
+
+   Sin esa capa los dos párrafos del pie quedaban por debajo de 4,5:1 contra una imagen clara, y
+   son justo los que dicen por qué no se puede seguir. Se ven en los pasos 2 y 3, que ya tienen
+   arte detrás. */
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--capa-cromo) 0%,
+    var(--capa-arte) 30%,
+    var(--capa-arte) 62%,
+    var(--capa-caja) 100%
+  );
+}
+
+/* 3. Las tres bandas de contenido, centradas sobre el arte. */
 .cabecera,
 .cuerpo,
 .pie {
-  width: 100%;
-  max-width: var(--ancho-columna-max);
-  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  width: min(100%, var(--ancho-creacion));
+  margin-inline: auto;
 }
 
 .cabecera {
   display: grid;
+  justify-items: center;
   gap: var(--esp-2);
 }
 
+/* El nombre de la pantalla como placa, igual que el nombre del juego en el hub. */
 .titulo {
-  font-size: calc(1.6rem * var(--escala-fuente));
+  margin: 0;
+  padding: var(--esp-1) var(--esp-5);
+  border-block: 1px solid var(--borde-acento);
+  background: var(--capa-densa);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * 1.5 * var(--escala-fuente));
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-align: center;
   color: var(--color-acento);
 }
 
-.progreso {
-  height: 6px;
+.pasoTexto {
   border-radius: 999px;
-  background: var(--color-superficie-alta);
+  padding: 0.15em 0.8em;
+  background: var(--capa-cromo);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-texto-suave);
+}
+
+.progreso {
+  width: min(100%, 28em);
+  height: 4px;
+  border-radius: 999px;
+  background: var(--capa-cromo);
   overflow: hidden;
 }
 
@@ -37,53 +183,178 @@
   background: var(--color-acento);
 }
 
-.pasoTexto {
+.cuerpo {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-4);
+}
+
+/* La pregunta del paso. Es el título de la pantalla en el sentido que importa —lo que se está
+   preguntando— y por eso va en la serif del juego y grande, no en 1.2rem de interfaz. */
+.pregunta {
+  justify-self: center;
+  text-align: center;
+  margin: 0;
+  border-radius: var(--radio);
+  padding: 0.1em 0.6em;
+  background: var(--capa-cromo);
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * 1.4 * var(--escala-fuente));
+  line-height: 1.2;
+  color: var(--color-acento);
+  text-shadow: 0 1px 3px var(--color-fondo);
+}
+
+/* 4. Los dos armados de paso.
+
+   `.conArte` es el de los pasos 3 y 4: a la izquierda quién sos hasta acá (el retrato grande, el
+   nombre, la clase) y a la derecha la pregunta. El paso 3 no tenía NADA de arte —ocho cajitas de
+   texto en una página de 1920 px— y el arte no se inventa: es el retrato que el jugador acaba de
+   elegir en el paso 2. En una sola columna (teléfono y ventanas angostas) la identidad va arriba,
+   que es el orden en que se lee. */
+.conArte,
+.galeriaYNombre {
+  display: grid;
+  gap: var(--esp-5);
+  align-items: start;
+}
+
+/* El alto del retrato de identidad se declara acá y no en `.escenario` porque lo consumen LOS DOS:
+   el cuadro (por su `max-width`) y el ancho de la columna que lo contiene. Declarado adentro, el
+   padre se quedaba con el valor de respaldo de `.pantalla` y los dos números podían separarse sin
+   que se notara. */
+.conArte {
+  --alto-retrato: clamp(160px, 38vh, 520px);
+}
+
+.escenario,
+.respuesta,
+.columna,
+.campo {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
+  border: 1px solid var(--filo-acento);
+  border-radius: var(--radio);
+  background: var(--capa-caja);
+}
+
+.escenario {
+  justify-items: center;
+  text-align: center;
+}
+
+.nombreHeroe {
+  font-family: var(--fuente-juego);
+  font-size: calc(var(--tam-texto-juego) * 1.2 * var(--escala-fuente));
+  line-height: 1.2;
+  color: var(--color-texto);
+}
+
+.claseHeroe {
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-  color: var(--color-texto-suave);
+  color: var(--color-acento);
 }
 
-.subtitulo {
-  margin-bottom: var(--esp-3);
-  font-size: calc(1.2rem * var(--escala-fuente));
-}
-
-.columna {
-  display: grid;
-  gap: var(--esp-3);
-  justify-items: start;
-}
-
+/* Rótulo de sección. Vive siempre adentro de un panel, así que no necesita capa propia. Medía lo
+   mismo que el cuerpo (15 px), o sea que no había jerarquía: todo pesaba igual. */
 .grupo {
   font-family: var(--fuente-ui);
-  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--color-texto-suave);
 }
 
-/* Tarjetas de clase y de rasgo */
+/* 5. El arte de cada tarjeta.
+
+   `--alto-retrato` manda: el ancho sale de él (3:4 → 0,75×) y no al revés, porque el recurso
+   escaso de esta pantalla es el ALTO —lo mismo que en la escena, ver `tokens.css:85-90`—. Acotar
+   por `max-width` y dejar el `aspect-ratio: 3/4` que trae `Imagen.module.css` es lo único que no
+   deforma el cuadro: fijar `height` con `width: auto` y un `max-width` de contenedor rompe la
+   relación en cuanto la columna es angosta.
+
+   Los tres valores salen del presupuesto de alto de cada paso, medido a 1280×800 (la ventana más
+   apretada de las cuatro que se verifican) y con tope para que a 2560×1440 el retrato no se coma
+   la pantalla. */
+.pantalla .arte > [data-aspect='3:4'] {
+  max-width: min(100%, calc(var(--alto-retrato) * 0.75));
+}
+
+.arte {
+  display: block;
+  width: 100%;
+}
+
+/* Tarjetas de clase (paso 1) y de rasgo (paso 3) */
 .tarjetas {
   list-style: none;
   margin: 0;
   padding: 0;
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* 12em y no 15: el mínimo de la pista decide cuántas columnas entran, y con 15em los ocho
+     rasgos salían en TRES filas a 1280×800 y la página scrolleaba 86 px (133 con el aviso de
+     cupo). Con 12em entran cuatro por fila —180 px de pista a 15 px de cuerpo— y son dos filas:
+     medido, 0 px de scroll. No cambia nada en el paso 1, que tiene cuatro tarjetas y `auto-fit`
+     colapsa las columnas que sobran. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12em), 1fr));
   gap: var(--esp-3);
+}
+
+/* Las cuatro clases: la tarjeta mide lo que mide el cuadro (3:4 → 0,75 × el alto, más el relleno
+   de los dos lados) y la fila se centra. Con columnas de `1fr` la tarjeta salía más ancha que el
+   retrato —373 px contra 244 a 1919×905— y el arte quedaba arrinconado a la izquierda con un
+   vacío al lado: es la pantalla de elegir arquetipo, el cuadro tiene que llegar a los bordes. */
+.tarjetas[data-paso='1'] {
+  --alto-retrato: clamp(150px, 36vh, 480px);
+}
+
+/* La tarjeta mide lo que mide el cuadro más su relleno, y la pista sigue siendo `1fr`. Con la
+   pista acotada al ancho del cuadro —que fue el primer intento— la cuenta decide cuántas columnas
+   entran y se rompe sola: a 1280×800 la galería del paso 2 pasaba de tres retratos a dos por 5 px
+   y la página scrolleaba 312. Con `1fr` mandan las tarjetas, no la aritmética: el cuadro se achica
+   solo hasta donde haga falta para que entren todas en una fila. */
+.tarjetas[data-paso='1'] .tarjeta {
+  max-width: calc(var(--alto-retrato) * 0.75 + 2 * var(--esp-4));
 }
 
 .tarjeta {
   all: unset;
+  /* DESPUÉS del `all: unset` y no antes: `all` pisa todo lo declarado arriba, incluido el
+     `box-sizing: border-box` global del reset, y es así como la tarjeta volvía a `content-box`
+     y se pasaba 26,0 px de su celda. Hay un test que verifica el ORDEN, no solo la declaración. */
+  box-sizing: border-box;
   cursor: pointer;
   display: grid;
-  gap: var(--esp-1);
+  align-content: start;
+  justify-items: start;
+  gap: var(--esp-2);
   height: 100%;
-  padding: var(--esp-3);
-  border: 1px solid var(--color-borde);
+  padding: var(--esp-4);
+  border: 1px solid var(--filo-acento);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--capa-caja);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto);
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out;
+}
+
+/* Adentro de un panel la tarjeta es una ficha sobre la caja, no otra caja: la misma distinción que
+   `--capa-opcion` hace en la escena entre la caja de texto y las opciones de adentro. */
+.respuesta .tarjeta,
+.columna .retrato {
+  background: var(--capa-opcion);
+}
+
+.tarjeta:hover:not([aria-disabled='true']),
+.retrato:hover {
+  border-color: var(--borde-acento);
 }
 
 .tarjeta:focus-visible,
@@ -96,22 +367,46 @@
 .tarjeta[aria-pressed='true'],
 .retrato[aria-pressed='true'] {
   border-color: var(--color-acento);
-  background: var(--color-superficie-alta);
+  background: var(--capa-densa);
 }
 
-.tarjeta:disabled {
+/* Bloqueado, no deshabilitado. El `disabled` nativo lo sacaba del orden de tabulación y con él se
+   iba la única explicación del bloqueo (ver el comentario del `aria-disabled` en el .tsx). */
+.tarjeta[aria-disabled='true'] {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.72;
 }
 
 .nombreClase {
   font-family: var(--fuente-juego);
-  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente) * 0.85);
+  font-size: calc(var(--tam-texto-juego) * var(--escala-fuente));
+  line-height: 1.2;
   color: var(--color-acento);
 }
 
+/* Tres datos distintos de una clase con tres tratamientos distintos. Los tres compartían la clase
+   `.linea` y los mismos 13 px: qué potencia, qué te da y qué te cuesta se leían igual. */
+.potencia {
+  border-radius: 999px;
+  padding: 0.1em 0.6em;
+  background: var(--capa-opcion);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-texto);
+}
+
+.poder {
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-texto);
+}
+
+.debilidad,
 .linea {
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
+}
+
+.debilidad strong {
+  color: var(--color-peligroso);
 }
 
 .elegido {
@@ -123,86 +418,140 @@
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
 
-/* Galería de retratos */
-.retratos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--esp-3);
-}
+/* 6. Los cuatro tipos de mensaje. Eran la MISMA itálica ámbar de 13 px para cosas que no se
+   parecen en nada, y cuatro cosas distintas que se ven iguales no informan de nada:
 
-.retrato {
-  all: unset;
-  cursor: pointer;
-  display: grid;
-  gap: var(--esp-1);
-  padding: var(--esp-2);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  font-family: var(--fuente-ui);
-  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-}
+     .ayuda      cómo funciona el paso ......................... neutro, sin adorno
+     .contador   cuántos rasgos llevás ......................... el dato, en acento
+     .cupo       ya no entran más, pero se puede soltar uno .... aviso, se abre solo
+     .regla      la Debilidad de la clase: no se abre nunca .... peligro, con filo rojo
+     .pendiente  lo que falta para poder seguir ................ aviso, en el pie
 
-/* Nombre */
-.campo {
-  display: grid;
-  gap: var(--esp-1);
-  width: 100%;
-  max-width: 360px;
-  font-family: var(--fuente-ui);
-}
-
-.input {
-  padding: 0.5em 0.7em;
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto);
-  font: inherit;
-}
-
+   El color no comunica solo: la regla dura además lleva filo y empieza con «No se puede», el
+   pendiente vive pegado al botón que bloquea y el cupo al lado del contador que lo explica. */
 .ayuda {
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
   color: var(--color-texto-suave);
 }
 
-/* Motivo de un bloqueo: texto, no solo gris. */
-.motivo {
-  margin-top: var(--esp-1);
+/* El contador y el aviso de cupo comparten renglón: el aviso aparece y desaparece, y como fila
+   propia le costaba 35 px a la lista de rasgos cada vez (medido a 1280×800). */
+.estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--esp-2) var(--esp-3);
+}
+
+.contador {
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  letter-spacing: 0.04em;
+  color: var(--color-acento);
+}
+
+.cupo {
+  justify-self: start;
+  border-radius: var(--radio);
+  padding: 0.2em 0.7em;
+  background: var(--capa-opcion);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-  font-style: italic;
+  color: var(--color-texto);
+}
+
+.regla {
+  border-inline-start: 2px solid var(--color-peligro);
+  padding-inline-start: var(--esp-2);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  color: var(--color-peligro-texto);
+}
+
+/* Los dos viven en el pie, que no es un panel: apoyan directo contra el arte. La capa propia es lo
+   que los sostiene arriba de 4,5:1 contra una imagen clara — la cuenta está en el comentario del
+   velo, más arriba. Es la misma solución que `HubScreen.module.css` le da a sus títulos de sección
+   por el mismo motivo. */
+.pendiente,
+.error {
+  justify-self: start;
+  border-radius: var(--radio);
+  padding: 0.15em 0.7em;
+  background: var(--capa-cromo);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+}
+
+.pendiente {
   color: var(--color-aviso);
 }
 
 .error {
-  font-family: var(--fuente-ui);
   color: var(--color-peligro-texto);
 }
 
-/* Resumen */
-.ficha {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--esp-4);
+/* 7. Galería de retratos (paso 2). Tres cuadros grandes, no doce miniaturas de 140 px: es la
+   pregunta entera de este paso y el arte es la respuesta. */
+.retratos {
+  --alto-retrato: clamp(180px, 42vh, 560px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
   width: 100%;
-  padding: var(--esp-3);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10em), 1fr));
+  gap: var(--esp-3);
+  justify-items: center;
+}
+
+
+.retrato {
+  all: unset;
+  /* Mismo caso que `.tarjeta`, y también después del `all`: con `height: 100%` —que está acá para
+     que el chip de "Retrato elegido" no haga más alta a UNA de las tres tarjetas— el `all: unset`
+     devolvía este botón a `content-box` y se pasaba de su celda igual que las otras. */
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--esp-2);
+  width: 100%;
+  /* Mismo criterio que las tarjetas de clase: el cuadro llega a los bordes de su marco. Va acá
+     adentro y no en una regla aparte porque `all: unset` le ganaría por orden de fuente y lo
+     devolvería a `none`. */
+  max-width: calc(var(--alto-retrato) * 0.75 + 2 * var(--esp-2));
+  height: 100%;
+  padding: var(--esp-2);
+  border: 1px solid var(--filo-acento);
+  border-radius: var(--radio);
+  background: var(--capa-caja);
+  font-family: var(--fuente-ui);
+  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out;
+}
+
+/* Nombre */
+.campo {
+  font-family: var(--fuente-ui);
+}
+
+.input {
+  width: 100%;
+  padding: 0.5em 0.7em;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
   background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
 }
 
-.fichaRetrato {
-  width: 140px;
-}
-
+/* 8. Resumen */
 .datos {
-  flex: 1 1 260px;
   margin: 0;
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
@@ -210,11 +559,14 @@
 
 .datos dt {
   margin-top: var(--esp-2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--color-texto-suave);
 }
 
 .datos dd {
   margin: 0;
+  color: var(--color-texto);
 }
 
 .listaSimple {
@@ -228,7 +580,7 @@
   padding: 0;
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8em), 1fr));
   gap: var(--esp-2);
 }
 
@@ -237,9 +589,9 @@
   justify-content: space-between;
   gap: var(--esp-2);
   padding: var(--esp-2);
-  border: 1px solid var(--color-borde);
+  border: 1px solid var(--filo-acento);
   border-radius: var(--radio);
-  background: var(--color-superficie);
+  background: var(--capa-opcion);
   font-family: var(--fuente-ui);
   font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
 }
@@ -255,18 +607,15 @@
   gap: var(--esp-2);
   margin: 0;
   padding: var(--esp-3);
-  border: 1px solid var(--color-borde);
+  border: 1px solid var(--filo-acento);
   border-radius: var(--radio);
 }
 
 .reparto legend {
   padding: 0 var(--esp-1);
-  font-family: var(--fuente-ui);
-  font-size: calc(var(--tam-ui-chico) * var(--escala-fuente));
-  color: var(--color-texto-suave);
 }
 
-/* Pie */
+/* 9. Pie */
 .pie {
   display: grid;
   gap: var(--esp-2);
@@ -275,27 +624,41 @@
 .botones {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--esp-2);
+  gap: var(--esp-3);
 }
 
 .primario,
 .secundario {
   font-family: var(--fuente-ui);
-  padding: 0.6em 1.4em;
+  font-size: calc(var(--tam-ui) * var(--escala-fuente));
+  padding: 0.6em 1.6em;
   border-radius: var(--radio);
-  border: 1px solid var(--color-borde);
-  background: var(--color-superficie-alta);
+  border: 1px solid var(--filo-acento);
+  background: var(--capa-cromo);
   color: var(--color-texto);
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out;
 }
 
 .primario {
   background: var(--color-acento);
   border-color: var(--color-acento);
   color: var(--color-fondo);
+  letter-spacing: 0.04em;
+}
+
+.secundario:hover:not(:disabled) {
+  background: var(--capa-opcion);
+  border-color: var(--borde-acento);
+}
+
+.primario:hover:not(:disabled) {
+  box-shadow: 0 0 0 var(--esp-1) var(--filo-acento);
 }
 
 .primario:disabled {
-  background: var(--color-superficie-alta);
+  background: var(--capa-opcion);
   border-color: var(--color-borde);
   color: var(--color-texto-suave);
 }
@@ -303,4 +666,128 @@
 .secundario[aria-pressed='true'] {
   border-color: var(--color-acento);
   color: var(--color-acento);
+}
+
+/* El movimiento se apaga si el sistema lo pide, igual que en `HubScreen.module.css` y
+   `Imagen.module.css`. El cambio de color se queda: no es movimiento, y es lo que contesta que el
+   control está vivo. */
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta,
+  .retrato,
+  .primario,
+  .secundario {
+    transition: none;
+  }
+}
+
+/* 10. Pantalla ancha: la identidad al lado de la pregunta, no encima.
+   Desde 1000 px hay lugar para las dos columnas sin que ninguna quede angosta: con la columna de
+   identidad en 260 px —el ancho del cuadro más su relleno, ver más abajo—, a 1280x800 le quedan
+   948 px a la columna de la pregunta (916 de contenido, descontando el relleno del panel), o sea
+   cuatro tarjetas de rasgo por fila, que es lo mismo que dice el comentario de `.tarjetas`. */
+@media (min-width: 1000px) {
+  /* La columna de identidad mide lo que mide el cuadro más su relleno, por lo mismo que las
+     tarjetas de clase: si la pista es más ancha, el retrato queda flotando en el medio del panel
+     con aire a los dos lados. */
+  .conArte {
+    grid-template-columns: calc(var(--alto-retrato) * 0.75 + 2 * var(--esp-4)) minmax(0, 1fr);
+  }
+
+  /* El retrato acompaña mientras se elige: la lista de rasgos es más alta que la identidad. */
+  .escenario {
+    position: sticky;
+    top: var(--esp-5);
+  }
+}
+
+/* El campo del nombre va al lado de la galería en vez de abajo. No es cosmético: apilado, el paso
+   2 scrolleaba 128 px a 1280×800 (medido), porque los tres retratos a 42vh más el campo no entran
+   uno debajo del otro. Repartido, a 1280x800 la galería se queda con 848 px —tres retratos de
+   252 px y sus separaciones— y el campo con los 24em (360 px) de la derecha. En el borde mismo del
+   salto, a 1100x800, a la galería le quedan 668: los tres retratos NO se van a otra fila, se
+   achican solos a 188 px de cuadro, que es para lo que las pistas son `1fr` y el tope vive en la
+   tarjeta. */
+@media (min-width: 1100px) {
+  .galeriaYNombre {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 24em);
+  }
+}
+
+/* 11. Teléfono. Una sola columna —a 375 px no hay dos posibles— y el retrato acotado por el ALTO,
+   que es el recurso escaso: a 375 px un 3:4 a todo el ancho mediría 436 px, más de la mitad de la
+   ventana, y empujaría la pregunta y los botones fuera de la pantalla. */
+@media (max-width: 800px) {
+  .pantalla {
+    gap: var(--esp-3);
+    padding: var(--esp-3);
+  }
+
+  .titulo {
+    padding: var(--esp-1) var(--esp-4);
+    font-size: calc(var(--tam-texto-juego) * 1.15 * var(--escala-fuente));
+  }
+
+  .pregunta {
+    font-size: calc(var(--tam-texto-juego) * 1.15 * var(--escala-fuente));
+  }
+
+  .conArte,
+  .galeriaYNombre {
+    gap: var(--esp-3);
+  }
+
+  .tarjetas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* El selector se repite con el atributo puesto A PROPÓSITO. Las media queries NO suman
+     especificidad: `.tarjetas[data-paso='1']` pesa (0,2,0) y le gana a `.tarjetas` (0,1,0) esté
+     donde esté, así que sin esta línea el paso 1 se quedaría en el teléfono con tarjetas del
+     ancho del cuadro (183 px) y el texto en una tira. Es la misma trampa que la tarea 2 encontró
+     con `.acciones[data-tirada='true']`. */
+  .tarjetas[data-paso='1'] {
+    --alto-retrato: clamp(140px, 30vh, 360px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* En el teléfono la tarjeta ocupa el ancho de la pantalla y el cuadro va arriba: si midiera lo
+     que mide el cuadro (183 px), el texto quedaría en una tira de nueve caracteres. */
+  .tarjetas[data-paso='1'] .tarjeta {
+    max-width: none;
+  }
+
+  .retrato {
+    max-width: none;
+  }
+
+  .retratos {
+    --alto-retrato: clamp(140px, 24vh, 300px);
+  }
+
+  /* La identidad pasa a ser una banda horizontal: el retrato a la izquierda y el nombre y la
+     clase al lado. Apilada medía 330 px de alto en una ventana de 812, o sea que empujaba la
+     pregunta —que es lo que el jugador vino a contestar— abajo del pliegue. La columna del
+     retrato mide exactamente lo que el cuadro (3:4 → 0,75 × el alto), así que no hace falta que
+     el `width: 100%` de `Imagen.module.css` se resuelva contra una pista de tamaño automático. */
+  .escenario {
+    --alto-retrato: clamp(140px, 26vh, 320px);
+    grid-template-columns: calc(var(--alto-retrato) * 0.75) minmax(0, 1fr);
+    grid-template-rows: repeat(3, auto);
+    justify-items: start;
+    text-align: start;
+    align-items: center;
+  }
+
+  .escenario > .arte {
+    grid-row: 1 / -1;
+    grid-column: 1;
+  }
+
+  .escenario,
+  .respuesta,
+  .columna,
+  .campo,
+  .tarjeta {
+    padding: var(--esp-3);
+  }
 }
