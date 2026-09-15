@@ -95,6 +95,45 @@ describe('fixtures/css', () => {
       expect(reglasPara(bloque, '.tarjeta')).toEqual([]);
       expect(reglasPara(bloque, '.jugar').join('')).not.toMatch(/transform/);
     });
+
+    /**
+     * **Agujero 4 del fixture.** El normalizador borraba TODO el espacio del selector, así que
+     * `.a .b` (un `.b` adentro de un `.a`) y `.a.b` (un elemento con las dos clases) quedaban
+     * indistinguibles. No es teórico ni cosmético: le pegan a cosas distintas, y cambiar una por
+     * la otra es justo el cambio que rompe una pantalla. Mordió de verdad en esta misma oleada
+     * —`tests/ui/EscenaScreen.test.tsx` pedía `.columna[data-hablante='placa']` mientras la hoja
+     * declara `.columna [data-hablante='placa']`, que es la correcta—, así que con el agujero
+     * abierto escribir la compuesta en la hoja dejaba la suite en verde con ningún prefijo
+     * escondido.
+     */
+    it('no confunde el descendiente `.a .b` con el compuesto `.a.b`', () => {
+      const descendiente = `.tarjeta .jugar { transition: none; }`;
+      const compuesto = `.tarjeta.jugar { transition: none; }`;
+
+      expect(reglasPara(descendiente, '.tarjeta .jugar')).toEqual(['transition: none;']);
+      expect(reglasPara(descendiente, '.tarjeta.jugar'), 'el descendiente pasó por compuesto').toEqual([]);
+      expect(reglasPara(compuesto, '.tarjeta.jugar')).toEqual(['transition: none;']);
+      expect(reglasPara(compuesto, '.tarjeta .jugar'), 'el compuesto pasó por descendiente').toEqual([]);
+
+      // Lo mismo en `cuerpoDe`, que comparte el normalizador y donde el agujero mordió.
+      expect(cuerpoDe(descendiente, '.tarjeta.jugar')).toBeNull();
+      expect(cuerpoDe(compuesto, '.tarjeta .jugar')).toBeNull();
+      expect(cuerpoDe(descendiente, '.tarjeta .jugar')).toMatch(/transition/);
+    });
+
+    /**
+     * Lo que el normalizador SÍ tiene que seguir colapsando: el espacio alrededor de un
+     * combinador y de una coma no significa nada, y los tests del repo escriben las dos formas
+     * (`cuerpoDe(css, '.pantalla>.fondo>…')` contra una hoja que lo escribe con espacios, y
+     * `StatusBar.test.tsx` pide `'.ficha,.historial,.abandonar'` contra una lista en tres
+     * renglones).
+     */
+    it('el espacio alrededor de un combinador o de una coma sigue sin contar', () => {
+      expect(cuerpoDe(`.a > .b { color: red; }`, '.a>.b')).toMatch(/color:\s*red/);
+      expect(cuerpoDe(`.a>.b { color: red; }`, '.a > .b')).toMatch(/color:\s*red/);
+      expect(cuerpoDe(`.uno,\n.dos,\n.tres { color: red; }`, '.uno,.dos,.tres')).toMatch(/color:\s*red/);
+      expect(reglasPara(`.uno,\n.dos { color: red; }`, '.dos')).toEqual(['color: red;']);
+    });
   });
 
   describe('reglasQueTocan', () => {
@@ -118,6 +157,90 @@ describe('fixtures/css', () => {
 
     it('lanza si no encuentra la media query, en vez de devolver la hoja entera', () => {
       expect(() => bloqueDeMedia(`.a { color: red; }`, '@media (min-width: 1400px)')).toThrow(/no se encontró/);
+    });
+
+    /**
+     * **Agujero 1 del fixture, y el que más barato salía disparar en este repo**, que nombra
+     * media queries en comentarios todo el tiempo: `CreacionScreen.module.css` nombra `@media` en
+     * su cabecera y `EscenaScreen.module.css` nombra `@media (min-width: 1400px)` en la prosa de
+     * una regla. La búsqueda iba por `indexOf` sobre el texto CRUDO y después agarraba el primer
+     * `{` que viniera, así que devolvía **el cuerpo de una regla base cualquiera y no lanzaba**:
+     * un `toMatch` contra "el bloque del reparto" pasaba por lo que dijera la regla de al lado
+     * del comentario. Es el mismo agujero que la tarea 5 le tapó a `sinBloquesAnidados`.
+     */
+    it('no corta por un COMENTARIO que nombra la media query: busca el bloque de verdad', () => {
+      const css =
+        `/* Arriba de 1400 px —@media (min-width: 1400px)— la caja se reparte en dos columnas. */\n` +
+        `.caja { flex-direction: column; }\n` +
+        `@media (min-width: 1400px) { .caja { flex-direction: row; } }`;
+      const ancha = bloqueDeMedia(css, '@media (min-width: 1400px)');
+      expect(cuerpoDe(ancha, '.caja'), 'devolvió el cuerpo de la regla base, no el del bloque').toMatch(
+        /flex-direction:\s*row/,
+      );
+      expect(cuerpoDe(ancha, '.caja')).not.toMatch(/column/);
+    });
+
+    it('lanza cuando la media query SOLO existe adentro de un comentario', () => {
+      const css = `/* el bloque de @media (min-width: 1400px) se fue en la tarea 9 */\n.caja { color: red; }`;
+      expect(() => bloqueDeMedia(css, '@media (min-width: 1400px)')).toThrow(/no se encontró/);
+    });
+
+    /**
+     * **Agujero 2 del fixture.** Con las llaves desbalanceadas el conteo nunca volvía a cero y el
+     * helper devolvía **desde la media query hasta el final del archivo**: la hoja entera
+     * disfrazada de bloque, con cada regla base adentro. Un `toMatch` contra eso pasa por
+     * cualquier cosa escrita en cualquier parte, que es la peor forma de mentir de las cinco.
+     */
+    it('lanza si el bloque no cierra, en vez de devolver hasta el final del archivo', () => {
+      const sinCerrar = `@media (max-width: 800px) { .a { color: red; }\n.b { color: blue; }`;
+      expect(() => bloqueDeMedia(sinCerrar, '@media (max-width: 800px)')).toThrow(/no cierra/);
+      // Y la prueba de que el agujero era este: el texto que devolvía contenía la regla de afuera.
+      expect(sinCerrar.slice(sinCerrar.indexOf('{') + 1)).toContain('.b');
+    });
+
+    it('lanza si lo que encuentra no abre ningún bloque', () => {
+      expect(() => bloqueDeMedia(`.a { color: red; }\n@media print;`, '@media print')).toThrow(/no abre/);
+    });
+  });
+
+  /**
+   * **Agujero 3 del fixture, y el más silencioso.** El barrido era
+   * `/([^{}]*)\{([^{}]*)\}/g`, y ese `[^{}]*` del cuerpo no puede cruzar la llave de una regla de
+   * adentro: con anidamiento CSS nativo la regla PADRE quedaba invisible entera. O sea que todo
+   * `toBeNull()` y todo `not.toMatch()` sobre ella pasaba **en el vacío** — el caso no fallaba
+   * porque la regla estuviera bien sino porque el helper no la veía.
+   */
+  describe('anidamiento CSS nativo', () => {
+    const anidado = `.padre {\n  color: red;\n  .hijo { color: blue; }\n}\n.otra { color: green; }`;
+
+    it('la regla padre existe, con SUS declaraciones y no las del hijo', () => {
+      expect(cuerpoDe(anidado, '.padre'), 'la regla padre es invisible: todo not.toMatch pasa en el vacío').toMatch(
+        /color:\s*red/,
+      );
+      expect(cuerpoDe(anidado, '.padre'), 'el cuerpo del padre se trajo la declaración del hijo').not.toMatch(
+        /color:\s*blue/,
+      );
+      expect(cuerpoDe(anidado, '.hijo')).toMatch(/color:\s*blue/);
+      // Y la regla de después del bloque anidado sigue estando: el barrido no se corta ahí.
+      expect(cuerpoDe(anidado, '.otra')).toMatch(/color:\s*green/);
+    });
+
+    it('la ve también `cuerpoBaseDe` y la lista de `reglasQueTocan`', () => {
+      expect(cuerpoBaseDe(anidado, '.padre')).toMatch(/color:\s*red/);
+      expect(reglasQueTocan(anidado, '.padre').map(({ selector }) => selector)).toEqual(['.padre']);
+    });
+
+    it('un `&` anidado sale con su propio selector y no se come al padre', () => {
+      const css = `.tarjeta {\n  border: 1px solid;\n  &:hover { border-color: gold; }\n}`;
+      expect(cuerpoDe(css, '.tarjeta')).toMatch(/border:\s*1px solid/);
+      expect(cuerpoDe(css, '.tarjeta')).not.toMatch(/gold/);
+      expect(cuerpoDe(css, '&:hover')).toMatch(/border-color:\s*gold/);
+    });
+
+    it('una llave adentro de una cadena no parte la regla al medio', () => {
+      const css = `.llave::before { content: "}"; color: red; }\n.x { color: blue; }`;
+      expect(cuerpoDe(css, '.llave::before')).toMatch(/color:\s*red/);
+      expect(cuerpoDe(css, '.x'), 'la cadena con `}` se llevó puesta la regla siguiente').toMatch(/color:\s*blue/);
     });
   });
 });

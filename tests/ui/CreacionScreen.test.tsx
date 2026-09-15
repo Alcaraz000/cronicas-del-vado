@@ -7,7 +7,7 @@ import { CreacionScreen } from '@/ui/screens/CreacionScreen';
 import { useStore } from '@/state/store';
 import { CLASSES, TRAITS } from '@/content/catalog';
 import { S } from '@/ui/strings.es';
-import { bloqueDeMedia, cuerpoBaseDe, reglasQueTocan } from '../fixtures/css';
+import { bloqueDeMedia, cuerpoBaseDe, reglasQueTocan, sinBloquesAnidados } from '../fixtures/css';
 import type { CreateCharacterInput } from '@/state/store';
 
 /**
@@ -593,9 +593,17 @@ describe('CreacionScreen · una pregunta por pantalla', () => {
     // reemplazado por blanco puro: con el velo solo, `--color-aviso` daba 3,77:1 y
     // `--color-peligro-texto` 3,03:1, los dos por debajo de 4,5:1; con `--capa-cromo` encima suben
     // a 6,36:1 y 5,10:1. La cuenta entera está en el comentario del velo.
+    //
+    // **Se busca en la hoja SIN sus bloques `@`, y ahí está el filo del caso.** `reglasQueTocan`
+    // barre la hoja entera, así que con la hoja cruda mover `background: var(--capa-cromo)` de la
+    // regla base al bloque de teléfono dejaba los 28 casos en verde **con los dos párrafos por
+    // debajo de AA justo en el monitor donde esta fase se verifica**: la medición del contraste se
+    // tomó a 1919x905 y el bloque de teléfono no aplica ahí. La capa tiene que estar en la BASE,
+    // que es la que vale en todas las ventanas.
+    const base = sinBloquesAnidados(CSS);
     for (const clase of ['.pendiente', '.error']) {
-      const reglas = reglasQueTocan(CSS, clase).map(({ cuerpo }) => cuerpo);
-      expect(reglas.length, `${clase} no tiene ninguna regla`).toBeGreaterThan(0);
+      const reglas = reglasQueTocan(base, clase).map(({ cuerpo }) => cuerpo);
+      expect(reglas.length, `${clase} no tiene ninguna regla base`).toBeGreaterThan(0);
       expect(reglas.join('\n'), `${clase} apoya contra el arte sin capa propia`).toMatch(
         /background:\s*var\(--capa-/,
       );

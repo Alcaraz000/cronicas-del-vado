@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { cuerpoBaseDe } from '../fixtures/css';
 
 const tokens = readFileSync(resolve(process.cwd(), 'src/app/tokens.css'), 'utf8');
+const textColumn = readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8');
 const valorDe = (nombre: string): string =>
   new RegExp(`--${nombre}\\s*:\\s*([^;]+);`).exec(tokens)?.[1]?.trim() ?? '';
 
@@ -65,14 +67,59 @@ describe('el modelo de escalado', () => {
     // declarado y sin usar. Y el `min()` no es adorno: a --escala-fuente 1,5 los 38em miden
     // 1083 px y desbordarían cualquier ventana de 1024 (medido: con el `min()` la columna se
     // corta en 902 px a 1024x768 y no hay scroll horizontal).
-    const columna =
-      /\.columna\s*\{([^}]*)\}/.exec(
-        readFileSync(resolve(process.cwd(), 'src/ui/components/TextColumn.module.css'), 'utf8'),
-      )?.[1] ?? '';
+    //
+    // **Se lee con el fixture y no con un regex propio.** El regex que había acá
+    // (`/\.columna\s*\{([^}]*)\}/`) devolvía el cuerpo CON los comentarios, y el comentario de
+    // esta misma regla nombra `--ancho-prosa` dos veces: volver la declaración a
+    // `max-width: min(var(--ancho-columna-max), 100%)` dejaba el token huérfano otra vez y los
+    // 1189 en verde, que es literalmente la regresión que este caso dice atajar. Es la misma
+    // forma de mentir que `cuerpoDe` corta desde la tarea 2.
+    const columna = cuerpoBaseDe(textColumn, '.columna') ?? '';
     expect(columna, '.columna no tiene regla propia').not.toBe('');
     expect(columna, 'la prosa de la escena no consume --ancho-prosa').toContain('--ancho-prosa');
     expect(columna, 'la medida de la prosa no está acotada con min(): desborda a 150 %').toMatch(
       /max-width:\s*min\(/,
+    );
+    // Y el token que se acota es ese y no otro: `min(var(--ancho-columna-max), 100%)` satisface
+    // las dos aserciones de arriba cuando el comentario nombra `--ancho-prosa`.
+    expect(columna, 'la medida acotada no es --ancho-prosa').toMatch(/max-width:\s*min\(\s*var\(--ancho-prosa\)/);
+  });
+
+  /**
+   * **`--interlineado-juego` es el DIVISOR de cada cuenta de líneas de esta fase** y no lo
+   * vigilaba nadie: se podía cambiar y ninguna aserción se enteraba. De él cuelgan el 44 % de la
+   * caja (que se justifica en que 353,19 px de interior dan 10,27 líneas), el ruling de
+   * `--ancho-prosa` en 38em, la elección de la escena de la captura y el presupuesto de alto de
+   * `OptionList`. Este caso no fija el número por gusto: fija la CONSECUENCIA medida.
+   */
+  it('el interlineado de la prosa sostiene el presupuesto de líneas de la caja', () => {
+    const declarado = valorDe('interlineado-juego');
+    expect(declarado, '--interlineado-juego no existe').not.toBe('');
+    // Sin unidad, que no es un detalle: un `line-height` con unidad se hereda como longitud ya
+    // resuelta, así que dejaría de seguir a `--tam-texto-juego` y a la escala del jugador.
+    expect(declarado, '--interlineado-juego dejó de ser un número sin unidad').toMatch(/^\d+(?:\.\d+)?$/);
+    const interlineado = Number(declarado);
+
+    // Medido a 1919x905: la caja deja 353,19 px de interior y el diálogo mide 21,4937 px. El
+    // presupuesto con el que se defendió el 44 % de `--alto-caja` —contra el 25,7 % que es la
+    // norma del género— es que ahí entren **10 líneas**, que es lo que pide la encrucijada peor
+    // de la campaña. Con 1,6 la interlínea da 34,39 px y entran 10,27; con 1,7 da 36,54 y entran
+    // 9,67, o sea que la prosa vuelve a scrollear y se deshace el §6.1 entero. El interlineado es
+    // el DIVISOR de esa cuenta y de todas las de la fase.
+    const interiorDeLaCaja = 353.19;
+    const cuerpoDelDialogo = 21.4937;
+    const lineasQueEntran = interiorDeLaCaja / (cuerpoDelDialogo * interlineado);
+    expect(lineasQueEntran, 'la caja deja de tener lugar para 10 líneas: vuelve el scroll').toBeGreaterThanOrEqual(10);
+    // Y un piso, porque el otro lado también es una decisión: por debajo de 1,4 la prosa se
+    // apelmaza y deja de ser un cuerpo de novela. (Los renglones sueltos de la interfaz usan 1,3,
+    // y eso está escrito en `OptionList.module.css` como lo contrario de un párrafo.)
+    expect(interlineado, 'el interlineado de la prosa se apretó al de un renglón de interfaz').toBeGreaterThanOrEqual(
+      1.4,
+    );
+
+    // Y no puede quedar huérfano: la prosa de la escena es la que lo consume.
+    expect(cuerpoBaseDe(textColumn, '.columna'), 'la prosa no consume --interlineado-juego').toMatch(
+      /line-height:\s*var\(--interlineado-juego\)/,
     );
   });
 
