@@ -171,7 +171,7 @@ export function simularPartida(
       sinSalida = escena.sceneId;
       break;
     }
-    const opcion = elegirOpcion(politica, candidatas(escena.sceneId, habilitadas, elegidasPorEscena), azar);
+    const opcion = elegirOpcion(politica, candidatas(politica, escena.sceneId, habilitadas, elegidasPorEscena), azar);
     elegidasPorEscena.add(`${escena.sceneId}#${opcion.id}`);
 
     if (opcion.preview === undefined) {

@@ -241,6 +241,12 @@ export function resumenConsola(campaign: Campaign, config: ConfigSim, agregado: 
       .map(([id, n]) => `${id} ${n}`)
       .join(' · ')}`,
   );
+  // Sale SIEMPRE, también en cero. El "Partidas colgadas 0" sobre 12.492 partidas vivía sólo en el
+  // .md y nadie lo leyó nunca; un cero que no se imprime no es una medición, es un dato que no se
+  // tomó. El aviso de abajo agrega el detalle de dónde cuelgan, pero sólo cuando hay cuelgues.
+  lineas.push(
+    `Partidas colgadas ${g.colgadas} · escenas sin salida ${g.sinSalida} · logs recortados ${agregado.partidasConLogRecortado}`,
+  );
   if (agregado.escenasNuncaVisitadas.length > 0) {
     lineas.push(`Escenas muertas: ${agregado.escenasNuncaVisitadas.join(', ')}`);
   }

@@ -11,7 +11,7 @@ import { PISO_TIRADAS_CODICIOSA, agregar, porNumeroDePartida, resumir } from '..
 import { fusionarConMundo } from '../../tools/lib/simulate/campana';
 import { MAX_PASOS_POR_DEFECTO, parseArgs, rutaInforme } from '../../tools/lib/simulate/cli';
 import { alcanzablesSinMemoria, opcionesDeMemoria, todasLasOpciones, usaMemoria } from '../../tools/lib/simulate/grafo';
-import { informeMarkdown, lineasDeAserciones } from '../../tools/lib/simulate/informe';
+import { informeMarkdown, lineasDeAserciones, resumenConsola } from '../../tools/lib/simulate/informe';
 import { combinaciones, simularCarrera, simularPartida } from '../../tools/lib/simulate/partida';
 import { habilidadesPermitidas, paresDeRasgos, personajeDeCarrera } from '../../tools/lib/simulate/personajes';
 import { candidatas, elegirOpcion, peorDadoConservado, probExito, probFallo } from '../../tools/lib/simulate/politicas';
@@ -20,11 +20,46 @@ import {
   NIVELES,
   POLITICAS,
   type ConfigSim,
+  type PoliticaId,
   type ResultadoCarrera,
   type ResultadoPartida,
 } from '../../tools/lib/simulate/types';
 
 const config: ConfigSim = { campaignId: minimal.id, n: 2, k: 3, semilla: 1234, maxPasos: MAX_PASOS_POR_DEFECTO };
+
+/**
+ * Clon de `minimal` con el racimo del acto 1 en chico. Del pozo no sale ninguna opción: las nueve
+ * vuelven al pozo y la única puerta es el `redirect`, que se abre cuando el reloj se mueve. El
+ * reloj lo mueve una sola de las nueve.
+ */
+const enElPozo = (id: string, label: string): Scene['choices'][number] => ({ id, label, outcome: { next: 'm_pozo' } });
+
+const pozo: Campaign = {
+  ...minimal,
+  id: 'pozo',
+  start: 'm_pozo',
+  scenes: {
+    m_pozo: {
+      id: 'm_pozo',
+      kind: 'normal',
+      place: 'm_claro',
+      redirect: [{ when: { clock: 'm_noche', gte: 1 }, to: 'm_final' }],
+      text: ['El pozo no tiene brocal y la cuerda está tensa.'],
+      choices: [
+        { id: 'tirar', label: 'Tirar de la cuerda', outcome: { effects: [{ clock: 'm_noche', delta: 1 }], next: 'm_pozo' } },
+        enElPozo('mirar', 'Mirar el agua'),
+        enElPozo('gritar', 'Gritar hacia abajo'),
+        enElPozo('contar', 'Contar las piedras'),
+        enElPozo('esperar', 'Esperar a que pase algo'),
+        enElPozo('tocar', 'Tocar la piedra mojada'),
+        enElPozo('oler', 'Oler el agua'),
+        enElPozo('silbar', 'Silbar para oír el eco'),
+        enElPozo('sentarse', 'Sentarse en el borde'),
+      ],
+    },
+    m_final: minimal.scenes.m_final,
+  },
+};
 
 const opcion = (id: string, exito?: number, fallo?: number): RenderedChoice => ({
   id,
@@ -120,10 +155,27 @@ describe('políticas', () => {
 
   it('candidatas descarta lo ya elegido en esa escena y vuelve a abrir todo si no queda nada', () => {
     const lista = [opcion('a'), opcion('b')];
-    expect(candidatas('s', lista, new Set(['s#a'])).map((o) => o.id)).toEqual(['b']);
-    expect(candidatas('s', lista, new Set(['s#a', 's#b'])).map((o) => o.id)).toEqual(['a', 'b']);
+    expect(candidatas('aleatoria', 's', lista, new Set(['s#a'])).map((o) => o.id)).toEqual(['b']);
+    expect(candidatas('aleatoria', 's', lista, new Set(['s#a', 's#b'])).map((o) => o.id)).toEqual(['a', 'b']);
     // Lo elegido en OTRA escena no cuenta.
-    expect(candidatas('s', lista, new Set(['otra#a'])).map((o) => o.id)).toEqual(['a', 'b']);
+    expect(candidatas('aleatoria', 's', lista, new Set(['otra#a'])).map((o) => o.id)).toEqual(['a', 'b']);
+  });
+
+  it('la insistente NO descarta lo ya elegido: es la única que puede repetir', () => {
+    // El filtro de `candidatas` le prohíbe al simulador la conducta que produce el bucle. La
+    // insistente existe para hacerla posible, así que tiene que ver la opción ya gastada.
+    const lista = [opcion('a'), opcion('b')];
+    expect(candidatas('insistente', 's', lista, new Set(['s#a'])).map((o) => o.id)).toEqual(['a', 'b']);
+    for (const politica of ['aleatoria', 'codiciosa', 'temeraria', 'prudente'] as const) {
+      expect(candidatas(politica, 's', lista, new Set(['s#a'])).map((o) => o.id)).toEqual(['b']);
+    }
+  });
+
+  it('la insistente elige al azar entre TODAS las habilitadas', () => {
+    const lista = [opcion('a'), opcion('b'), opcion('c')];
+    expect(elegirOpcion('insistente', lista, () => 0).id).toBe('a');
+    expect(elegirOpcion('insistente', lista, () => 0.5).id).toBe('b');
+    expect(elegirOpcion('insistente', lista, () => 1).id).toBe('c');
   });
 
   it('peorDadoConservado devuelve el índice del dado conservado más bajo', () => {
@@ -251,11 +303,28 @@ describe('simulación de partidas y carreras', () => {
     }
   });
 
+  it('la insistente ve el bucle que el filtro de candidatas le esconde a las otras cuatro', () => {
+    // El acto 1 de la campaña real, en chico: del pozo no sale NINGUNA opción y la única puerta es
+    // un redirect que se abre cuando el reloj se mueve — y el reloj lo mueve una sola de las nueve
+    // opciones. Con el filtro de `candidatas` la salida está garantizada: las nueve se gastan en
+    // nueve pasos y una de ellas abre la puerta. Sin el filtro se puede insistir con las otras
+    // ocho para siempre, que es exactamente lo que hace el jugador que reportó el bucle.
+    const cfg: ConfigSim = { ...config, campaignId: pozo.id, maxPasos: 12 };
+    const colgadas = (politica: PoliticaId): number =>
+      Array.from({ length: 20 }, (_, i) => simularCarrera(pozo, { clase: 'guerrero', nivel: 1, politica }, i, cfg))
+        .flatMap((c) => c.partidas)
+        .filter((p) => p.desenlace.kind === 'colgada').length;
+    for (const politica of ['aleatoria', 'codiciosa', 'temeraria', 'prudente'] as const) {
+      expect({ politica, colgadas: colgadas(politica) }).toEqual({ politica, colgadas: 0 });
+    }
+    expect(colgadas('insistente')).toBeGreaterThan(0);
+  });
+
   it('combinaciones enumera clase × nivel × política en orden fijo', () => {
     const combos = combinaciones(CLASES, NIVELES, POLITICAS);
-    expect(combos).toHaveLength(4 * 2 * 4);
+    expect(combos).toHaveLength(4 * 2 * 5);
     expect(combos[0]).toEqual({ clase: 'guerrero', nivel: 1, politica: 'aleatoria' });
-    expect(combos.at(-1)).toEqual({ clase: 'clerigo', nivel: 3, politica: 'prudente' });
+    expect(combos.at(-1)).toEqual({ clase: 'clerigo', nivel: 3, politica: 'insistente' });
   });
 });
 
@@ -272,7 +341,7 @@ describe('agregado e informe', () => {
 
   it('cuenta cobertura, finales y las cuatro aserciones', () => {
     const agregado = agregar(minimal, carreras);
-    expect(agregado.carreras).toBe(64);
+    expect(agregado.carreras).toBe(80);
     expect(agregado.escenasTotales).toBe(3);
     expect(agregado.escenasVisitadas).toBe(3);
     expect(agregado.escenasNuncaVisitadas).toEqual([]);
@@ -280,7 +349,7 @@ describe('agregado e informe', () => {
     expect(agregado.finales.m_fin).toBeGreaterThan(0);
     // `minimal` tiene un solo final y las cuatro clases llegan: no falta ninguno.
     expect(agregado.aserciones.finalesFaltantesPorClase).toEqual([]);
-    expect(agregado.filas).toHaveLength(32);
+    expect(agregado.filas).toHaveLength(40);
   });
 
   it('distingue el Fallo en los dados del Fallo que le queda al jugador', () => {
@@ -357,7 +426,17 @@ describe('agregado e informe', () => {
   it('porNumeroDePartida agrupa por posición dentro de la carrera', () => {
     const mapa = porNumeroDePartida(carreras.flatMap((c) => c.partidas));
     expect([...mapa.keys()].sort()).toEqual([1, 2, 3]);
-    expect(mapa.get(1)?.escenas.length).toBe(64);
+    expect(mapa.get(1)?.escenas.length).toBe(80);
+  });
+
+  it('el resumen de consola dice cuántas partidas se colgaron AUNQUE sean cero', () => {
+    // El "Partidas colgadas: 0" sobre 12.492 partidas vivía sólo en el .md y nadie lo leyó nunca.
+    // Un cero que no se imprime no es una medición: es un dato que no se tomó. La línea tiene que
+    // salir siempre, no sólo cuando hay cuelgues (para eso ya estaban los avisos).
+    const agregado = agregar(minimal, carreras);
+    expect(agregado.global.colgadas).toBe(0);
+    expect(agregado.avisos.some((a) => a.includes('se colgaron'))).toBe(false);
+    expect(resumenConsola(minimal, config, agregado, 'x.md')).toContain('Partidas colgadas 0');
   });
 
   it('el informe es Markdown, trae las cuatro aserciones y no lleva fecha', () => {
@@ -439,6 +518,8 @@ describe('tools/simulate.ts (proceso)', () => {
     expect(informe).toContain('# Informe de simulación — El vado de Aldamar');
     expect(informe).toContain('| 1 | Ninguna escena fuera de una condición de memoria queda inalcanzable |');
     expect(stdout).toContain('Aserción 1');
+    // La cuenta de cuelgues tiene que llegar a la consola de Gabriel, no sólo al .md.
+    expect(stdout).toMatch(/Partidas colgadas \d+/);
     // Con N chico alguna aserción puede no llegar; lo que se prueba es que el código de salida
     // sea exactamente el veredicto, no que con dos carreras por combinación alcance para todo.
     expect(code).toBe(stdout.includes('FALLA') ? 1 : 0);
