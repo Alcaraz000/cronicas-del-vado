@@ -293,4 +293,90 @@ describe('StatusBar', () => {
     expect(condiciones).toHaveClass('condiciones');
     expect(condiciones).not.toHaveClass('condicionesVacias');
   });
+
+  /**
+   * El objetivo actual. Es lo que el jugador está tratando de hacer, en palabras de la campaña
+   * ("Hablá con Berta, la alcaldesa"), y no un dato más de la barra: va debajo del lugar, con la
+   * serif del juego. Las banderas que lo mueven —las "pistas"— siguen existiendo por dentro y el
+   * jugador NO LAS VE NUNCA; lo único que llega a la pantalla es esta línea.
+   */
+  describe('el objetivo', () => {
+    const props = {
+      placeName: 'Torre abandonada',
+      wounds: 0 as const,
+      fortune: 3,
+      fortuneMax: 3,
+      conditions: [],
+      onAbandon: vi.fn(),
+      onOpenFicha: vi.fn(),
+      onOpenHistorial: vi.fn(),
+    };
+
+    it('dibuja la línea del objetivo cuando hay uno', () => {
+      render(<StatusBar {...props} objetivo="Hablá con Berta, la alcaldesa" />);
+      expect(screen.getByTestId('objetivo')).toHaveTextContent(/Hablá con Berta, la alcaldesa/);
+    });
+
+    it('SIN objetivo no dibuja nada: ni la línea, ni un hueco donde iría', () => {
+      const { container } = render(<StatusBar {...props} objetivo={null} />);
+      expect(screen.queryByTestId('objetivo')).not.toBeInTheDocument();
+      // "Ni un hueco": el nodo no existe, así que no hay caja vacía que ocupe alto. Que tampoco
+      // quede reservado por CSS lo fija el caso de `.titulo` de más abajo (sin `min-height`) y se
+      // midió en el navegador a 1919×905 y a 375×812.
+      expect(container.querySelectorAll('.objetivo')).toHaveLength(0);
+    });
+
+    it('omitir la prop es lo mismo que no tener objetivo: la barra de antes sigue andando igual', () => {
+      render(<StatusBar {...props} />);
+      expect(screen.queryByTestId('objetivo')).not.toBeInTheDocument();
+      expect(screen.getByText('Torre abandonada')).toBeInTheDocument();
+    });
+
+    it('la línea lleva una etiqueta para el lector de pantalla: sola, la frase no dice qué es', () => {
+      // Mismo patrón que "Heridas: "/"Fortuna: " en móvil (`.etiqueta`): se saca de la VISTA con
+      // `position: absolute` + `clip-path`, no del árbol. Sin ella, un lector de pantalla anuncia
+      // "Hablá con Berta, la alcaldesa" suelto entre el lugar y las marcas, sin decir qué es.
+      render(<StatusBar {...props} objetivo="Hablá con Berta, la alcaldesa" />);
+      expect(screen.getByTestId('objetivo')).toHaveTextContent(
+        new RegExp(`^${S.barra.objetivo}:\\s*Hablá con Berta, la alcaldesa$`),
+      );
+      const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+      const etiqueta = cuerpoDeBloque(css, '.objetivoEtiqueta');
+      expect(etiqueta, '.objetivoEtiqueta no tiene regla propia').not.toBeNull();
+      expect(etiqueta, '`display: none` se lleva la palabra del árbol de accesibilidad').not.toMatch(
+        /display\s*:\s*none/,
+      );
+      expect(etiqueta).toMatch(/clip-path\s*:\s*inset\(50%\)/);
+      expect(etiqueta).toMatch(/position\s*:\s*absolute/);
+    });
+
+    it('el objetivo va DEBAJO del lugar, no al lado: los dos en una columna', () => {
+      // La barra es un flex en fila. Para que el objetivo quede debajo del lugar los dos van en su
+      // propio contenedor en columna; si alguien lo saca, el objetivo vuelve a la fila de las
+      // marcas y deja de leerse como el título de lo que estás haciendo. jsdom no calcula layout,
+      // así que la estructura se comprueba en el DOM y la dirección en el archivo.
+      render(<StatusBar {...props} objetivo="Hablá con Berta, la alcaldesa" />);
+      const titulo = screen.getByTestId('objetivo').parentElement;
+      expect(titulo).toHaveClass('titulo');
+      expect(within(titulo as HTMLElement).getByText('Torre abandonada')).toBeInTheDocument();
+
+      const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+      const cuerpo = cuerpoDeBloque(css, '.titulo');
+      expect(cuerpo, '.titulo no tiene regla propia').not.toBeNull();
+      expect(cuerpo).toMatch(/flex-direction\s*:\s*column/);
+      // Sin objetivo el contenedor tiene que colapsar contra el lugar: nada de alto reservado.
+      expect(cuerpo, 'un alto mínimo deja el hueco que el objetivo no está ocupando').not.toMatch(/min-height/);
+    });
+
+    it('el objetivo se lee con la serif del juego y en el acento atenuado, no como un dato más', () => {
+      const css = readFileSync(resolve(process.cwd(), 'src/ui/components/StatusBar.module.css'), 'utf8');
+      const objetivo = cuerpoDeBloque(css, '.objetivo');
+      expect(objetivo, '.objetivo no tiene regla propia').not.toBeNull();
+      expect(objetivo).toMatch(/var\(--fuente-juego\)/);
+      // Atenuado respecto del lugar: el acento pasado por una opacidad, no `--color-texto-suave`,
+      // que es el gris de las marcas.
+      expect(objetivo).toMatch(/var\(--color-acento\)/);
+      expect(objetivo).toMatch(/opacity/);
+    });
+  });
 });
