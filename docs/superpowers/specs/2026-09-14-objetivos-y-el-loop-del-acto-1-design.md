@@ -146,6 +146,28 @@ declara, el motor calcula, la interfaz muestra.
 - **El `redirect` de `sospecha >= 4` se queda como está.** Es la puerta del jugador temerario y
   funciona; el §0.2 no es un bug de esa puerta sino la razón por la que no alcanza sola.
 
+> **Corrección del 14 de septiembre, hecha al implementar la tarea 3.** Este §3, tal como está
+> escrito, **no cumple el §5 y no pone la regla 13 en verde**, y eso está medido: con el `redirect`
+> de las tres pistas en las doce escenas y ninguna opción nueva, `npm run validate` sigue dando el
+> **mismo único error**, ahora redactado «sólo se sale por los 13 redirect del racimo». La razón es
+> que la regla 13 calcula los racimos contando **sólo las aristas que nacen de una opción**, que es
+> exactamente lo que pide la segunda mitad del §5 («ninguna región dependa exclusivamente de un
+> `redirect` para salir»), y un `redirect` —por muchos que sean— no es una de esas aristas.
+>
+> Lo implementado, entonces, es el §3 **más una salida por decisión**, que es lo que le falta al
+> acto según el título del propio §0.1:
+>
+> - el `redirect` de las tres pistas va en **once** escenas, las del racimo que no son el hub;
+> - **el hub gana una opción**, `a1_plaza.bajar_al_rio`, con `requires` de las tres pistas, y
+>   **pierde** su `redirect` de las tres pistas. Si lo conservara, la opción sería contenido muerto:
+>   al entrar al hub con las tres pistas el `redirect` se resolvería antes de dibujar y nadie podría
+>   elegirla nunca. Es la novena opción del hub, que tenía margen para exactamente una.
+>
+> Con eso, "avanzás desde donde estés" sigue valiendo en once de las doce escenas, y en la única
+> donde se puede estar con las tres pistas sin haber avanzado todavía —el hub, al que sólo se llega
+> eligiendo volver— el acto se cierra **eligiendo**. Va sin `outcome.text`: el §6 dice que el
+> presupuesto de prosa no se toca y estaba a once palabras del tope; 24 palabras lo pasaban.
+
 ---
 
 ## 4. Que lo que el texto dice que pasó, quede registrado

@@ -1,4 +1,18 @@
-import type { Scene } from '@/content/schema';
+import type { Redirect, Scene } from '@/content/schema';
+
+/**
+ * LA SALIDA DEL ACTO 1. Es la MISMA constante que declara `acto1_pueblo.ts` y está duplicada a
+ * propósito: `campaign.ts` junta las escenas con un spread del espacio de nombres, así que una
+ * exportación compartida entre estos dos módulos se colaría en `campaign.scenes`. Si se toca acá,
+ * se toca allá. La explicación entera (por qué no lleva `visited`, por qué va en once escenas y no
+ * en una, y por qué el hub no la lleva) está en el comentario de `acto1_pueblo.ts`.
+ */
+const AL_CUELLO_1 = {
+  when: {
+    all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+  },
+  to: 'c1_cuerpo',
+} satisfies Redirect;
 
 /**
  * Acto 1 — las dos puertas de pista que no son la taberna: **la casa de la alcaldesa**
@@ -21,10 +35,11 @@ import type { Scene } from '@/content/schema';
  *
  * Notas de diseño que un lote de prosa NO puede romper:
  * - Las dos puertas fijan su `run:pista_*` en el `onEnter`, nunca como premio de una tirada: el
- *   `redirect` de las tres pistas de `a1_plaza` tiene que ser siempre alcanzable (biblia §9.2).
+ *   `redirect` de las tres pistas tiene que ser siempre alcanzable (biblia §9.2).
  * - `a1_molino.hablar_con_el_chico` lleva `requires: { not: { all: [pista_taberna,
- *   pista_alcaldesa] } }` y en su lugar está la salida libre `entrar_por_el_caz`. El molino **no**
- *   usa `redirect` (outline §7, conflicto 5).
+ *   pista_alcaldesa] } }` y en su lugar está la salida libre `entrar_por_el_caz`. El molino no usaba
+ *   `redirect` (outline §7, conflicto 5) y ahora sí, igual que las otras diez del racimo: el único
+ *   que lleva es `AL_CUELLO_1`, que cierra el acto y no redirige dentro del molino.
  * - `a1_molino_trampilla.onEnter` consume la `palanca_de_molino`: queda trabando la tapa. Por eso
  *   ninguna opción de esa escena puede llevar `requires: { item: 'palanca_de_molino' }`: el
  *   `onEnter` corre antes del render y la opción no aparecería nunca.
@@ -156,6 +171,7 @@ export const a1_alcaldesa = {
   // Berta e Ilse están las dos en toda ruta que entra acá (outline §2). Declararlas deriva
   // `char:met.berta` y `char:met.ilse`.
   npcs: ['berta', 'ilse'],
+  redirect: [AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_alcaldesa' }],
   // Piso dramático (biblia §2.3): dos PNJ declarados y cero tiradas. Es un careo, no tránsito.
   text: [
@@ -299,6 +315,7 @@ export const a1_berta_despacho = {
   kind: 'normal',
   place: 'casa_de_berta',
   npcs: ['berta'],
+  redirect: [AL_CUELLO_1],
   text: [
     'Cuatro mapas del río tapan la pared, uno encima del otro. El de arriba es el más nuevo. Berta escribe mientras habla: la pluma raspa y se para en cada cifra.',
     {
@@ -399,6 +416,7 @@ export const a1_ilse_patio = {
   kind: 'normal',
   place: 'casa_de_berta',
   npcs: ['ilse'],
+  redirect: [AL_CUELLO_1],
   text: [
     'Ilse ya cargó media carretilla y no espera a que le ofrezcas. Te pone un saco en los brazos: el asa de soga te deja una marca caliente en la palma.',
     {
@@ -517,6 +535,7 @@ export const a1_molino = {
   kind: 'normal',
   place: 'molino_de_tome',
   npcs: ['pell'],
+  redirect: [AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_molino' }],
   text: [
     'Bajo el piso de tablones el caz golpea. El golpe te sube por las rodillas cada vez que la rueda pasa. La muela está quieta y hay harina vieja en las vigas.',
@@ -674,6 +693,7 @@ export const a1_molino_pell = {
   place: 'molino_de_tome',
   // Se entra solo por `a1_molino.hablar_con_el_chico`, así que Pell está en toda ruta que entra.
   npcs: ['pell'],
+  redirect: [AL_CUELLO_1],
   text: [
     'Se saca el casco y le queda una marca roja en la frente. Tendrá diecisiete. Cuando respirás por la boca, la harina vieja se te pega al paladar.',
     {
@@ -798,6 +818,7 @@ export const a1_molino_trampilla = {
   place: 'molino_de_tome',
   // La `palanca_de_molino` se consume al bajar por cualquier vía: queda trabando la tapa
   // (biblia §5). Un `take` de algo que no tenés es inocuo, así que va sin condición.
+  redirect: [AL_CUELLO_1],
   onEnter: [{ take: 'palanca_de_molino' }],
   text: [
     'Una tapa de roble a ras del piso, con herraje y sin candado. Pesa lo que una puerta y no queda abierta sola: la calzás. Por la juntura sube aire a piedra mojada y hierro frío.',
@@ -912,6 +933,7 @@ export const a1_molino_rueda = {
   id: 'a1_molino_rueda',
   kind: 'normal',
   place: 'molino_de_tome',
+  redirect: [AL_CUELLO_1],
   text: [
     'Afuera, del lado del caz, la rueda gira vacía. El eje se queja una vez por vuelta, siempre en el mismo punto, y entre queja y queja entra el agua en los álabes.',
     'El agua viene del azud por un canal de tablones y sale por debajo del molino. Entre dos álabes hay algo trabado que sube con la rueda y vuelve a bajar.',

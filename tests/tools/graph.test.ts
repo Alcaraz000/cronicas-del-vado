@@ -121,7 +121,8 @@ describe('documentoMarkdown sobre la campaña real', () => {
   it('nombra la campaña y cuenta escenas, opciones y tiradas', () => {
     expect(doc).toContain('# Grafo de escenas — El vado de Aldamar (vado)');
     expect(doc).toContain('46 escenas');
-    expect(doc).toContain('252 opciones');
+    // 253 desde que la fase «objetivos» le dio al acto 1 su salida por decisión (`a1_plaza.bajar_al_rio`).
+    expect(doc).toContain('253 opciones');
   });
 
   it('trae un bloque mermaid general y uno por acto, y todas las escenas', () => {

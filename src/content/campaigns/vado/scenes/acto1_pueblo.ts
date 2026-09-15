@@ -1,4 +1,28 @@
-import type { Scene } from '@/content/schema';
+import type { Redirect, Scene } from '@/content/schema';
+
+/**
+ * LA SALIDA DEL ACTO 1, en las ONCE escenas del racimo que no son el hub.
+ *
+ * Es el mismo objeto en `acto1_pueblo.ts` y en `acto1_pistas.ts` (no se puede compartir por
+ * `export`: `campaign.ts` junta las escenas con un spread del espacio de nombres y cualquier otra
+ * exportación se colaría en `scenes`). Si se toca acá, se toca allá.
+ *
+ * Tres cosas que hay que saber antes de moverlo:
+ * - **No lleva `visited`.** El viejo `visited: a1_plaza >= 3` se fue por decisión de Gabriel
+ *   (diseño §3): con un objetivo que te lleva a los tres lugares, el contador es fricción invisible.
+ * - **`enter()` resuelve los redirect AL ENTRAR**, antes de dibujar. La tercera pista se enciende en
+ *   el `onEnter` de la escena donde el jugador queda parado, así que el redirect de esa escena ya
+ *   pasó: lo que lo saca es la elección SIGUIENTE. Por eso tiene que estar en las once y no en una.
+ * - **El hub NO lo lleva.** Ahí la salida es una opción que se ve, `a1_plaza.bajar_al_rio`: si el
+ *   hub también redirigiera, esa opción no se podría elegir nunca (r13 y diseño §5 piden que del
+ *   racimo salga una arista de OPCIÓN, no sólo un redirect).
+ */
+const AL_CUELLO_1 = {
+  when: {
+    all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+  },
+  to: 'c1_cuerpo',
+} satisfies Redirect;
 
 /**
  * LOTE 3 (bloque del pueblo) — Acto 1 de "El vado de Aldamar": el hub de la plaza, el Ancla Seca con
@@ -9,11 +33,13 @@ import type { Scene } from '@/content/schema';
  * un `redirect`, ni un `onEnter`, ni un `npcs`, ni un `place`. Lo único que entró acá es texto.
  *
  * Contratos que este archivo sostiene (outline §8), verificados y sin cambios:
- * - **`a1_plaza.redirect` va en este orden y el orden importa:** `[0]` el floodgate de `sospecha`
- *   → `a1_ronda`, `[1]` las tres pistas + `visited >= 3` → `c1_cuerpo`. Con las dos condiciones
- *   ciertas gana la primera, y tiene que ganar el castigo: si no, llenar `sospecha` no se cobra.
- * - **`a1_plaza` está en 8 opciones / 6 libres: queda margen de UNA sola** antes del techo de 9 de
- *   `LIMITS.maxChoices`. Las dos opciones que vuelven al propio hub (`mirar_el_pozo`,
+ * - **`a1_plaza.redirect` quedó en uno solo: el floodgate de `sospecha` → `a1_ronda`.** El segundo,
+ *   el de las tres pistas + `visited >= 3` → `c1_cuerpo`, se fue de acá en la fase «objetivos» y
+ *   volvió convertido en la opción `bajar_al_rio`, que el jugador ve. El floodgate se queda porque
+ *   es la puerta del temerario y funciona (diseño §3).
+ * - **`a1_plaza` está en 9 opciones / 6 libres: toca justo el techo** de `LIMITS.maxChoices`. El
+ *   margen de una que quedaba se lo llevó `bajar_al_rio`. Las dos opciones que vuelven al propio
+ *   hub (`mirar_el_pozo`,
  *   `leer_el_poste_de_bandos`) son la única excepción declarada a "ninguna opción vuelve a su
  *   escena" (biblia §6.3) y las dos llevan `outcome.text`, como manda esa excepción.
  * - **`a1_posada` no cobra `sospecha` y no cura Heridas** (biblia §7.1): limpia condiciones y hace
@@ -137,22 +163,9 @@ export const a1_plaza = {
   kind: 'hub',
   place: 'aldamar_plaza',
   onEnter: [{ milestone: 'llegar_a_aldamar' }],
-  redirect: [
-    // [0] Floodgate de sospecha. Va PRIMERO: con las dos ciertas tiene que ganar el castigo.
-    { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
-    // [1] Cierre del acto. El `visited >= 3` le deja al jugador una vuelta más de aviso.
-    {
-      when: {
-        all: [
-          { flag: 'run:pista_taberna' },
-          { flag: 'run:pista_alcaldesa' },
-          { flag: 'run:pista_molino' },
-          { visited: 'a1_plaza', min: 3 },
-        ],
-      },
-      to: 'c1_cuerpo',
-    },
-  ],
+  // Floodgate de sospecha, y nada más. El cierre del acto ya no se dispara acá: es la opción
+  // `bajar_al_rio`, que se ve y se elige. El hub es la única escena del racimo sin `AL_CUELLO_1`.
+  redirect: [{ when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' }],
   text: [
     'Sesenta y cuatro casas y tres ventanas con luz. La plaza es barro pisado, con un pozo en el medio y un poste de bandos torcido. Huele a leña mojada y el humo no sube: se queda a la altura de la cara. Falta el olor del pan.',
     {
@@ -260,6 +273,25 @@ export const a1_plaza = {
       },
     },
     {
+      // LA SALIDA DEL ACTO 1 POR DECISIÓN. Las otras once escenas del racimo sacan al jugador
+      // solas, con `AL_CUELLO_1`; acá, que es el hub, la puerta se ve y se elige. Con la puerta
+      // cerrada el `lockedHint` dice lo mismo que el objetivo de la barra, y en el mismo tono.
+      //
+      // VA SIN `outcome.text` A PROPÓSITO, y no es un olvido: el presupuesto de prosa de la campaña
+      // estaba a ONCE palabras del tope (diseño §6, "el presupuesto no se toca") y cualquier
+      // desenlace escrito acá lo pasa —medido: 24 palabras dejaban `lint:text` en 5,1 % contra un
+      // tope de 5 %—. Las otras cuatro opciones de este hub que van a una escena que nadie más
+      // toca tampoco llevan texto, y el salto lo cuenta `c1_cuerpo`, igual que cuando al jugador
+      // lo saca el redirect desde cualquiera de las otras once.
+      id: 'bajar_al_rio',
+      label: 'Bajar al río con lo que averiguaste',
+      requires: {
+        all: [{ flag: 'run:pista_taberna' }, { flag: 'run:pista_alcaldesa' }, { flag: 'run:pista_molino' }],
+      },
+      lockedHint: 'Todavía te falta preguntar en el pueblo.',
+      outcome: { next: 'c1_cuerpo' },
+    },
+    {
       // Atajo [Recuerdo] n.º 2 de la biblia §9.3: el badge lo deriva el motor del `met`.
       // Nunca mudo (guía §4.4): el recuerdo se cuenta como memoria del cuerpo, no como dato.
       id: 'entrar_al_molino_por_atras',
@@ -291,6 +323,7 @@ export const a1_taberna = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi', 'orell'],
+  redirect: [AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_taberna' }],
   text: [
     'Bajo la viga maestra cuelga un ancla comida de óxido. Nadie levanta la cabeza. El humo del hogar baja y te deja en la boca un gusto a grasa de cordero y cerveza agria.',
@@ -499,6 +532,7 @@ export const a1_taberna_trastienda = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
+  redirect: [AL_CUELLO_1],
   text: [
     'Barricas vacías puestas de canto, una pila de leña que no se secó nunca y una puerta de tablas que da al patio. El piso es de tierra apisonada y cede bajo el pie, como si abajo hubiera agua.',
     {
@@ -568,6 +602,7 @@ export const a1_orell_mesa = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['orell'],
+  redirect: [AL_CUELLO_1],
   text: [
     'Orell no levanta la vista cuando te parás al lado de la mesa. Junto a la jarra está el gancho de la ballesta: lo abre y lo cierra con el pulgar mientras mira la puerta. Hace un ruido chico por debajo de todo.',
     {
@@ -656,8 +691,8 @@ export const a1_orell_mesa = {
 /**
  * La `rest` del acto 1. 5 opciones, las cinco libres, cero tiradas.
  * **No cura Heridas y no cobra `sospecha`** (biblia §7.1): limpia condiciones y hace pasar la noche.
- * Es alcanzable solo antes de la tercera pista, porque después el hub redirige a más tardar dos
- * elecciones más tarde.
+ * Es alcanzable solo antes de la tercera pista: con las tres puestas, `AL_CUELLO_1` la saltea al
+ * entrar y el jugador cae en el cuello 1.
  *
  * El tercer párrafo es la ficción del `removeCondition: 'all'`: se seca lo mojado y se pasa el susto.
  * `dormir_hasta_que_afloje_la_lluvia` y `revisar_tus_cosas_antes_de_acostarte` comparten `next` y no
@@ -668,6 +703,7 @@ export const a1_posada = {
   kind: 'rest',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
+  redirect: [AL_CUELLO_1],
   onEnter: [{ removeCondition: 'all' }],
   text: [
     'Arriba hay tres cuartos y dos con la puerta abierta, que es como decir vacíos. El tuyo tiene un jergón, una palangana y una vela corta. La manta pesa y del lado de la pared está fría, y esa frialdad tarda en irse.',

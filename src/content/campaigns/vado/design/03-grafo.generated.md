@@ -3,7 +3,7 @@
 > Generado por `npm run graph`. **No se edita a mano**: sale del contenido, no del diseño.
 > Sirve para comparar el grafo REAL contra el diagrama de `design/01-outline.md` §1.
 
-**46 escenas** · **252 opciones** · 41 tiradas · 6 entradas de redirect · 4 finales · 1 escena(s) mortal(es)
+**46 escenas** · **253 opciones** · 41 tiradas · 16 entradas de redirect · 4 finales · 1 escena(s) mortal(es)
 
 Por tipo: 36 normales · 1 hub · 2 encuentros · 3 descansos · 4 finales
 
@@ -87,44 +87,55 @@ flowchart TD
   p_vado_oculto -->|"×3"| a1_plaza
   p_vado_oculto -->|"×2"| a1_molino_trampilla
   p_vado_oculto -->|"×3"| a1_molino
+  a1_orell_mesa -. "redirect" .-> c1_cuerpo
   a1_orell_mesa -->|"×4"| a1_taberna
   a1_plaza -. "redirect" .-> a1_ronda
-  a1_plaza -. "redirect" .-> c1_cuerpo
   a1_plaza --> a1_taberna
   a1_plaza --> a1_alcaldesa
   a1_plaza --> a1_molino
   a1_plaza --> a1_posada
   a1_plaza -->|"×2"| a1_plaza
   a1_plaza --> a1_berta_despacho
+  a1_plaza --> c1_cuerpo
   a1_plaza --> a1_molino_trampilla
+  a1_posada -. "redirect" .-> c1_cuerpo
   a1_posada -->|"×2"| a1_plaza
   a1_posada --> a1_taberna
   a1_posada --> a1_molino
   a1_posada --> a1_alcaldesa
   a1_ronda -->|"×5"| c1_cuerpo
+  a1_taberna -. "redirect" .-> c1_cuerpo
   a1_taberna -->|"×3"| a1_taberna_trastienda
   a1_taberna -->|"×5"| a1_plaza
   a1_taberna --> a1_orell_mesa
+  a1_taberna_trastienda -. "redirect" .-> c1_cuerpo
   a1_taberna_trastienda -->|"×2"| a1_taberna
   a1_taberna_trastienda -->|"×2"| a1_molino
+  a1_alcaldesa -. "redirect" .-> c1_cuerpo
   a1_alcaldesa -->|"×3"| a1_berta_despacho
   a1_alcaldesa -->|"×3"| a1_ilse_patio
   a1_alcaldesa --> a1_plaza
+  a1_berta_despacho -. "redirect" .-> c1_cuerpo
   a1_berta_despacho -->|"×4"| a1_alcaldesa
   a1_berta_despacho -->|"×2"| a1_ilse_patio
+  a1_ilse_patio -. "redirect" .-> c1_cuerpo
   a1_ilse_patio -->|"×3"| a1_molino
   a1_ilse_patio -->|"×3"| a1_alcaldesa
   a1_ilse_patio --> a1_plaza
+  a1_molino -. "redirect" .-> c1_cuerpo
   a1_molino -->|"×4"| a1_molino_trampilla
   a1_molino -->|"×3"| a1_molino_rueda
   a1_molino --> a1_plaza
   a1_molino --> a1_molino_pell
+  a1_molino_pell -. "redirect" .-> c1_cuerpo
   a1_molino_pell -->|"×4"| a1_molino_trampilla
   a1_molino_pell -->|"×2"| a1_molino
   a1_molino_pell -->|"×2"| a1_molino_rueda
+  a1_molino_rueda -. "redirect" .-> c1_cuerpo
   a1_molino_rueda -->|"×3"| a1_molino_trampilla
   a1_molino_rueda -->|"×2"| a1_molino
   a1_molino_rueda --> a1_plaza
+  a1_molino_trampilla -. "redirect" .-> c1_cuerpo
   a1_molino_trampilla -->|"×4"| a1_molino_rueda
   a1_molino_trampilla -->|"×2"| a1_molino
   a1_molino_trampilla --> a1_plaza
@@ -199,7 +210,7 @@ flowchart TD
   class c1_refriega,cl_dravos encuentro;
   class c2_vado_crecido mortal;
   class fin_crecida,fin_dravos,fin_heredero,fin_hundido final;
-  linkStyle 15,16,62,78,87,107 stroke:#e0be6a,stroke-width:2px;
+  linkStyle 14,16,25,31,35,38,42,45,49,54,58,62,73,89,98,118 stroke:#e0be6a,stroke-width:2px;
 ```
 
 ## Por acto
@@ -275,44 +286,55 @@ flowchart TD
   p_vado_oculto -->|"×3"| a1_plaza
   p_vado_oculto -->|"×2"| a1_molino_trampilla
   p_vado_oculto -->|"×3"| a1_molino
+  a1_orell_mesa -. "redirect" .-> c1_cuerpo
   a1_orell_mesa -->|"×4"| a1_taberna
   a1_plaza -. "redirect" .-> a1_ronda
-  a1_plaza -. "redirect" .-> c1_cuerpo
   a1_plaza --> a1_taberna
   a1_plaza --> a1_alcaldesa
   a1_plaza --> a1_molino
   a1_plaza --> a1_posada
   a1_plaza -->|"×2"| a1_plaza
   a1_plaza --> a1_berta_despacho
+  a1_plaza --> c1_cuerpo
   a1_plaza --> a1_molino_trampilla
+  a1_posada -. "redirect" .-> c1_cuerpo
   a1_posada -->|"×2"| a1_plaza
   a1_posada --> a1_taberna
   a1_posada --> a1_molino
   a1_posada --> a1_alcaldesa
   a1_ronda -->|"×5"| c1_cuerpo
+  a1_taberna -. "redirect" .-> c1_cuerpo
   a1_taberna -->|"×3"| a1_taberna_trastienda
   a1_taberna -->|"×5"| a1_plaza
   a1_taberna --> a1_orell_mesa
+  a1_taberna_trastienda -. "redirect" .-> c1_cuerpo
   a1_taberna_trastienda -->|"×2"| a1_taberna
   a1_taberna_trastienda -->|"×2"| a1_molino
+  a1_alcaldesa -. "redirect" .-> c1_cuerpo
   a1_alcaldesa -->|"×3"| a1_berta_despacho
   a1_alcaldesa -->|"×3"| a1_ilse_patio
   a1_alcaldesa --> a1_plaza
+  a1_berta_despacho -. "redirect" .-> c1_cuerpo
   a1_berta_despacho -->|"×4"| a1_alcaldesa
   a1_berta_despacho -->|"×2"| a1_ilse_patio
+  a1_ilse_patio -. "redirect" .-> c1_cuerpo
   a1_ilse_patio -->|"×3"| a1_molino
   a1_ilse_patio -->|"×3"| a1_alcaldesa
   a1_ilse_patio --> a1_plaza
+  a1_molino -. "redirect" .-> c1_cuerpo
   a1_molino -->|"×4"| a1_molino_trampilla
   a1_molino -->|"×3"| a1_molino_rueda
   a1_molino --> a1_plaza
   a1_molino --> a1_molino_pell
+  a1_molino_pell -. "redirect" .-> c1_cuerpo
   a1_molino_pell -->|"×4"| a1_molino_trampilla
   a1_molino_pell -->|"×2"| a1_molino
   a1_molino_pell -->|"×2"| a1_molino_rueda
+  a1_molino_rueda -. "redirect" .-> c1_cuerpo
   a1_molino_rueda -->|"×3"| a1_molino_trampilla
   a1_molino_rueda -->|"×2"| a1_molino
   a1_molino_rueda --> a1_plaza
+  a1_molino_trampilla -. "redirect" .-> c1_cuerpo
   a1_molino_trampilla -->|"×4"| a1_molino_rueda
   a1_molino_trampilla -->|"×2"| a1_molino
   a1_molino_trampilla --> a1_plaza
@@ -326,7 +348,7 @@ flowchart TD
   class a1_plaza hub;
   class a1_posada descanso;
   class p_puente,p_puente_amanecer,p_puente_rechazo,p_vado_oculto,c1_cuerpo externo;
-  linkStyle 7,8 stroke:#e0be6a,stroke-width:2px;
+  linkStyle 6,8,17,23,27,30,34,37,41,46,50,54 stroke:#e0be6a,stroke-width:2px;
 ```
 
 ### Acto `c1` (3 escenas)
@@ -338,11 +360,33 @@ flowchart TD
     c1_cuerpo["c1_cuerpo"]
     c1_refriega{{"c1_refriega<br/>ENCUENTRO"}}
   end
+  a1_orell_mesa["a1_orell_mesa"]
   a1_plaza[["a1_plaza<br/>HUB"]]
+  a1_posada>"a1_posada<br/>DESCANSO"]
   a1_ronda["a1_ronda"]
+  a1_taberna["a1_taberna"]
+  a1_taberna_trastienda["a1_taberna_trastienda"]
+  a1_alcaldesa["a1_alcaldesa"]
+  a1_berta_despacho["a1_berta_despacho"]
+  a1_ilse_patio["a1_ilse_patio"]
+  a1_molino["a1_molino"]
+  a1_molino_pell["a1_molino_pell"]
+  a1_molino_rueda["a1_molino_rueda"]
+  a1_molino_trampilla["a1_molino_trampilla"]
   a2_amanecer["a2_amanecer"]
-  a1_plaza -. "redirect" .-> c1_cuerpo
+  a1_orell_mesa -. "redirect" .-> c1_cuerpo
+  a1_plaza --> c1_cuerpo
+  a1_posada -. "redirect" .-> c1_cuerpo
   a1_ronda -->|"×5"| c1_cuerpo
+  a1_taberna -. "redirect" .-> c1_cuerpo
+  a1_taberna_trastienda -. "redirect" .-> c1_cuerpo
+  a1_alcaldesa -. "redirect" .-> c1_cuerpo
+  a1_berta_despacho -. "redirect" .-> c1_cuerpo
+  a1_ilse_patio -. "redirect" .-> c1_cuerpo
+  a1_molino -. "redirect" .-> c1_cuerpo
+  a1_molino_pell -. "redirect" .-> c1_cuerpo
+  a1_molino_rueda -. "redirect" .-> c1_cuerpo
+  a1_molino_trampilla -. "redirect" .-> c1_cuerpo
   c1_acusacion -->|"×5"| a2_amanecer
   c1_acusacion -->|"×2"| c1_refriega
   c1_cuerpo -->|"×7"| c1_acusacion
@@ -357,8 +401,8 @@ flowchart TD
   classDef externo fill:#2b2b2b,stroke:#8a8a8a,color:#dddddd,stroke-dasharray:4 3;
   classDef faltante fill:#3d0000,stroke:#ff0000,color:#ffffff,stroke-dasharray:4 3;
   class c1_refriega encuentro;
-  class a1_plaza,a1_ronda,a2_amanecer externo;
-  linkStyle 0,5 stroke:#e0be6a,stroke-width:2px;
+  class a1_orell_mesa,a1_plaza,a1_posada,a1_ronda,a1_taberna,a1_taberna_trastienda,a1_alcaldesa,a1_berta_despacho,a1_ilse_patio,a1_molino,a1_molino_pell,a1_molino_rueda,a1_molino_trampilla,a2_amanecer externo;
+  linkStyle 0,2,4,5,6,7,8,9,10,11,12,16 stroke:#e0be6a,stroke-width:2px;
 ```
 
 ### Acto `a2` (13 escenas)

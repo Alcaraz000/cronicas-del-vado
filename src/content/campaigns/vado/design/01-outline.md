@@ -5,7 +5,7 @@
 > **Si algo de acá choca con el validador, gana el validador.**
 > **Todas las cuentas de la campaña viven en este documento.** La biblia manda en lo cualitativo (voces, tono, ficción, canon); acá manda la aritmética. Donde la biblia cite una cifra, está copiada de acá.
 
-**Cifras cerradas de este outline:** 46 escenas · **252 opciones** (179 sin `requires`, 71 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **6 entradas de `redirect` en 5 escenas** · **15.900 palabras de prosa narrativa** · **17.850 palabras escritas en total** (subieron +256 en la Fase H · tarea 4 al corregir tres celdas imposibles; ver §2.1).
+**Cifras cerradas de este outline:** 46 escenas · **253 opciones** (179 sin `requires`, 71 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **16 entradas de `redirect` en 16 escenas** · **15.900 palabras de prosa narrativa** · **17.850 palabras escritas en total** (subieron +256 en la Fase H · tarea 4 al corregir tres celdas imposibles; ver §2.1).
 
 ---
 
@@ -102,8 +102,8 @@ flowchart TD
   a1_plaza --> a1_plaza
   a1_plaza --> a1_molino_trampilla
   a1_plaza --> a1_berta_despacho
-  a1_plaza -. "redirect 1 · sospecha >= 4" .-> a1_ronda
-  a1_plaza -. "redirect 2 · 3 pistas + visited >= 3" .-> c1_cuerpo
+  a1_plaza -. "redirect · sospecha >= 4" .-> a1_ronda
+  a1_plaza --> c1_cuerpo
 
   a1_taberna --> a1_taberna_trastienda
   a1_taberna --> a1_orell_mesa
@@ -163,12 +163,19 @@ flowchart TD
 | 6 | `leer_el_poste_de_bandos` | — | **`a1_plaza`** | Fluff |
 | 7 | `volver_al_despacho` | `{ flag: 'run:pista_alcaldesa' }` | `a1_berta_despacho` | Floodgate |
 | 8 | `entrar_al_molino_por_atras` | `{ met: 'pell' }` `[Recuerdo]` | `a1_molino_trampilla` | Floodgate |
+| 9 | `bajar_al_rio` | `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }` | `c1_cuerpo` | Floodgate — la salida del acto (§1.2.1) |
 
-**8 opciones / 6 libres.** Las dos que vuelven al hub (5 y 6) son la **única excepción declarada** a la invariante "ninguna opción vuelve a su propia escena" (biblia §6.3): las dos llevan texto de outcome obligatorio con información de mundo que ninguna otra opción da —la soga cortada del pozo, que reaparece atando el cuerpo en `c1_cuerpo`, y el bando de Dravos con la pena escrita—, así que cumplen "toda opción cambia el texto, un flag, un objeto o el destino". No son "no pasa nada": son la manera de que un hub tenga seis salidas libres sin inventar dos escenas.
+**9 opciones / 6 libres** (eran 8; ver §1.2.1). Las dos que vuelven al hub (5 y 6) son la **única excepción declarada** a la invariante "ninguna opción vuelve a su propia escena" (biblia §6.3): las dos llevan texto de outcome obligatorio con información de mundo que ninguna otra opción da —la soga cortada del pozo, que reaparece atando el cuerpo en `c1_cuerpo`, y el bando de Dravos con la pena escrita—, así que cumplen "toda opción cambia el texto, un flag, un objeto o el destino". No son "no pasa nada": son la manera de que un hub tenga seis salidas libres sin inventar dos escenas.
 
-**Los dos `redirect` de `a1_plaza` van en este orden en el array, y el orden importa:** primero `{ clock: 'sospecha', gte: 4 }` → `a1_ronda`, después el de las tres pistas → `c1_cuerpo`. Con las dos condiciones ciertas gana la primera, y tiene que ganar el floodgate: si no, el castigo por llenar `sospecha` no se cobra nunca. La ronda te levanta **antes** de que puedas usar lo que averiguaste, que es exactamente el sentido de ese reloj.
+**`a1_plaza` tiene un solo `redirect`:** `{ clock: 'sospecha', gte: 4 }` → `a1_ronda`. La ronda te levanta **antes** de que puedas usar lo que averiguaste, que es exactamente el sentido de ese reloj.
 
-**El segundo `redirect` lleva `{ visited: 'a1_plaza', min: 3 }` además de las tres pistas.** Sin eso, entrar a la tercera puerta cerraba el acto sin aviso y volvía inalcanzables de golpe `a1_posada`, `a1_ronda` y todo lo que hubieras dejado pendiente. Con eso, el jugador tiene por lo menos una vuelta más al hub —con la variante de narrador que dice sin metáfora que ya no queda noche— y la última decisión del acto 1 es una decisión. `visited` cuenta visitas **completas** de esta partida (`memory.ts:35`: se incrementa al elegir, no al entrar), así que el contador sube solo y el redirect no se puede evitar: dispara a más tardar dos elecciones después.
+#### 1.2.1 Corrección del 14 de septiembre de 2026 — la salida del acto 1 (fase «objetivos»)
+
+Lo que decía acá —dos `redirect` en el hub, el segundo con `{ visited: 'a1_plaza', min: 3 }`— **producía el bug que reportó Gabriel**: las doce escenas del acto 1 eran un racimo con 71 opciones y **cero** salidas, y sus dos únicas puertas eran `redirect` del hub que el jugador nunca ve. El diagnóstico entero está en `docs/superpowers/specs/2026-09-14-objetivos-y-el-loop-del-acto-1-design.md`. Lo que hay ahora:
+
+1. **El `visited: 'a1_plaza' >= 3` se borró** (decisión de Gabriel): con un objetivo en pantalla que te lleva a los tres lugares, el contador de visitas es fricción invisible. Lo que este documento llamaba «la vuelta de aviso» lo hace ahora el objetivo, que nombra el lugar que falta.
+2. **El `redirect` de las tres pistas vive en las ONCE escenas del racimo que no son el hub**, con la condición `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }`. Como `enter()` resuelve los `redirect` al entrar, la tercera pista te deja parado donde estás y **la elección siguiente** te saca, elijas la que elijas.
+3. **El hub no lo lleva: ahí la salida es la opción `bajar_al_rio`**, con `requires` de las tres pistas. Es la novena opción del hub y la que hace que el acto tenga una salida *por decisión*. **Sin ella `npm run validate` queda rojo** aunque las doce escenas tengan el `redirect`: la regla 13 (`r13_progreso`, tarea 1 de esta fase) cuenta para los racimos **sólo las aristas que nacen de una opción**, y un `redirect` no es una. Medido: con los doce `redirect` y sin la opción, r13 sigue denunciando el mismo racimo de doce, ahora «por los 13 redirect».
 
 ### 1.3 Cuello 1, transición y acto 2
 
@@ -362,7 +369,7 @@ El total de la columna `pal` sube **+256** (76 + 100 + 80) y con él las cifras 
 
 | id | kind | lugar | PNJ | lleva a | opc | tir | text | pal |
 |---|---|---|---|---|---|---|---|---|
-| `a1_plaza` | **hub** | `aldamar_plaza` | — | `a1_taberna`, `a1_alcaldesa`, `a1_molino`, `a1_posada`, **`a1_plaza` ×2**, `a1_berta_despacho`, `a1_molino_trampilla` · *redirect* → `a1_ronda`, `c1_cuerpo` | 8/6 | 0 | 115 | **431** |
+| `a1_plaza` | **hub** | `aldamar_plaza` | — | `a1_taberna`, `a1_alcaldesa`, `a1_molino`, `a1_posada`, **`a1_plaza` ×2**, `a1_berta_despacho`, `a1_molino_trampilla`, `c1_cuerpo` · *redirect* → `a1_ronda` | 9/6 | 0 | 115 | **431** |
 | `a1_taberna` | normal | `taberna_ancla_seca` | mausi, orell | `a1_taberna_trastienda`, `a1_orell_mesa`, `a1_plaza` | 7/5 | 2 | 115 | **696** |
 | `a1_taberna_trastienda` | normal | `taberna_ancla_seca` | mausi | `a1_taberna`, `a1_molino` | 4/4 | 0 | 70 | **126** |
 | `a1_orell_mesa` | normal | `taberna_ancla_seca` | orell | `a1_taberna` | 4/4 | 0 | 75 | **131** |
@@ -482,7 +489,7 @@ La opción 2 se llama *dejar que la guardia cruce con la piedra* y no *dejar que
 
 | | escenas | opciones | libres | tiradas | palabras |
 |---|---|---|---|---|---|
-| **Suma** | **46** | **252** | **179** (71 %) | **41** | **15.900** |
+| **Suma** | **46** | **253** | **179** (71 %) | **41** | **15.900** |
 
 Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending` = 46 ✔. Una sola con `lethal: true` ⇒ `lethalScenes: 1`.
 
@@ -520,7 +527,7 @@ Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending
 |---|---|---|
 | Escenas | 5+13+3+1+6+6+1+3+4+4 | **46** ✔ (spec: 46) |
 | Tiradas | 5+9+4+0+6+4+0+4+9+0 | **41** ✔ (spec: ~30 — ver §7, conflicto 3) |
-| Opciones | 29+76+20+6+37+34+6+14+30+0 | **252** ✔ |
+| Opciones | 29+76+20+6+37+34+6+14+30+0 | **252**, hoy **253** con `bajar_al_rio` (§1.2.1) ✔ |
 | Libres | 23+58+13+4+24+24+5+12+16+0 | **179** = 71 % ✔ |
 | `text` | 4.925 / 46 escenas = **107 palabras de media** | ✔ dentro de 60-160 |
 | Bandas | 41 × 3 × 35 = 4.305 | ✔ |
@@ -633,22 +640,22 @@ Regla por regla, leídas de `tools/lib/validate/rules/`. Lo que dice cada punto 
 
 **Destinos.** Las 46 escenas de la tabla §2 son el universo cerrado de ids. Ningún `outcome.next` ni ningún `redirect.to` apunta fuera de esa lista; `campaign.start = 'p_camino'`.
 
-**Los 6 `redirect` de la campaña, en 5 escenas** (eran 7 en 6; el de `a1_molino_pell` se borró, ver §7 conflicto 5):
+**Los `redirect` de la campaña.** Eran 7 en 6 escenas; el de `a1_molino_pell` se borró (§7 conflicto 5) y quedaron 6 en 5; la fase «objetivos» le sacó uno al hub y le puso el de las tres pistas a las otras once escenas del acto 1, así que hoy son **16 en 16 escenas** (§1.2.1):
 
 | # | Escena | `when` | `to` | ¿el destino tiene `redirect`? |
 |---|---|---|---|---|
 | 1 | `a1_plaza` | `{ clock: 'sospecha', gte: 4 }` | `a1_ronda` | no |
-| 2 | `a1_plaza` | `{ all: [pista_taberna, pista_alcaldesa, pista_molino, { visited: 'a1_plaza', min: 3 }] }` | `c1_cuerpo` | no |
+| 2 | las **once** del acto 1 que no son el hub (`a1_taberna`, `a1_taberna_trastienda`, `a1_orell_mesa`, `a1_alcaldesa`, `a1_berta_despacho`, `a1_ilse_patio`, `a1_molino`, `a1_molino_pell`, `a1_molino_trampilla`, `a1_molino_rueda`, `a1_posada`) | `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }` | `c1_cuerpo` | no |
 | 3 | `c1_refriega` | `{ clock: 'pelea', gte: 2 }` | `a2_amanecer` | no |
 | 4 | `a2_ley_guardia` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
 | 5 | `a2_fuera_refugio` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
 | 6 | `cl_dravos` | `{ clock: 'pelea', gte: 3 }` | `cl_desenlace` | no |
 
-**El orden dentro de `a1_plaza.redirect` es parte del contrato: primero el 1, después el 2.** Con las dos condiciones ciertas gana la primera del array, y tiene que ganar el floodgate de `sospecha`.
+**`a1_plaza.redirect` quedó con uno solo** (§1.2.1), así que el contrato de orden que había acá ya no tiene dos entradas que ordenar.
 
-**Aciclicidad, demostrada por construcción:** los seis destinos (`a1_ronda`, `c1_cuerpo`, `a2_amanecer`, `c2_anochece` ×2, `cl_desenlace`) **no declaran `redirect` propio**. El grafo de `redirect` tiene profundidad 1: es imposible que haya ciclo, y `redirectCycles` cierra en negro en un paso. El `maxRedirects: 8` del catálogo no se acerca ni de lejos.
+**Aciclicidad, demostrada por construcción:** los destinos (`a1_ronda`, `c1_cuerpo` ×12, `a2_amanecer`, `c2_anochece` ×2, `cl_desenlace`) **no declaran `redirect` propio**. El grafo de `redirect` tiene profundidad 1: es imposible que haya ciclo, y `redirectCycles` cierra en negro en un paso. El `maxRedirects: 8` del catálogo no se acerca ni de lejos.
 
-**Cuidado con lo que r01 NO mira.** `redirectCycles` solo recorre `scene.redirect`; **los bucles de `outcome` no los mira ninguna regla**. Los tres bucles de `outcome` del grafo son `a1_plaza ↔ sus puertas` (más las dos opciones Fluff que vuelven al propio hub), `c1_refriega → c1_refriega` y `cl_dravos → cl_dravos`. Los tres tienen salida garantizada por `redirect` sobre reloj o por opción libre, y `a1_plaza`, `a1_ronda`, `c1_cuerpo`, `a2_amanecer`, `c2_orilla`, `c2_otra_orilla`, `cl_molino`, `cl_dravos`, `cl_halvar` y `cl_desenlace` llevan `onEnter` con hito o reloj. Son invariantes de diseño, no de validador: van al test de contenido (biblia §6.3).
+**Cuidado con lo que r01 NO mira.** `redirectCycles` solo recorre `scene.redirect`; **los bucles de `outcome` no los mira ninguna regla**. Los tres bucles de `outcome` del grafo son `a1_plaza ↔ sus puertas` (más las dos opciones Fluff que vuelven al propio hub), `c1_refriega → c1_refriega` y `cl_dravos → cl_dravos`. Desde la fase «objetivos» sí los mira **r13** (`r13_progreso`), que es la regla que habría atrapado el racimo del acto 1 el día que se escribió. Los tres tienen salida garantizada por `redirect` sobre reloj o por opción libre, y `a1_plaza`, `a1_ronda`, `c1_cuerpo`, `a2_amanecer`, `c2_orilla`, `c2_otra_orilla`, `cl_molino`, `cl_dravos`, `cl_halvar` y `cl_desenlace` llevan `onEnter` con hito o reloj. Son invariantes de diseño, no de validador: van al test de contenido (biblia §6.3).
 
 ---
 
@@ -974,7 +981,7 @@ Lo que la Fase C tiene que respetar aunque no lea nada más de este documento:
 4. **Una sola escena `lethal`**, `c2_vado_crecido`, con **una sola entrada**: `c2_orilla.bajar_al_vado`, `outcome` sin `roll`. `lethalScenes: 1`.
 5. **Ninguna dificultad `extrema`.** `muy_dificil` solo en las dos tiradas letales.
 6. **Los cuatro finales sin una sola condición de clase en su camino**, y ninguno condicionado a llevar el `sello_del_vado` encima: la piedra está en el molino en toda ruta y el objeto es precio, no llave.
-7. **`a1_plaza.redirect` en este orden:** `[0]` `sospecha >= 4` → `a1_ronda`; `[1]` tres pistas + `visited >= 3` → `c1_cuerpo`.
+7. **`a1_plaza.redirect` quedó en uno solo:** `sospecha >= 4` → `a1_ronda`. El cierre del acto es la opción `bajar_al_rio` del hub más el `redirect` de las tres pistas en las otras once escenas del racimo (§1.2.1).
 8. **`visited`, `knows`, `met` y `endingSeen` solo en párrafos de narrador** — también cuando el que habla es Orell, Ilse o Halvar, aunque r08 no lo frene. **Excepción:** `visited` sí puede ir en boca de un PNJ, porque es de esta misma partida; y **nunca** una variante `visited` en una escena que se visita una sola vez.
 9. **Un PNJ va en `scene.npcs` solo si está presente en toda ruta que entra a la escena.** Declararlo deriva `char:met.<id>` aunque no hable. Presencia condicional = narrador sin `speaker`.
 10. **Ningún `set` ni `clear` sobre `char:met.*`, `char:place.*`, `char:origen.*`, `char:leyenda` ni `world:caido.*`.**
