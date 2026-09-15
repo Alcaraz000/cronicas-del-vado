@@ -490,7 +490,7 @@ Al llegar a 4: en el **acto 1** `a1_plaza` redirige a `a1_ronda` (Floodgate: te 
 
 **`pelea`, max 3 — los dos encuentros.** Éxito +1 · Crítico +2 · Éxito con costo +1 y el enemigo te pega · Fallo 0 y el enemigo te pega · rendirse, huir o la palabra de Orell cierra el encuentro de una (+2 o +3). Umbrales: `c1_refriega` sale con `gte: 2` (2 rondas), `cl_dravos` con `gte: 3` (3 rondas); cinco rondas en total, el número de la spec. **Reset en `cl_molino.onEnter` con `{ clock: 'pelea', delta: -3 }`**: `applyClock` clampea a `[0, max]` (verificado en `src/engine/effects.ts`), así que es seguro hayas peleado o no en el cuello 1. No hay reloj de peligro.
 
-### 7.2 Los 24 flags `run:`
+### 7.2 Los 26 flags `run:`
 
 **Regla de fuentes.** Un flag **revelador** (uno que cambia lo que el jugador *sabe*) tiene **como máximo dos fuentes en el acto 1**, y las dos son celdas distintas de la matriz de §9.2: si tiene cinco, el orden en que abrís las puertas deja de decidir *qué* sabés y pasa a decidir solo *cómo te lo cuentan*, y la segunda partida se vuelve la misma con dos frases cambiadas. Una **tercera** fuente solo puede existir en el clímax y solo **pagando** un objeto o una tirada. Los flags de **relación** (`run:orell_confia`, `run:ilse_confia`) admiten una fuente por acto.
 
@@ -502,13 +502,15 @@ Al llegar a 4: en el **acto 1** `a1_plaza` redirige a `a1_ronda` (Floodgate: te 
 | `run:pista_taberna` | Sabés que Tomé debía plata | `a1_taberna.onEnter` | Redirect del hub, `requires` de `a1_molino.hablar_con_el_chico`, variantes de posición |
 | `run:pista_alcaldesa` | Escuchaste la versión de Berta | `a1_alcaldesa.onEnter` | ídem, más `requires` de `a1_plaza.volver_al_despacho` |
 | `run:pista_molino` | Viste la luz del molino | `a1_molino.onEnter`, `a1_ilse_patio` | ídem |
+| `run:cobro_el_adelanto` | Ya cobraste la tercera parte que promete la carta | `a1_alcaldesa.reclamar_el_adelanto` | `requires: { not: … }` de esa misma opción: **el adelanto se cobra una vez por partida**. Antes la opción no tenía un solo efecto y volvía a prometer lo mismo cada vez (fase «objetivos», diseño §0.4). El motor no tiene dinero: lo que se registra es el cobro, no la plata |
 | `run:pell_amigo` | Te debe el silencio | `a1_molino_pell` éxito, `.mentirle_con_la_carta` | Variantes en `c1_acusacion` y `cl_molino`; `requires` de `a2_amanecer.preguntarle_a_pell_por_la_orden` |
 | `run:pell_delato` | Te vio y avisó | Fallos de `a1_molino_pell`, `a1_molino.mirar_por_la_ventana` | Variantes en `c1_acusacion`, texto de `a1_ronda` |
-| `run:sabe_de_halvar` | Sabés que hay un mercader del otro lado metido | **Dos:** `a1_taberna.robar_el_libro` éxito · `a1_orell_mesa` (celda segunda: Orell borracho lo nombra) | Variantes y ventaja en `a2_ley_cartas`, `a2_ley_halvar`, `cl_halvar.leerle_el_libro_de_rutas` |
+| `run:sabe_de_halvar` | Sabés que hay un mercader del otro lado metido | **Dos en el acto 1:** `a1_taberna.robar_el_libro` éxito · `a1_orell_mesa` (celda segunda: Orell borracho lo nombra). **Una tercera, pagando una tirada en el clímax:** `cl_molino.escuchar` éxito, donde Halvar dice en voz alta que el peaje del medio es suyo | Variantes y ventaja en `a2_ley_cartas`, `a2_ley_halvar`, `cl_halvar.leerle_el_libro_de_rutas` |
 | `run:berta_miente` | La pescaste en una mentira | **Dos en el acto 1:** `a1_taberna` (celda última: ya le pagó a otro) · `a1_alcaldesa` (celda última: la capa puesta). **Una tercera, pagando:** `cl_halvar.leerle_lo_que_firmo_berta` (`requires: { item: 'carta_de_halvar' }`) | El párrafo de Berta en `cl_desenlace`; variantes de los cuatro epílogos |
 | `run:ilse_confia` | Ilse te habla de verdad | Una por acto: `a1_ilse_patio` (acto 1) · `a2_ley_berta` o `a2_fuera_sotano` (acto 2, una por rama) | `advantageIf` de `cl_desenlace.ponersela_en_las_manos_a_ilse` y de `a2_ley_berta.hablarle_a_ilse_en_la_escalera`; bajada al sótano sin tirada de sigilo |
 | `run:cuerpo_hallado` | Sabías que Tomé estaba muerto antes del cuerpo | `a1_molino_rueda`, el bulto de Pell reconocido por Mausi | Variantes de narrador en `c1_cuerpo` y `c1_acusacion` |
 | `run:la_soga_cortada` | Viste que al pozo de la plaza le cortaron la soga | `a1_plaza.mirar_el_pozo` | Variante de narrador en `c1_cuerpo`: el cuerpo estaba atado con esa soga |
+| `run:tapa_forzada` | A la trampilla del molino le forzaron el herraje, y no del lado de adentro | `a1_molino.subir_por_la_rueda` `[Explorador]` | **Todavía nadie.** Es el hermano de `run:la_soga_cortada` y le falta su variante de narrador: no entró en esta pasada porque el presupuesto de prosa estaba a once palabras del tope (fase «objetivos», tarea 4) |
 | `run:acusado` | Dravos te acusó en público | `c1_acusacion.onEnter` | Variantes de todo el acto 2 y de los epílogos; `requires` de `cl_molino.rendirte_de_entrada` |
 | `run:con_la_ley` | Rama A | `c1_acusacion`, `c1_refriega.rendirte`, `a2_amanecer`, cruce desde B — **y los tres cruces hacen `clear` del otro** | Variantes de `cl_molino`, `cl_halvar`, `cl_desenlace`, epílogos |
 | `run:contra_la_ley` | Rama B | `c1_acusacion.correr`/`.resistirte`, `c1_refriega`, `a2_amanecer`, cruce desde A — **ídem** | ídem |

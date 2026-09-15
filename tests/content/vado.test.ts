@@ -93,7 +93,10 @@ const OPCIONES_DEL_OUTLINE: Record<string, readonly [number, number]> = {
   a1_taberna: [7, 5],
   a1_taberna_trastienda: [4, 4],
   a1_orell_mesa: [4, 4],
-  a1_alcaldesa: [7, 5],
+  // 4 libres y no 5: la fase «objetivos» le puso `requires: { not: run:cobro_el_adelanto }` a
+  // `reclamar_el_adelanto`, que narraba un cobro sin registrarlo (outline §2.2). Toca justo el
+  // piso de `LIMITS.minChoices`.
+  a1_alcaldesa: [7, 4],
   a1_berta_despacho: [5, 4],
   a1_ilse_patio: [6, 4],
   a1_molino: [8, 5],
@@ -300,7 +303,7 @@ describe('vado: las 46 escenas de la tabla §2', () => {
     }
   });
 
-  it('suma 253 opciones, 179 libres y 41 tiradas, como los totales del outline', () => {
+  it('suma 253 opciones, 178 libres y 41 tiradas, como los totales del outline', () => {
     const totales = escenas.reduce(
       (acc, s) => ({
         opciones: acc.opciones + s.choices.length,
@@ -309,7 +312,7 @@ describe('vado: las 46 escenas de la tabla §2', () => {
       }),
       { opciones: 0, libres: 0, tiradas: 0 },
     );
-    expect(totales).toEqual({ opciones: 253, libres: 179, tiradas: 41 });
+    expect(totales).toEqual({ opciones: 253, libres: 178, tiradas: 41 });
   });
 
   it('los ids de opción no se repiten dentro de una escena', () => {
@@ -1437,5 +1440,134 @@ describe('vado: el objetivo en pantalla (diseño §2)', () => {
     expect(objetivoDe(state)).toBe('Hay algo que no cierra');
     state = choose(vado, state, 'bajar_al_rio');
     expect(state.run.sceneId).toBe('c1_cuerpo');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fase «objetivos», tarea 4 — lo que la prosa promete, el estado lo registra
+// ---------------------------------------------------------------------------
+
+/** Toda la prosa escrita de un desenlace, variantes incluidas, en un solo string. */
+function prosaDe(outcome: Outcome): string {
+  return (outcome.text ?? [])
+    .map((p) => (typeof p === 'string' ? p : p.variants.map((v) => v.text).join(' ')))
+    .join(' ');
+}
+
+function opcionDe(sceneId: string, choiceId: string): Choice {
+  const choice = campaign.scenes[sceneId]?.choices.find((c) => c.id === choiceId);
+  expect(choice, `${sceneId}.${choiceId}`).toBeDefined();
+  return choice as Choice;
+}
+
+describe('vado: lo que la prosa dice que pasó, el estado lo registra (diseño §4)', () => {
+  /**
+   * Caso 1, el de Gabriel. «te adelanta la tercera parte» y la opción no tenía un solo efecto,
+   * así que volvía a prometer lo mismo cada vez que la mirabas.
+   */
+  it('«Reclamar el adelanto» cobra una vez, queda registrado y no vuelve a prometerlo', () => {
+    const reclamar = opcionDe('a1_alcaldesa', 'reclamar_el_adelanto');
+    // La etiqueta NO se toca: el problema nunca fue cómo se llama la opción (decisión de Gabriel).
+    expect(reclamar.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(campaign.flags['run:cobro_el_adelanto']).toBeTruthy();
+    expect(prosaDe(reclamar.outcome as Outcome)).toContain('te adelanta la tercera parte');
+    expect(reclamar.outcome?.effects).toEqual([{ set: 'run:cobro_el_adelanto' }]);
+
+    // Jugando: se entra a la casa de Berta y se cobra.
+    const enLaCasa = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    expect(enLaCasa.run.sceneId).toBe('a1_alcaldesa');
+    const primera = render(vado, enLaCasa).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(primera?.visible).toBe(true);
+    expect(primera?.enabled).toBe(true);
+
+    const cobrado = choose(vado, enLaCasa, 'reclamar_el_adelanto');
+    expect(cobrado.run.sceneId).toBe('a1_berta_despacho');
+    expect(cobrado.run.flags).toContain('run:cobro_el_adelanto');
+    // La prosa que afirma el pago es la que se leyó, y ahora tiene estado atrás.
+    const leido = cobrado.run.log.filter((e) => e.kind === 'outcome').at(-1);
+    expect(JSON.stringify(leido)).toContain('te adelanta la tercera parte');
+
+    // La segunda vez la opción sigue ahí, con su etiqueta, y ya no promete nada.
+    const deVuelta = choose(vado, cobrado, 'preguntarle_por_la_carta');
+    expect(deVuelta.run.sceneId).toBe('a1_alcaldesa');
+    const segunda = render(vado, deVuelta).choices.find((c) => c.id === 'reclamar_el_adelanto');
+    expect(segunda?.label).toBe('Reclamar el adelanto que promete la carta');
+    expect(segunda?.visible).toBe(true);
+    expect(segunda?.enabled).toBe(false);
+    expect(segunda?.lockedHint).toBe(reclamar.lockedHint);
+    expect(reclamar.lockedHint).toBeTruthy();
+  });
+
+  /** Caso 2: «La tapa tiene el herraje forzado, y no de este lado» es un hallazgo, no ambiente. */
+  it('subir por la rueda registra el herraje forzado de la trampilla', () => {
+    const subir = opcionDe('a1_molino', 'subir_por_la_rueda');
+    expect(subir.label).toBe('Subir por la rueda hasta el desván');
+    expect(campaign.flags['run:tapa_forzada']).toBeTruthy();
+    expect(prosaDe(subir.outcome as Outcome)).toContain('el herraje forzado, y no de este lado');
+    expect(subir.outcome?.effects).toEqual([{ set: 'run:tapa_forzada' }]);
+
+    const state = jugar('explorador', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'cruzar_al_molino',
+      'subir_por_la_rueda',
+    ]);
+    expect(state.run.sceneId).toBe('a1_molino_trampilla');
+    expect(state.run.flags).toContain('run:tapa_forzada');
+  });
+
+  /** Caso 3: Halvar dice que el peaje del medio es suyo, que es lo que significa el flag. */
+  it('escuchar a Halvar en el clímax registra que sabés del mercader, y sólo en el éxito', () => {
+    const escuchar = opcionDe('cl_molino', 'escuchar');
+    const bandas = escuchar.roll?.outcomes;
+    expect(prosaDe(bandas?.success as Outcome)).toContain('el del medio es suyo');
+    expect(bandas?.success.effects).toEqual([{ set: 'run:sabe_de_halvar' }]);
+    // La banda parcial escucha la mitad y no se entera: no enciende nada.
+    expect(bandas?.partial.effects).toBeUndefined();
+    // El fallo sigue cobrando lo suyo, y nada más.
+    expect(bandas?.failure.effects).toEqual([{ set: 'run:dravos_sabe' }]);
+
+    const pasos = PARTIDAS.find((p) => p.final === 'fin_hundido')?.pasos as readonly Paso[];
+    const hasta = pasos.slice(0, pasos.findIndex((p) => Array.isArray(p) && p[0] === 'escuchar') + 1);
+    const state = jugar('guerrero', hasta);
+    expect(state.run.sceneId).toBe('cl_halvar');
+    expect(state.run.flags).toContain('run:sabe_de_halvar');
+  });
+
+  /**
+   * Casos 4 y 5: o el efecto existe en el vocabulario del motor, o la frase no puede afirmar que
+   * pasó. `Effect` no tiene comida ni calzado y no se le agregan por una línea cada uno.
+   */
+  it('cerrar los postigos no narra comida, porque el motor no tiene comida', () => {
+    const postigos = opcionDe('c2_anochece', 'cerrar_los_postigos');
+    expect(postigos.label).toBe('Cerrar los postigos con los vecinos');
+    expect(postigos.outcome?.effects).toBeUndefined();
+    // La guarda contra el falso verde: borrar la prosa entera también haría pasar el `not.toMatch`.
+    expect(prosaDe(postigos.outcome as Outcome)).toContain('Aguantás el postigo contra el viento');
+    expect(prosaDe(postigos.outcome as Outcome)).not.toMatch(/\bpan(es)?\b/iu);
+  });
+
+  it('colarse por el terraplén no narra calzado perdido, y sí lo que el estado registra', () => {
+    const colarte = opcionDe('p_puente_rechazo', 'colarte_por_el_terraplen');
+    expect(colarte.label).toBe('Colarte por el terraplén');
+    const parcial = colarte.roll?.outcomes.partial as Outcome;
+    expect(parcial.effects).toEqual([{ addCondition: 'empapado' }]);
+    // Misma guarda: la banda sigue narrando la caída al agua, que es lo que el `empapado` registra.
+    expect(prosaDe(parcial)).toContain('el río te recibe de costado');
+    expect(prosaDe(parcial)).not.toMatch(/\bbotas?\b/iu);
+
+    // Jugando: la banda parcial deja lo único que la banda afirma, el agua encima.
+    const state = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'mirar_las_runas_del_pilar',
+      ['colarte_por_el_terraplen', 'partial'],
+    ]);
+    expect(state.run.sceneId).toBe('a1_plaza');
+    expect(state.run.conditions).toContain('empapado');
+    expect(JSON.stringify(state.run.log.filter((e) => e.kind === 'outcome'))).not.toMatch(/bota/iu);
   });
 });

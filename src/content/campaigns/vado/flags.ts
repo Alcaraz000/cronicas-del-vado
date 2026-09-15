@@ -1,5 +1,5 @@
 /**
- * Los flags declarados de "El vado de Aldamar" (biblia §7.2 y §7.3): 24 `run:`, 6 `char:vado.*` y
+ * Los flags declarados de "El vado de Aldamar" (biblia §7.2 y §7.3): 26 `run:`, 6 `char:vado.*` y
  * 2 `world:vado.*`.
  *
  * Los `run:` mueren con la partida. Los `char:vado.*` se apuestan en `run.stagedFlags` y se vuelven
@@ -36,6 +36,10 @@ export const flags: Record<string, string> = {
   // --- Lo que averiguás ----------------------------------------------------
   'run:sabe_de_halvar':
     'Sabés que hay un mercader del otro lado metido en esto. Dos fuentes en el acto 1: robarle el libro de fiados a Mausi con éxito, u Orell en la tercera jarra. Da ventaja y variantes en la rama A y en `cl_halvar.leerle_el_libro_de_rutas`.',
+  'run:cobro_el_adelanto':
+    'Ya cobraste la tercera parte que promete la carta. Lo enciende `a1_alcaldesa.reclamar_el_adelanto`, que es la opción que lo narra, y es el `requires: { not: … }` de esa misma opción: el adelanto se cobra UNA vez por partida. El motor no tiene dinero y no se le agrega; lo que el flag registra es el cobro, no la plata.',
+  'run:tapa_forzada':
+    'Viste que a la trampilla del molino le forzaron el herraje, y no del lado de adentro. Lo enciende `a1_molino.subir_por_la_rueda` [Explorador], que es la única que lo mira desde arriba. Es un hallazgo forense, hermano de `run:la_soga_cortada`.',
   'run:berta_miente':
     'Pescaste a la alcaldesa en una mentira. Dos fuentes en el acto 1 (Mausi en la celda última de la taberna; Berta con la capa puesta en la celda última de su casa) y una tercera, pagando, en `cl_halvar.leerle_lo_que_firmo_berta`. Lo lee el párrafo de Berta en `cl_desenlace` y los cuatro epílogos.',
   'run:ilse_confia':

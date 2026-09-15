@@ -241,13 +241,31 @@ export const a1_alcaldesa = {
         next: 'a1_berta_despacho',
       },
     },
+    // FASE «objetivos» · tarea 4, caso 1 — el caso que Gabriel reportó: la prosa cobraba y el
+    // estado no se enteraba, así que la opción volvía a prometer lo mismo cada vez que la mirabas.
+    // La etiqueta NO se toca (decisión suya): el problema nunca fue cómo se llama.
+    //
+    // El brief pedía un flag MÁS una variante de `outcome.text` con `when` sobre ese flag. Esa
+    // variante NO PUEDE FUNCIONAR y está medido: `choose()` aplica `outcome.effects` ANTES de
+    // resolver `outcome.text` (src/engine/resolve.ts, `applyEffects` y después `resolveText` con el
+    // estado nuevo), así que el flag ya está encendido la PRIMERA vez y la variante de «ya cobraste»
+    // se lleva puesto el único párrafo que narra el pago. Comprobado con el motor real: la primera
+    // elección loguea la variante condicionada, no la base.
+    //
+    // Lo que sí distingue la primera vez de la segunda es `requires`, que se evalúa antes de
+    // elegir. Es además el patrón que la campaña ya usa para lo que se hace una sola vez por
+    // partida (`run:piedra_leida`, biblia §7.2). La opción se sigue viendo, con su etiqueta, y lo
+    // que dice la segunda vez lo dice el `lockedHint`.
     {
       id: 'reclamar_el_adelanto',
       label: 'Reclamar el adelanto que promete la carta',
+      requires: { not: { flag: 'run:cobro_el_adelanto' } },
+      lockedHint: 'El adelanto ya lo cobraste',
       outcome: {
         text: [
           'Preguntás por la plata antes que por el muerto. A Berta no le molesta: cuenta en voz alta, por días, te adelanta la tercera parte y abre la puerta del fondo.',
         ],
+        effects: [{ set: 'run:cobro_el_adelanto' }],
         next: 'a1_berta_despacho',
       },
     },
@@ -659,6 +677,12 @@ export const a1_molino = {
       },
     },
     // [Explorador] — ves la trampilla sin tocar el candado (biblia §9.5).
+    //
+    // FASE «objetivos» · tarea 4, caso 2: «el herraje forzado, y no de este lado» es un HALLAZGO,
+    // no ambiente — el que sube sabe algo que el que no subió no sabe, y hasta ahora el estado no
+    // lo registraba. Va `run:tapa_forzada`, hermano de `run:la_soga_cortada`: un flag de sabor que
+    // guarda lo que viste. Sigue siendo sabor y atajo, nunca llave: no abre un final, un
+    // `char:vado.*` ni un objeto obligatorio, así que el cupo de opciones de clase (§9.5) no cambia.
     {
       id: 'subir_por_la_rueda',
       label: 'Subir por la rueda hasta el desván',
@@ -668,6 +692,7 @@ export const a1_molino = {
         text: [
           'Subís por los álabes de la rueda quieta hasta la viga del desván, y desde arriba el molino se lee entero. La tapa tiene el herraje forzado, y no de este lado.',
         ],
+        effects: [{ set: 'run:tapa_forzada' }],
         next: 'a1_molino_trampilla',
       },
     },

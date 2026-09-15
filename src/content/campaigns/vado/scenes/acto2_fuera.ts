@@ -974,12 +974,17 @@ export const c2_anochece = {
         next: 'c2_orilla',
       },
     },
+    // FASE «objetivos» · tarea 4, caso 4: decía «te da medio pan» y el motor NO TIENE COMIDA, así
+    // que la frase afirmaba algo que el estado no podía registrar. El criterio (diseño §4): o el
+    // efecto existe en el vocabulario del motor, o la frase no puede afirmar que pasó — y se
+    // prefiere cambiar la frase antes que inventar vocabulario por una línea. El agradecimiento del
+    // viejo queda, sin nada que cambie de manos. Misma cuenta de palabras que antes.
     {
       id: 'cerrar_los_postigos',
       label: 'Cerrar los postigos con los vecinos',
       outcome: {
         text: [
-          'Aguantás el postigo contra el viento mientras un viejo clava. No pregunta el nombre. Al terminar te da medio pan.',
+          'Aguantás el postigo contra el viento mientras un viejo clava. No pregunta el nombre. Al terminar te aprieta el hombro.',
         ],
         next: 'c2_orilla',
       },

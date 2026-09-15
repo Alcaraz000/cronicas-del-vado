@@ -5,7 +5,7 @@
 > **Si algo de acá choca con el validador, gana el validador.**
 > **Todas las cuentas de la campaña viven en este documento.** La biblia manda en lo cualitativo (voces, tono, ficción, canon); acá manda la aritmética. Donde la biblia cite una cifra, está copiada de acá.
 
-**Cifras cerradas de este outline:** 46 escenas · **253 opciones** (179 sin `requires`, 71 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **16 entradas de `redirect` en 16 escenas** · **15.900 palabras de prosa narrativa** · **17.850 palabras escritas en total** (subieron +256 en la Fase H · tarea 4 al corregir tres celdas imposibles; ver §2.1).
+**Cifras cerradas de este outline:** 46 escenas · **253 opciones** (178 sin `requires`, 70 %) · **41 tiradas escritas** · 2 encuentros (5 rondas) · 1 escena mortal · 4 finales · **16 entradas de `redirect` en 16 escenas** · **15.900 palabras de prosa narrativa** · **17.850 palabras escritas en total** (subieron +256 en la Fase H · tarea 4 al corregir tres celdas imposibles; ver §2.1).
 
 ---
 
@@ -353,6 +353,14 @@ Las tres tenían `pal` igual o casi igual a `text`: presupuestaban **24, 0 y 0**
 
 El total de la columna `pal` sube **+256** (76 + 100 + 80) y con él las cifras derivadas de §3, §6 y §7, que están actualizadas. *(Descuadre anterior a esta corrección, anotado y sin tocar: la columna `pal` de §2 suma 15.930 y §3 declara 15.900; esos 30 de diferencia ya estaban antes y conviene reconciliarlos en su propia pasada.)*
 
+### 2.2 Corrección del 14 de septiembre de 2026 — `a1_alcaldesa` pasa de 7/5 a 7/4 (fase «objetivos»)
+
+`a1_alcaldesa.reclamar_el_adelanto` narraba un cobro —*«te adelanta la tercera parte»*— y **no tenía un solo efecto**, así que el estado nunca se enteraba y la opción volvía a prometer lo mismo cada vez que el jugador la miraba. Es el caso que Gabriel reportó y el §0.4 del diseño de la fase. Ahora la opción enciende `run:cobro_el_adelanto` y lleva `requires: { not: { flag: 'run:cobro_el_adelanto' } }` con su `lockedHint`: **el adelanto se cobra una vez por partida**, igual que `run:piedra_leida` en la biblia §7.2.
+
+**La etiqueta no se tocó** (decisión de Gabriel: el problema nunca fue cómo se llama la opción).
+
+Consecuencia en las cifras de este documento: `a1_alcaldesa` baja de **5 opciones libres a 4** —el mínimo de r03, que sigue cumpliendo—, el total de libres baja de **179 a 178** (70 %) y el reparto del §8 pasa a 33 escenas con 4 y 6 con 5. **El total de opciones no cambia: siguen siendo 253.** Tampoco cambia la columna `pal`: el `lockedHint` no es prosa narrativa y el linter lo cuenta aparte de las palabras que mide contra el presupuesto.
+
 ### Prólogo — primera noche, bajo la lluvia (5)
 
 | id | kind | lugar | PNJ | lleva a | opc | tir | text | pal |
@@ -373,7 +381,7 @@ El total de la columna `pal` sube **+256** (76 + 100 + 80) y con él las cifras 
 | `a1_taberna` | normal | `taberna_ancla_seca` | mausi, orell | `a1_taberna_trastienda`, `a1_orell_mesa`, `a1_plaza` | 7/5 | 2 | 115 | **696** |
 | `a1_taberna_trastienda` | normal | `taberna_ancla_seca` | mausi | `a1_taberna`, `a1_molino` | 4/4 | 0 | 70 | **126** |
 | `a1_orell_mesa` | normal | `taberna_ancla_seca` | orell | `a1_taberna` | 4/4 | 0 | 75 | **131** |
-| `a1_alcaldesa` | normal | `casa_de_berta` | berta, ilse | `a1_berta_despacho`, `a1_ilse_patio`, `a1_plaza` | 7/5 | 0 | 120 | **588** |
+| `a1_alcaldesa` | normal | `casa_de_berta` | berta, ilse | `a1_berta_despacho`, `a1_ilse_patio`, `a1_plaza` | 7/4 | 0 | 120 | **588** |
 | `a1_berta_despacho` | normal | `casa_de_berta` | berta | `a1_alcaldesa`, `a1_ilse_patio` | 5/4 | 1 | 100 | **261** |
 | `a1_ilse_patio` | normal | `casa_de_berta` | ilse | `a1_alcaldesa`, `a1_molino`, `a1_plaza` | 6/4 | 1 | 100 | **261** |
 | `a1_molino` | normal | `molino_de_tome` | pell | `a1_molino_pell` *(gated)*, `a1_molino_rueda`, `a1_molino_trampilla`, `a1_plaza` | 8/5 | 1 | 120 | **496** |
@@ -489,7 +497,7 @@ La opción 2 se llama *dejar que la guardia cruce con la piedra* y no *dejar que
 
 | | escenas | opciones | libres | tiradas | palabras |
 |---|---|---|---|---|---|
-| **Suma** | **46** | **253** | **179** (71 %) | **41** | **15.900** |
+| **Suma** | **46** | **253** | **178** (70 %) | **41** | **15.900** |
 
 Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending` = 46 ✔. Una sola con `lethal: true` ⇒ `lethalScenes: 1`.
 
@@ -528,7 +536,7 @@ Por `kind`: **36 `normal`** · 1 `hub` · 2 `encounter` · 3 `rest` · 4 `ending
 | Escenas | 5+13+3+1+6+6+1+3+4+4 | **46** ✔ (spec: 46) |
 | Tiradas | 5+9+4+0+6+4+0+4+9+0 | **41** ✔ (spec: ~30 — ver §7, conflicto 3) |
 | Opciones | 29+76+20+6+37+34+6+14+30+0 | **252**, hoy **253** con `bajar_al_rio` (§1.2.1) ✔ |
-| Libres | 23+58+13+4+24+24+5+12+16+0 | **179** = 71 % ✔ |
+| Libres | 23+57+13+4+24+24+5+12+16+0 | **178** = 70 % ✔ (era 179; ver §2.2) |
 | `text` | 4.925 / 46 escenas = **107 palabras de media** | ✔ dentro de 60-160 |
 | Bandas | 41 × 3 × 35 = 4.305 | ✔ |
 | crit/fumble | (6+4) × 35 = 350 | ✔ el cupo exacto, nombrado opción por opción en §5/r04 |
@@ -712,7 +720,7 @@ Está verificado **escena por escena** en la columna `opc` de la tabla §2. Resu
 | Opciones **sin `requires`** | **4**, en **32** de las 42 escenas no finales | 6 (`a1_plaza`) | `LIMITS.minChoices` = 4 ✔ |
 | Escenas `ending` | 0 | 0 | ✔ |
 
-Reparto exacto de libres: **32 escenas con 4** · 7 con 5 (`p_puente`, `p_vado_oculto`, `a1_taberna`, `a1_alcaldesa`, `a1_molino`, `c1_cuerpo`, `c2_anochece`) · 2 con 5 **de 5** (`p_puente_amanecer`, `a1_posada`, todas libres) · 1 con 6 (`a1_plaza`) = 42 ✔, y 32×4 + 35 + 10 + 6 = **179** ✔.
+Reparto exacto de libres: **33 escenas con 4** · 6 con 5 (`p_puente`, `p_vado_oculto`, `a1_taberna`, `a1_molino`, `c1_cuerpo`, `c2_anochece`) · 2 con 5 **de 5** (`p_puente_amanecer`, `a1_posada`, todas libres) · 1 con 6 (`a1_plaza`) = 42 ✔, y 33×4 + 30 + 10 + 6 = **178** ✔. (`a1_alcaldesa` pasó de 5 libres a 4 en la fase «objetivos»; ver §2.2.)
 
 **Ninguna escena queda por debajo de 4 libres, y la razón es estructural:** cada `[Clase]`, cada `[Origen]`, cada `[Recuerdo]` y cada opción atada a un flag **se suma** a las cuatro libres, nunca las reemplaza (biblia §9.3). Los cuatro casos que más aprietan, resueltos:
 
