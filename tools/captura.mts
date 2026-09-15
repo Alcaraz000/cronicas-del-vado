@@ -51,7 +51,7 @@ const RAIZ = path.resolve(fileURLToPath(import.meta.url), '../..');
  *
  * Medido por DOM sobre la escena de la foto (`a1_taberna`) a 1920×905, escala 1:
  *
- *   la prosa pide 341,52 px y tiene 353    -> entra con 11,48 px de sobra, 11 renglones
+ *   la prosa pide 341,52 px y tiene 353    -> entra con 11,48 px de sobra, 9 renglones (9 x 34,39 + 4 x 8 de margen = 341,51)
  *   la lista de 7 opciones pide 296,03     -> entra con 56,97 px de sobra, 7 de 7 a la vista
  *   columna de prosa 832,75 px · columna de acciones 959,25 px · diálogo 21,49 px
  *   desborde de la página: 0 horizontal y 0 vertical
