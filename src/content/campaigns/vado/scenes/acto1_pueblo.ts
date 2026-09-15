@@ -25,6 +25,29 @@ const AL_CUELLO_1 = {
 } satisfies Redirect;
 
 /**
+ * EL FLOODGATE DEL RELOJ, en las DOCE escenas del racimo. Hasta la tarea 5 de la fase «objetivos»
+ * vivía **sólo en el hub**, y eso era la misma falla que el resto de la fase: *una puerta que
+ * depende de pisar una baldosa no es una puerta*. El reloj se llena adentro de la casa de Berta —
+ * doce pasos insistiendo bastan para ponerlo en 4— y la puerta que lo leía estaba en la plaza, que
+ * ese bucle no pisa: abierta y congelada, igual que el ciclo `a1_molino_trampilla ↔ a1_molino_rueda`
+ * del diagnóstico (diseño §0.3 y §3, con su nota de corrección del 15 de septiembre).
+ *
+ * Dos cosas que hay que saber antes de moverlo:
+ * - **Va PRIMERO, antes de `AL_CUELLO_1`**, y el orden importa: con el reloj lleno y las tres pistas
+ *   puestas, la ronda te levanta **antes** de que puedas usar lo que averiguaste, que es el sentido
+ *   entero de ese reloj (outline §1.2). Al revés, el reloj no cobraría nunca.
+ * - **Acá el hub SÍ lo lleva**, al revés que `AL_CUELLO_1`, y no es una inconsistencia: el hub perdió
+ *   el de las pistas porque si no `bajar_al_rio` sería contenido muerto, y **este floodgate no tiene
+ *   ninguna opción que dejar muerta** — nadie elige que lo arresten. Medido, no asumido: con el
+ *   floodgate en las doce, `npm run validate` sigue en 0 errores y los tests siguen en verde.
+ * - `a1_ronda` **no** lo lleva, obviamente: se redirigiría a sí misma.
+ */
+const SOSPECHA_AL_TOPE = {
+  when: { clock: 'sospecha', gte: 4 },
+  to: 'a1_ronda',
+} satisfies Redirect;
+
+/**
  * LOTE 3 (bloque del pueblo) — Acto 1 de "El vado de Aldamar": el hub de la plaza, el Ancla Seca con
  * sus dos satélites, la posada y el floodgate de la ronda.
  *
@@ -35,8 +58,9 @@ const AL_CUELLO_1 = {
  * Contratos que este archivo sostiene (outline §8), verificados y sin cambios:
  * - **`a1_plaza.redirect` quedó en uno solo: el floodgate de `sospecha` → `a1_ronda`.** El segundo,
  *   el de las tres pistas + `visited >= 3` → `c1_cuerpo`, se fue de acá en la fase «objetivos» y
- *   volvió convertido en la opción `bajar_al_rio`, que el jugador ve. El floodgate se queda porque
- *   es la puerta del temerario y funciona (diseño §3).
+ *   volvió convertido en la opción `bajar_al_rio`, que el jugador ve. El floodgate se queda acá —y
+ *   además se COPIÓ a las otras once en la tarea 5 de esa misma fase, porque vivir sólo en el hub lo
+ *   volvía una puerta que dependía de pisar una baldosa (diseño §3, corrección del 15 de septiembre).
  * - **`a1_plaza` está en 9 opciones / 6 libres: toca justo el techo** de `LIMITS.maxChoices`. El
  *   margen de una que quedaba se lo llevó `bajar_al_rio`. Las dos opciones que vuelven al propio
  *   hub (`mirar_el_pozo`,
@@ -164,8 +188,9 @@ export const a1_plaza = {
   place: 'aldamar_plaza',
   onEnter: [{ milestone: 'llegar_a_aldamar' }],
   // Floodgate de sospecha, y nada más. El cierre del acto ya no se dispara acá: es la opción
-  // `bajar_al_rio`, que se ve y se elige. El hub es la única escena del racimo sin `AL_CUELLO_1`.
-  redirect: [{ when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' }],
+  // `bajar_al_rio`, que se ve y se elige. El hub es la única escena del racimo sin `AL_CUELLO_1`
+  // —y la única que tiene SOLO el floodgate, porque las otras once llevan los dos.
+  redirect: [SOSPECHA_AL_TOPE],
   text: [
     'Sesenta y cuatro casas y tres ventanas con luz. La plaza es barro pisado, con un pozo en el medio y un poste de bandos torcido. Huele a leña mojada y el humo no sube: se queda a la altura de la cara. Falta el olor del pan.',
     {
@@ -334,7 +359,7 @@ export const a1_taberna = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi', 'orell'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_taberna' }],
   text: [
     'Bajo la viga maestra cuelga un ancla comida de óxido. Nadie levanta la cabeza. El humo del hogar baja y te deja en la boca un gusto a grasa de cordero y cerveza agria.',
@@ -543,7 +568,7 @@ export const a1_taberna_trastienda = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Barricas vacías puestas de canto, una pila de leña que no se secó nunca y una puerta de tablas que da al patio. El piso es de tierra apisonada y cede bajo el pie, como si abajo hubiera agua.',
     {
@@ -613,7 +638,7 @@ export const a1_orell_mesa = {
   kind: 'normal',
   place: 'taberna_ancla_seca',
   npcs: ['orell'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Orell no levanta la vista cuando te parás al lado de la mesa. Junto a la jarra está el gancho de la ballesta: lo abre y lo cierra con el pulgar mientras mira la puerta. Hace un ruido chico por debajo de todo.',
     {
@@ -714,7 +739,7 @@ export const a1_posada = {
   kind: 'rest',
   place: 'taberna_ancla_seca',
   npcs: ['mausi'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ removeCondition: 'all' }],
   text: [
     'Arriba hay tres cuartos y dos con la puerta abierta, que es como decir vacíos. El tuyo tiene un jergón, una palangana y una vela corta. La manta pesa y del lado de la pared está fría, y esa frialdad tarda en irse.',

@@ -387,7 +387,10 @@ describe('vado: las 46 escenas de la tabla §2', () => {
     ]);
   });
 
-  it('los dieciséis redirect de la campaña viven en dieciséis escenas y ninguno apunta a una escena con redirect (r01)', () => {
+  // 27 y no 16: la tarea 5 de la fase «objetivos» le agregó a las ONCE el floodgate de `sospecha`,
+  // que hasta entonces vivía sólo en el hub y por eso dependía de que el jugador pisara la plaza
+  // (diseño §3, corrección del 15 de septiembre). 16 + 11 = 27, en las mismas dieciséis escenas.
+  it('los veintisiete redirect de la campaña viven en dieciséis escenas y ninguno apunta a una escena con redirect (r01)', () => {
     const conRedirect = escenas.filter((s) => (s.redirect ?? []).length > 0);
     expect(conRedirect.map((s) => s.id).sort()).toEqual(
       [
@@ -399,7 +402,8 @@ describe('vado: las 46 escenas de la tabla §2', () => {
         'cl_dravos',
       ].sort(),
     );
-    expect(conRedirect.reduce((n, s) => n + (s.redirect ?? []).length, 0)).toBe(16);
+    expect(conRedirect).toHaveLength(16);
+    expect(conRedirect.reduce((n, s) => n + (s.redirect ?? []).length, 0)).toBe(27);
     for (const scene of conRedirect) {
       for (const r of scene.redirect ?? []) {
         expect(campaign.scenes[r.to]?.redirect, `${scene.id} -> ${r.to}`).toBeUndefined();
@@ -1195,7 +1199,10 @@ describe('vado: el acto 1 tiene salida (diseño §3)', () => {
 
   it('las once escenas del racimo que no son el hub declaran el redirect de las tres pistas', () => {
     for (const id of ONCE) {
-      expect(campaign.scenes[id]?.redirect, id).toEqual([{ when: LAS_TRES_PISTAS, to: 'c1_cuerpo' }]);
+      // Desde la tarea 5 llevan DOS: el floodgate del reloj primero y la salida del acto después.
+      // Lo que este caso fija es la segunda; el orden y el floodgate los fija su propio caso.
+      expect(campaign.scenes[id]?.redirect, id).toContainEqual({ when: LAS_TRES_PISTAS, to: 'c1_cuerpo' });
+      expect(campaign.scenes[id]?.redirect?.at(-1), id).toEqual({ when: LAS_TRES_PISTAS, to: 'c1_cuerpo' });
     }
   });
 
@@ -1476,32 +1483,72 @@ describe('vado: el objetivo en pantalla (diseño §2)', () => {
   });
 
   /**
-   * LA SEGUNDA MITAD DEL §7.3 —«llegar a la salida del acto en una cantidad acotada de pasos»— NO
-   * SE CUMPLE, y este caso fija por qué, medido con el motor y respetando lo que la pantalla
-   * habilita: el jugador que se queda insistiendo adentro de la casa de Berta llena el reloj de
-   * `sospecha` hasta el tope, y la puerta que lee ese reloj vive **sólo en el hub**, que ese bucle
-   * no pisa. Las tres bandas dan lo mismo y a 400 pasos no sale (informe de la tarea 5).
+   * EL FLOODGATE DEL RELOJ VIVE EN LAS DOCE, no sólo en el hub (diseño §3, corrección del 15 de
+   * septiembre). Hasta la tarea 5 vivía sólo en `a1_plaza`, y eso lo volvía *una puerta que dependía
+   * de pisar una baldosa*: el reloj se llena adentro de la casa de Berta, que no pisa la plaza.
+   * Medido antes y después, con las siete opciones de `a1_alcaldesa` como preferida × las tres
+   * bandas: **de 1 de 21 caminatas que salían del racimo se pasó a 11**.
    *
-   * No está acá para bendecir el encierro sino para que se vea de una: si algún día el floodgate de
-   * `sospecha` se muda a las once escenas —que es el arreglo de una línea que este caso propone—,
-   * este test se cae y hay que venir a leer esto.
+   * Este caso fija las dos mitades del arreglo, y se cae si alguien devuelve el redirect a la plaza
+   * sola o si le cambia el orden.
    */
-  it('insistiendo en la casa de Berta el reloj se llena, y la puerta que lo lee está en el hub', () => {
-    // La mitad estructural: de las doce escenas del racimo, la única que mira `sospecha` es el hub.
+  it('las doce escenas del racimo leen el reloj, y el floodgate va antes que la salida del acto', () => {
+    // 1. Las DOCE lo leen. Antes era `['a1_plaza']` y esa lista corta es justamente el bug.
     const leenElReloj = RACIMO_DEL_ACTO_1.filter((id) =>
       JSON.stringify(campaign.scenes[id]?.redirect ?? []).includes('sospecha'),
     );
-    expect(leenElReloj).toEqual(['a1_plaza']);
+    expect([...leenElReloj].sort()).toEqual([...RACIMO_DEL_ACTO_1].sort());
 
-    // La mitad jugada: doce pasos insistiendo, siempre lo primero que la pantalla habilita.
+    // 2. `a1_ronda` NO lo lleva: se redirigiría a sí misma.
+    expect(JSON.stringify(campaign.scenes['a1_ronda']?.redirect ?? [])).not.toContain('sospecha');
+    expect(campaign.scenes['a1_ronda']?.redirect ?? []).toEqual([]);
+
+    // 3. El ORDEN importa: en las once, el floodgate va PRIMERO. Con el reloj lleno y las tres
+    //    pistas puestas, la ronda te levanta antes de que puedas usar lo que averiguaste; al revés,
+    //    el reloj no cobraría nunca.
+    for (const id of RACIMO_DEL_ACTO_1.filter((x) => x !== 'a1_plaza')) {
+      expect(campaign.scenes[id]?.redirect, id).toEqual([
+        { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
+        { when: LAS_TRES_PISTAS, to: 'c1_cuerpo' },
+      ]);
+    }
+    expect(campaign.scenes['a1_plaza']?.redirect).toEqual([
+      { when: { clock: 'sospecha', gte: 4 }, to: 'a1_ronda' },
+    ]);
+
+    // 4. Y la prueba de que el orden es el que se dice: con las dos condiciones puestas, gana la ronda.
+    const conAmbas = partidaEn('a1_taberna', TRES_PISTAS_PUESTAS);
+    const temerarioYCompleto: GameState = {
+      ...conAmbas,
+      run: { ...conAmbas.run, clocks: { sospecha: 4 } },
+    };
+    expect(enter(vado, temerarioYCompleto, 'a1_taberna').run.sceneId).toBe('a1_ronda');
+    // Sin el reloj, la misma entrada cae en el cuello 1: las dos puertas siguen existiendo.
+    expect(enter(vado, conAmbas, 'a1_taberna').run.sceneId).toBe('c1_cuerpo');
+  });
+
+  /**
+   * El §7.3 caminado: el jugador que insiste adentro de la casa de Berta **sale sin pisar la plaza**.
+   * Es lo que el floodgate viejo no podía hacer.
+   *
+   * Y el límite, medido y dicho acá porque es lo honesto: **sale el que falla, no el que acierta**.
+   * De las 21 caminatas, salen 11; las 10 que no, terminan con el reloj en **0**, porque ninguna
+   * tirada de su ciclo cobra `sospecha` en la banda que toman —`revisar_el_escritorio` la cobra en
+   * parcial y en fallo, y **no** en éxito—. O sea que lo que queda no es la puerta mal puesta: es el
+   * «acertar te deja adentro» del §0.3, que es decisión de contenido.
+   */
+  it('insistiendo en la casa de Berta el reloj llena la puerta, y sale sin pasar por la plaza', () => {
     let state = jugar('guerrero', [
       'seguir_hasta_el_puente',
       'entregarle_la_carta_para_cruzar',
       'golpear_la_puerta_de_berta',
     ]);
-    for (let paso = 0; paso < 12; paso += 1) {
+    const pisadas = new Set<string>();
+    let pasos = 0;
+    while (RACIMO_DEL_ACTO_1.includes(state.run.sceneId as (typeof RACIMO_DEL_ACTO_1)[number]) && pasos < 40) {
+      pisadas.add(state.run.sceneId);
       const elegible = habilitadas(state);
-      expect(elegible.length, `paso ${paso} en ${state.run.sceneId}`).toBeGreaterThan(0);
+      expect(elegible.length, `paso ${pasos} en ${state.run.sceneId}`).toBeGreaterThan(0);
       const id = elegible[0] as string;
       const choice = vado.scenes[state.run.sceneId]?.choices.find((c) => c.id === id) as Choice;
       if (choice.roll !== undefined) {
@@ -1510,18 +1557,48 @@ describe('vado: el objetivo en pantalla (diseño §2)', () => {
       } else {
         state = choose(vado, state, id);
       }
-      expect(state.run.outcome, `paso ${paso}`).toBeUndefined();
-      expect(RACIMO_DEL_ACTO_1, `paso ${paso}`).toContain(state.run.sceneId);
+      expect(state.run.outcome, `paso ${pasos}`).toBeUndefined();
+      pasos += 1;
     }
-    expect(state.run.clocks['sospecha']).toBeGreaterThanOrEqual(4);
-    expect(state.run.sceneId).toBe('a1_alcaldesa');
-    // El cartel, mientras tanto, sigue diciendo a dónde ir: eso es lo que sí cambió.
-    expect(objetivoDe(state)).toBe('Todavía no viste el molino');
-
-    // Y lo que lo levanta es volver al hub, que es donde vive la puerta.
-    state = choose(vado, state, 'despedirte_hasta_manana');
+    // Sale, y en pocos pasos: once, contra los 400 que no alcanzaban antes.
+    expect(pasos).toBeLessThanOrEqual(15);
     expect(state.run.sceneId).toBe('a1_ronda');
+    expect(state.run.clocks['sospecha']).toBeGreaterThanOrEqual(4);
+    // Y LO QUE IMPORTA: salió sin pisar la plaza ni una vez. Con el floodgate sólo en el hub, este
+    // bucle daba 400 pasos sin salir.
+    expect([...pisadas].sort()).toEqual(['a1_alcaldesa', 'a1_berta_despacho', 'a1_ilse_patio']);
+    expect(pisadas.has('a1_plaza')).toBe(false);
+    // La plaza la pisó UNA vez, al llegar del puente, y el bucle no volvió nunca. Con el floodgate
+    // sólo en el hub esa única visita era toda la puerta que el jugador iba a tener.
+    expect(state.run.visited['a1_plaza']).toBe(1);
+    // El cartel acompaña el salto.
     expect(objetivoDe(state)).toBe('Averiguá quién lo tiró al agua');
+
+    // EL LÍMITE, fijado: el mismo bucle con la banda de ÉXITO no mueve el reloj y no sale. No es la
+    // puerta: es que nada la empuja. Si algún día el éxito del escritorio cobrara sospecha, este
+    // caso se cae y hay que venir a leer esto.
+    const exito = campaign.scenes['a1_berta_despacho']?.choices.find((c) => c.id === 'revisar_el_escritorio')
+      ?.roll?.outcomes.success;
+    expect(JSON.stringify(exito?.effects ?? [])).not.toContain('sospecha');
+    expect(exito?.effects).toEqual([{ set: 'run:berta_miente' }]);
+
+    let acertando = jugar('guerrero', [
+      'seguir_hasta_el_puente',
+      'entregarle_la_carta_para_cruzar',
+      'golpear_la_puerta_de_berta',
+    ]);
+    for (let i = 0; i < 20; i += 1) {
+      const id = habilitadas(acertando)[0] as string;
+      const choice = vado.scenes[acertando.run.sceneId]?.choices.find((c) => c.id === id) as Choice;
+      if (choice.roll !== undefined) {
+        const pendiente = beginRoll(vado, acertando, id);
+        acertando = commitRoll(vado, acertando, { ...pendiente, band: 'success' });
+      } else {
+        acertando = choose(vado, acertando, id);
+      }
+    }
+    expect(acertando.run.clocks['sospecha'] ?? 0).toBe(0);
+    expect(RACIMO_DEL_ACTO_1).toContain(acertando.run.sceneId);
   });
 
   /**

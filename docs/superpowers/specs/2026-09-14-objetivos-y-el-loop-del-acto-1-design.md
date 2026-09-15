@@ -276,36 +276,41 @@ Tres herramientas miraron este bug y ninguna lo vio. Eso se arregla acá:
    en verde, y verificado jugando.
 
 > **Corrección del 15 de septiembre, medida al cerrar la fase (tarea 5). El punto 3 tiene dos
-> mitades y sólo una se cumple.**
+> mitades: la primera se cumple entera y la segunda se cumple hasta donde el contenido la deja.**
 >
 > **La primera —«el bucle concreto no se puede caminar»— se cumple, y hay test.** El bucle que
 > Gabriel reportó era «Reclamar el adelanto» + «Revisar el escritorio». La primera de las dos se
 > apaga después de usarla (`requires: { not: run:cobro_el_adelanto }`, tarea 4): en la segunda vuelta
 > se ve, no se puede elegir, y dice por qué. Verificado con el motor y a mano en el navegador.
 >
-> **La segunda —«llegar a la salida del acto en una cantidad acotada de pasos»— NO se cumple, y no
-> puede cumplirse sin tocar el §3.** Medido con el motor real, respetando lo que `render()` habilita
-> —que es lo único que un jugador puede tocar—, con las **siete** opciones de `a1_alcaldesa` como
-> preferida × las **tres** bandas de la tirada, 400 pasos cada corrida: **sólo una de las veintiuna
-> combinaciones sale del racimo**; las otras veinte dan vueltas para siempre entre `a1_alcaldesa`,
-> `a1_berta_despacho` y `a1_ilse_patio`.
+> **La segunda —«llegar a la salida del acto en una cantidad acotada de pasos»— pasó de 1 de 21 a
+> 11 de 21**, y el salto lo dio mover el floodgate del reloj (ver la corrección del §3). Medido con
+> el motor real, respetando lo que `render()` habilita —que es lo único que un jugador puede tocar—,
+> con las **siete** opciones de `a1_alcaldesa` como preferida × las **tres** bandas, 400 pasos por
+> caminata:
 >
-> **El porqué es de una línea, y es el §0.3 otra vez:** insistir ahí adentro **llena el reloj de
-> `sospecha` hasta el tope** (llega a 4 en doce pasos con la banda de fallo) **y la puerta que lee ese
-> reloj vive sólo en `a1_plaza`**, que ese bucle no pisa: una puerta abierta y congelada, igual que el
-> ciclo `a1_molino_trampilla ↔ a1_molino_rueda` del diagnóstico. En cuanto el jugador vuelve al hub,
-> el juego lo levanta —cae en `a1_ronda`— y el cartel pasa al objetivo del acto 2.
+> | | antes | después |
+> |---|---:|---:|
+> | Caminatas que salen del racimo | **1 / 21** | **11 / 21** |
+> | … de ellas, por el floodgate del reloj | 1 | **9** |
+> | … por derrota (la partida termina) | 0 | 2 |
+> | Caminatas que llegan a tener el reloj en 4 | 1 | **9** |
+>
+> **Los dos números que importan son los últimos dos: 9 y 9.** *Cada vez que el reloj se llena, la
+> puerta se abre.* El floodgate no falla nunca. Y **las 10 caminatas que no salen terminan con el
+> reloj en 0**: medidas una por una, ninguna tirada de sus ciclos cobra `sospecha` en la banda que
+> toman —`revisar_el_escritorio` la cobra en parcial y en fallo, y **no en éxito**—. O sea que lo que
+> queda no es una puerta mal puesta: es el *«acertar te deja adentro»* del §0.3, que es decisión de
+> contenido y no de reparto de `redirect`. Siete de esas diez son, literalmente, la banda de éxito.
 >
 > **La regla 13 no lo ve, y no es un bug de la regla:** ella pregunta si del racimo sale *alguna*
 > arista de opción, y desde la tarea 3 sale una (`bajar_al_rio`). «Que el jugador que insiste salga»
 > es una pregunta distinta y más fuerte.
 >
-> **El arreglo de una línea existe y la tarea de cierre no lo hizo:** poner el `redirect` de
-> `sospecha >= 4` en las once escenas del racimo, igual que se hizo con el de las tres pistas. El §3
-> dice, textual, que ese `redirect` **«se queda como está»**, así que es decisión de autor. Queda
-> fijado por un test (`tests/content/vado.test.ts`, «insistiendo en la casa de Berta el reloj se
-> llena, y la puerta que lo lee está en el hub»): si algún día se muda, ese test se cae y manda a
-> leer esta nota.
+> Queda fijado por dos tests (`tests/content/vado.test.ts`): uno estructural —las doce leen el reloj,
+> el floodgate va primero, `a1_ronda` no lo lleva— y uno jugado, que sale del bucle de Berta **sin
+> pisar la plaza ni una vez** y que además fija el límite: el mismo bucle acertando siempre no mueve
+> el reloj.
 >
 > **Y un hallazgo del camino, que vale para todo el repo:** `choose()` **no mira `requires`** —lo
 > mira `render()`, que es quien dibuja—. El caso que la tarea 3 dejó como prueba estrella de la fase

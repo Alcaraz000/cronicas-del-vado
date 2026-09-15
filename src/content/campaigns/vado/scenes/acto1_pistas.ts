@@ -15,6 +15,16 @@ const AL_CUELLO_1 = {
 } satisfies Redirect;
 
 /**
+ * EL FLOODGATE DEL RELOJ. Misma historia que `AL_CUELLO_1`: es el mismo objeto que en
+ * `acto1_pueblo.ts` y ahí está la explicación entera —por qué va en las DOCE y no en una, por qué va
+ * primero, y por qué acá el hub sí lo lleva—. Si se toca allá, se toca acá.
+ */
+const SOSPECHA_AL_TOPE = {
+  when: { clock: 'sospecha', gte: 4 },
+  to: 'a1_ronda',
+} satisfies Redirect;
+
+/**
  * Acto 1 — las dos puertas de pista que no son la taberna: **la casa de la alcaldesa**
  * (`a1_alcaldesa`, `a1_berta_despacho`, `a1_ilse_patio`) y **el molino de Tomé**
  * (`a1_molino`, `a1_molino_pell`, `a1_molino_trampilla`, `a1_molino_rueda`).
@@ -171,7 +181,7 @@ export const a1_alcaldesa = {
   // Berta e Ilse están las dos en toda ruta que entra acá (outline §2). Declararlas deriva
   // `char:met.berta` y `char:met.ilse`.
   npcs: ['berta', 'ilse'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_alcaldesa' }],
   // Piso dramático (biblia §2.3): dos PNJ declarados y cero tiradas. Es un careo, no tránsito.
   text: [
@@ -333,7 +343,7 @@ export const a1_berta_despacho = {
   kind: 'normal',
   place: 'casa_de_berta',
   npcs: ['berta'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Cuatro mapas del río tapan la pared, uno encima del otro. El de arriba es el más nuevo. Berta escribe mientras habla: la pluma raspa y se para en cada cifra.',
     {
@@ -434,7 +444,7 @@ export const a1_ilse_patio = {
   kind: 'normal',
   place: 'casa_de_berta',
   npcs: ['ilse'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Ilse ya cargó media carretilla y no espera a que le ofrezcas. Te pone un saco en los brazos: el asa de soga te deja una marca caliente en la palma.',
     {
@@ -553,7 +563,7 @@ export const a1_molino = {
   kind: 'normal',
   place: 'molino_de_tome',
   npcs: ['pell'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ set: 'run:pista_molino' }],
   text: [
     'Bajo el piso de tablones el caz golpea. El golpe te sube por las rodillas cada vez que la rueda pasa. La muela está quieta y hay harina vieja en las vigas.',
@@ -718,7 +728,7 @@ export const a1_molino_pell = {
   place: 'molino_de_tome',
   // Se entra solo por `a1_molino.hablar_con_el_chico`, así que Pell está en toda ruta que entra.
   npcs: ['pell'],
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Se saca el casco y le queda una marca roja en la frente. Tendrá diecisiete. Cuando respirás por la boca, la harina vieja se te pega al paladar.',
     {
@@ -843,7 +853,7 @@ export const a1_molino_trampilla = {
   place: 'molino_de_tome',
   // La `palanca_de_molino` se consume al bajar por cualquier vía: queda trabando la tapa
   // (biblia §5). Un `take` de algo que no tenés es inocuo, así que va sin condición.
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   onEnter: [{ take: 'palanca_de_molino' }],
   text: [
     'Una tapa de roble a ras del piso, con herraje y sin candado. Pesa lo que una puerta y no queda abierta sola: la calzás. Por la juntura sube aire a piedra mojada y hierro frío.',
@@ -958,7 +968,7 @@ export const a1_molino_rueda = {
   id: 'a1_molino_rueda',
   kind: 'normal',
   place: 'molino_de_tome',
-  redirect: [AL_CUELLO_1],
+  redirect: [SOSPECHA_AL_TOPE, AL_CUELLO_1],
   text: [
     'Afuera, del lado del caz, la rueda gira vacía. El eje se queja una vez por vuelta, siempre en el mismo punto, y entre queja y queja entra el agua en los álabes.',
     'El agua viene del azud por un canal de tablones y sale por debajo del molino. Entre dos álabes hay algo trabado que sube con la rueda y vuelve a bajar.',

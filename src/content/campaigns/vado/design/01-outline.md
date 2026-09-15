@@ -183,6 +183,16 @@ Lo que decía acá —dos `redirect` en el hub, el segundo con `{ visited: 'a1_p
 
 El precio, anotado para que se vea: la banda de la biblia §2.3 para un desenlace es 20-60 palabras, así que estas catorce abren **un aviso** de `lint:text` (143 → 144) que dice eso mismo. Para llegar a las veinte hay que liberar seis palabras en otra escena.
 
+#### 1.2.3 Corrección del 15 de septiembre de 2026 — el floodgate del reloj también dependía de pisar la plaza (tarea 5)
+
+Arriba, el §1.2 decía **«`a1_plaza` tiene un solo `redirect`»** y lo daba por bueno. **El que estaba mal era el reparto:** ese floodgate de `{ clock: 'sospecha', gte: 4 }` → `a1_ronda` vivía **sólo en el hub**, o sea que era exactamente lo mismo que esta fase vino a arreglar — *una puerta que depende de pisar una baldosa no es una puerta*.
+
+**Medido con el motor real**, con las siete opciones de `a1_alcaldesa` como preferida × las tres bandas de la tirada, 400 pasos por caminata y respetando lo que `render()` habilita: **antes salía 1 de 21 caminatas; ahora salen 11**. El reloj se llena adentro de la casa de Berta —llega a 4 en once pasos— y la puerta que lo leía estaba en la plaza, que ese bucle no pisa.
+
+Lo implementado: **las once escenas del racimo que no son el hub ganan el floodgate en la posición [0]**, delante de la salida del acto, y **el hub se lo queda**. Es al revés que con el `redirect` de las tres pistas, y no es una inconsistencia: aquél tuvo que irse del hub porque si no `bajar_al_rio` habría sido contenido muerto, y **este floodgate no tiene ninguna opción que dejar muerta** —nadie elige que lo arresten—. Medido y no asumido: ninguna opción del hub menciona `sospecha` ni `a1_ronda`, y con el floodgate en las doce `npm run validate` sigue en **0 errores**. `a1_ronda` no lo lleva, porque se redirigiría a sí misma.
+
+**Lo que queda, dicho con el número:** de las 10 caminatas que siguen sin salir, **las 10 terminan con el reloj en 0**. Ninguna tirada de sus ciclos cobra `sospecha` en la banda que toman —`revisar_el_escritorio` la cobra en parcial y en fallo, y **no en éxito**—. O sea que ya no es la puerta: es el *«acertar te deja adentro»* del diagnóstico, y eso es decisión de contenido, no de reparto de `redirect`.
+
 ### 1.3 Cuello 1, transición y acto 2
 
 ```mermaid
@@ -654,20 +664,21 @@ Regla por regla, leídas de `tools/lib/validate/rules/`. Lo que dice cada punto 
 
 **Destinos.** Las 46 escenas de la tabla §2 son el universo cerrado de ids. Ningún `outcome.next` ni ningún `redirect.to` apunta fuera de esa lista; `campaign.start = 'p_camino'`.
 
-**Los `redirect` de la campaña.** Eran 7 en 6 escenas; el de `a1_molino_pell` se borró (§7 conflicto 5) y quedaron 6 en 5; la fase «objetivos» le sacó uno al hub y le puso el de las tres pistas a las otras once escenas del acto 1, así que hoy son **16 en 16 escenas** (§1.2.1):
+**Los `redirect` de la campaña.** Eran 7 en 6 escenas; el de `a1_molino_pell` se borró (§7 conflicto 5) y quedaron 6 en 5; la fase «objetivos» le sacó uno al hub y le puso el de las tres pistas a las otras once escenas del acto 1 (16 en 16, §1.2.1), y en su tarea 5 le copió a esas mismas once el floodgate de `sospecha`, así que hoy son **27 en 16 escenas** (§1.2.3):
 
 | # | Escena | `when` | `to` | ¿el destino tiene `redirect`? |
 |---|---|---|---|---|
 | 1 | `a1_plaza` | `{ clock: 'sospecha', gte: 4 }` | `a1_ronda` | no |
-| 2 | las **once** del acto 1 que no son el hub (`a1_taberna`, `a1_taberna_trastienda`, `a1_orell_mesa`, `a1_alcaldesa`, `a1_berta_despacho`, `a1_ilse_patio`, `a1_molino`, `a1_molino_pell`, `a1_molino_trampilla`, `a1_molino_rueda`, `a1_posada`) | `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }` | `c1_cuerpo` | no |
-| 3 | `c1_refriega` | `{ clock: 'pelea', gte: 2 }` | `a2_amanecer` | no |
-| 4 | `a2_ley_guardia` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
-| 5 | `a2_fuera_refugio` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
-| 6 | `cl_dravos` | `{ clock: 'pelea', gte: 3 }` | `cl_desenlace` | no |
+| 2 | las **once** del acto 1 que no son el hub (`a1_taberna`, `a1_taberna_trastienda`, `a1_orell_mesa`, `a1_alcaldesa`, `a1_berta_despacho`, `a1_ilse_patio`, `a1_molino`, `a1_molino_pell`, `a1_molino_trampilla`, `a1_molino_rueda`, `a1_posada`), **entrada [0]** | `{ clock: 'sospecha', gte: 4 }` | `a1_ronda` | no |
+| 3 | las mismas once, **entrada [1]** | `{ all: [pista_taberna, pista_alcaldesa, pista_molino] }` | `c1_cuerpo` | no |
+| 4 | `c1_refriega` | `{ clock: 'pelea', gte: 2 }` | `a2_amanecer` | no |
+| 5 | `a2_ley_guardia` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
+| 6 | `a2_fuera_refugio` | `{ clock: 'sospecha', gte: 4 }` | `c2_anochece` | no |
+| 7 | `cl_dravos` | `{ clock: 'pelea', gte: 3 }` | `cl_desenlace` | no |
 
-**`a1_plaza.redirect` quedó con uno solo** (§1.2.1), así que el contrato de orden que había acá ya no tiene dos entradas que ordenar.
+**`a1_plaza.redirect` quedó con uno solo** (§1.2.1). El contrato de orden se mudó a las **once**, que sí tienen dos: el floodgate de `sospecha` va en la posición **[0]** y la salida del acto en la **[1]**, para que la ronda te levante *antes* de que puedas usar lo que averiguaste (§1.2.3).
 
-**Aciclicidad, demostrada por construcción:** los destinos (`a1_ronda`, `c1_cuerpo` ×12, `a2_amanecer`, `c2_anochece` ×2, `cl_desenlace`) **no declaran `redirect` propio**. El grafo de `redirect` tiene profundidad 1: es imposible que haya ciclo, y `redirectCycles` cierra en negro en un paso. El `maxRedirects: 8` del catálogo no se acerca ni de lejos.
+**Aciclicidad, demostrada por construcción:** los destinos (`a1_ronda` ×12, `c1_cuerpo` ×11, `a2_amanecer`, `c2_anochece` ×2, `cl_desenlace`) **no declaran `redirect` propio** — y `a1_ronda` menos que ninguno, porque si llevara el floodgate se redirigiría a sí misma. El grafo de `redirect` tiene profundidad 1: es imposible que haya ciclo, y `redirectCycles` cierra en negro en un paso. El `maxRedirects: 8` del catálogo no se acerca ni de lejos.
 
 **Cuidado con lo que r01 NO mira.** `redirectCycles` solo recorre `scene.redirect`; **los bucles de `outcome` no los mira ninguna regla**. Los tres bucles de `outcome` del grafo son `a1_plaza ↔ sus puertas` (más las dos opciones Fluff que vuelven al propio hub), `c1_refriega → c1_refriega` y `cl_dravos → cl_dravos`. Desde la fase «objetivos» sí los mira **r13** (`r13_progreso`), que es la regla que habría atrapado el racimo del acto 1 el día que se escribió. Los tres tienen salida garantizada por `redirect` sobre reloj o por opción libre, y `a1_plaza`, `a1_ronda`, `c1_cuerpo`, `a2_amanecer`, `c2_orilla`, `c2_otra_orilla`, `cl_molino`, `cl_dravos`, `cl_halvar` y `cl_desenlace` llevan `onEnter` con hito o reloj. Son invariantes de diseño, no de validador: van al test de contenido (biblia §6.3).
 
@@ -995,7 +1006,7 @@ Lo que la Fase C tiene que respetar aunque no lea nada más de este documento:
 4. **Una sola escena `lethal`**, `c2_vado_crecido`, con **una sola entrada**: `c2_orilla.bajar_al_vado`, `outcome` sin `roll`. `lethalScenes: 1`.
 5. **Ninguna dificultad `extrema`.** `muy_dificil` solo en las dos tiradas letales.
 6. **Los cuatro finales sin una sola condición de clase en su camino**, y ninguno condicionado a llevar el `sello_del_vado` encima: la piedra está en el molino en toda ruta y el objeto es precio, no llave.
-7. **`a1_plaza.redirect` quedó en uno solo:** `sospecha >= 4` → `a1_ronda`. El cierre del acto es la opción `bajar_al_rio` del hub más el `redirect` de las tres pistas en las otras once escenas del racimo (§1.2.1).
+7. **`a1_plaza.redirect` quedó en uno solo:** `sospecha >= 4` → `a1_ronda`. El cierre del acto es la opción `bajar_al_rio` del hub más el `redirect` de las tres pistas en las otras once escenas del racimo (§1.2.1). Esas once llevan **además** el mismo floodgate de `sospecha`, en la posición [0] (§1.2.3).
 8. **`visited`, `knows`, `met` y `endingSeen` solo en párrafos de narrador** — también cuando el que habla es Orell, Ilse o Halvar, aunque r08 no lo frene. **Excepción:** `visited` sí puede ir en boca de un PNJ, porque es de esta misma partida; y **nunca** una variante `visited` en una escena que se visita una sola vez.
 9. **Un PNJ va en `scene.npcs` solo si está presente en toda ruta que entra a la escena.** Declararlo deriva `char:met.<id>` aunque no hable. Presencia condicional = narrador sin `speaker`.
 10. **Ningún `set` ni `clear` sobre `char:met.*`, `char:place.*`, `char:origen.*`, `char:leyenda` ni `world:caido.*`.**
